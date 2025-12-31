@@ -1,0 +1,1691 @@
+<?php
+// pages/tickets/create.php
+
+// Include authentication
+require_once '../../includes/auth.php';
+
+// Check if user is logged in
+requireLogin();
+
+// Get current user
+$current_user = getCurrentUser();
+$pdo = getDBConnection();
+
+$error = '';
+$success = '';
+
+// Configuration for file uploads
+$MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB in bytes
+$MAX_TOTAL_SIZE = 500 * 1024 * 1024; // 500MB total limit
+$ALLOWED_EXTENSIONS = [
+    'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp',
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+    'txt', 'csv', 'rtf', 'md',
+    'zip', 'rar', '7z', 'tar', 'gz',
+    'mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv',
+    'mp3', 'wav', 'ogg',
+    'log', 'config', 'ini', 'xml', 'json', 'yaml', 'yml',
+    'sql', 'dump', 'pcap', 'cap',
+];
+
+// Get form data (for repopulating on error)
+$form_data = [
+    'title' => $_POST['title'] ?? '',
+    'description' => $_POST['description'] ?? '',
+    'client_id' => $_POST['client_id'] ?? '',
+    'location_id' => $_POST['location_id'] ?? '',
+    'location_manual' => $_POST['location_manual'] ?? '',
+    'category' => $_POST['category'] ?? 'General',
+    'priority' => $_POST['priority'] ?? 'Medium',
+    'assigned_to' => $_POST['assigned_to'] ?? '',
+    'estimated_hours' => $_POST['estimated_hours'] ?? '',
+    'work_start_time' => $_POST['work_start_time'] ?? '',
+    'work_pattern' => $_POST['work_pattern'] ?? 'single',
+    'expected_days' => $_POST['expected_days'] ?? 1,
+    'work_date' => $_POST['work_date'] ?? date('Y-m-d'),
+    'log_start_time' => $_POST['log_start_time'] ?? '09:00',
+    'log_end_time' => $_POST['log_end_time'] ?? '17:00',
+    'work_description' => $_POST['work_description'] ?? ''
+];
+
+// Get clients for dropdown
+$clients = [];
+$staff_members = [];
+$client_locations = [];
+
+try {
+    // Get clients (all for managers/admins, only assigned for staff)
+    if (isManager() || isAdmin()) {
+        $stmt = $pdo->query("SELECT id, company_name FROM clients ORDER BY company_name");
+        $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        // Staff can only create tickets for their assigned clients
+        $staff_id = $current_user['staff_profile']['id'] ?? 0;
+        if ($staff_id) {
+            $clients = $pdo->query("SELECT id, company_name FROM clients ORDER BY company_name LIMIT 50")->fetchAll();
+        }
+    }
+    
+    // Get staff members for assignment
+    $staff_members = $pdo->query("SELECT id, full_name FROM staff_profiles WHERE employment_status = 'Active' ORDER BY full_name")->fetchAll();
+    
+    // Get all locations
+    $client_locations = $pdo->query("SELECT id, client_id, location_name FROM client_locations ORDER BY location_name")->fetchAll();
+    
+} catch (Exception $e) {
+    $error = "Error loading data: " . $e->getMessage();
+}
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        // Validate required fields
+        $required_fields = ['title', 'client_id'];
+        foreach ($required_fields as $field) {
+            if (empty($_POST[$field])) {
+                throw new Exception("Please fill in all required fields");
+            }
+        }
+        
+        // Validate location (either dropdown or manual)
+        if (empty($_POST['location_id']) && empty($_POST['location_manual'])) {
+            throw new Exception("Please either select a location or enter one manually");
+        }
+        
+        // Generate ticket number
+        $ticket_number = 'TKT-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+        
+        // Get creator ID
+        $created_by = $current_user['id'];
+        
+        // Prepare ticket data
+        $ticket_data = [
+            'ticket_number' => $ticket_number,
+            'title' => $_POST['title'],
+            'description' => $_POST['description'] ?? '',
+            'client_id' => $_POST['client_id'],
+            'location_id' => !empty($_POST['location_id']) ? $_POST['location_id'] : null,
+            'location_manual' => !empty($_POST['location_manual']) ? $_POST['location_manual'] : null,
+            'category' => $_POST['category'] ?? 'General',
+            'priority' => $_POST['priority'],
+            'status' => 'Open',
+            'assigned_to' => !empty($_POST['assigned_to']) ? $_POST['assigned_to'] : null,
+            'created_by' => $created_by,
+            'estimated_hours' => !empty($_POST['estimated_hours']) ? $_POST['estimated_hours'] : null,
+            'work_start_time' => !empty($_POST['work_start_time']) ? $_POST['work_start_time'] : null
+        ];
+        
+        // Start transaction
+        $pdo->beginTransaction();
+        
+        // Insert ticket and RETURN the UUID
+        $stmt = $pdo->prepare("
+            INSERT INTO tickets (
+                ticket_number, title, description, client_id, location_id, location_manual,
+                category, priority, status, assigned_to, created_by, estimated_hours, work_start_time
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING id
+        ");
+        
+        $stmt->execute([
+            $ticket_data['ticket_number'],
+            $ticket_data['title'],
+            $ticket_data['description'],
+            $ticket_data['client_id'],
+            $ticket_data['location_id'],
+            $ticket_data['location_manual'],
+            $ticket_data['category'],
+            $ticket_data['priority'],
+            $ticket_data['status'],
+            $ticket_data['assigned_to'],
+            $ticket_data['created_by'],
+            $ticket_data['estimated_hours'],
+            $ticket_data['work_start_time']
+        ]);
+        
+        // Get the UUID from the RETURNING clause
+        $ticket_result = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$ticket_result || !isset($ticket_result['id'])) {
+            throw new Exception("Failed to create ticket");
+        }
+        $ticket_id = $ticket_result['id'];
+        
+        // Handle initial work log for multi-day work
+        if ($_POST['work_pattern'] === 'multi' && !empty($_POST['work_description'])) {
+            // Calculate hours for initial work log
+            $start_time = $_POST['log_start_time'];
+            $end_time = $_POST['log_end_time'];
+            $work_date = $_POST['work_date'];
+            
+            // Parse times and calculate hours
+            $start = DateTime::createFromFormat('H:i', $start_time);
+            $end = DateTime::createFromFormat('H:i', $end_time);
+            
+            // Handle overnight shifts
+            if ($end < $start) {
+                $end->modify('+1 day');
+            }
+            
+            $interval = $start->diff($end);
+            $total_hours = $interval->h + ($interval->i / 60);
+            
+            // Insert work log
+            $stmt = $pdo->prepare("
+                INSERT INTO work_logs (ticket_id, staff_id, work_date, start_time, end_time, total_hours, description, work_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            
+            $staff_id = $_POST['assigned_to'] ?? $current_user['staff_profile']['id'] ?? null;
+            $stmt->execute([
+                $ticket_id,
+                $staff_id,
+                $work_date,
+                $start_time,
+                $end_time,
+                $total_hours,
+                $_POST['work_description'],
+                'Regular'
+            ]);
+            
+            // Update ticket with initial work time
+            $stmt = $pdo->prepare("UPDATE tickets SET total_work_hours = ?, work_start_time = ? WHERE id = ?");
+            $work_start_datetime = "$work_date $start_time";
+            $stmt->execute([$total_hours, $work_start_datetime, $ticket_id]);
+        }
+        
+        // Handle file uploads
+        $uploaded_files = [];
+        $total_upload_size = 0;
+        
+        if (!empty($_FILES['attachments']['name'][0])) {
+            // Create uploads directory if it doesn't exist
+            $upload_dir = '../../uploads/tickets/' . $ticket_id . '/';
+            if (!file_exists($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
+            
+            // Add .htaccess to protect uploads
+            $htaccess_content = "Order Deny,Allow\nDeny from all\n<FilesMatch \"\.(jpg|jpeg|png|gif|pdf|doc|docx|xls|xlsx)$\">\nAllow from all\n</FilesMatch>\n";
+            file_put_contents($upload_dir . '.htaccess', $htaccess_content);
+            
+            // Process each file
+            $file_count = count($_FILES['attachments']['name']);
+            for ($i = 0; $i < $file_count; $i++) {
+                if ($_FILES['attachments']['error'][$i] === UPLOAD_ERR_OK) {
+                    $file_name = $_FILES['attachments']['name'][$i];
+                    $file_tmp = $_FILES['attachments']['tmp_name'][$i];
+                    $file_size = $_FILES['attachments']['size'][$i];
+                    $file_type = $_FILES['attachments']['type'][$i];
+                    
+                    // Check total size
+                    $total_upload_size += $file_size;
+                    if ($total_upload_size > $MAX_TOTAL_SIZE) {
+                        throw new Exception("Total upload size exceeds " . formatBytes($MAX_TOTAL_SIZE));
+                    }
+                    
+                    // Validate file size
+                    if ($file_size > $MAX_FILE_SIZE) {
+                        throw new Exception("File '{$file_name}' exceeds maximum size of " . formatBytes($MAX_FILE_SIZE));
+                    }
+                    
+                    // Get file extension
+                    $file_ext = pathinfo($file_name, PATHINFO_EXTENSION);
+                    $file_ext_lower = strtolower($file_ext);
+                    
+                    // Validate file type
+                    if (!in_array($file_ext_lower, $ALLOWED_EXTENSIONS)) {
+                        throw new Exception("File type '{$file_ext}' is not allowed for '{$file_name}'. Allowed: " . implode(', ', $ALLOWED_EXTENSIONS));
+                    }
+                    
+                    // Security check: validate MIME type
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mime_type = finfo_file($finfo, $file_tmp);
+                    finfo_close($finfo);
+                    
+                    // Generate unique filename
+                    $unique_name = uniqid() . '_' . time() . '.' . $file_ext_lower;
+                    $file_path = $upload_dir . $unique_name;
+                    
+                    // Move uploaded file
+                    if (!move_uploaded_file($file_tmp, $file_path)) {
+                        throw new Exception("Failed to upload file: {$file_name}. Please check directory permissions.");
+                    }
+                    
+                    // Save file info to database
+                    $stmt = $pdo->prepare("
+                        INSERT INTO ticket_attachments 
+                        (ticket_id, original_filename, stored_filename, file_path, file_type, file_size, uploaded_by)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    
+                    $stmt->execute([
+                        $ticket_id,
+                        $file_name,
+                        $unique_name,
+                        str_replace('../../', '', $file_path),
+                        $mime_type,
+                        $file_size,
+                        $created_by
+                    ]);
+                    
+                    $uploaded_files[] = [
+                        'original_name' => $file_name,
+                        'saved_name' => $unique_name,
+                        'file_path' => $file_path,
+                        'file_type' => $mime_type,
+                        'file_size' => $file_size
+                    ];
+                } elseif ($_FILES['attachments']['error'][$i] !== UPLOAD_ERR_NO_FILE) {
+                    // Handle upload errors
+                    $upload_errors = [
+                        UPLOAD_ERR_INI_SIZE => "File '{$file_name}' exceeds php.ini upload_max_filesize",
+                        UPLOAD_ERR_FORM_SIZE => "File '{$file_name}' exceeds form MAX_FILE_SIZE",
+                        UPLOAD_ERR_PARTIAL => "File '{$file_name}' was only partially uploaded",
+                        UPLOAD_ERR_NO_TMP_DIR => "Missing temporary folder",
+                        UPLOAD_ERR_CANT_WRITE => "Failed to write file to disk",
+                        UPLOAD_ERR_EXTENSION => "A PHP extension stopped the file upload"
+                    ];
+                    
+                    $error_msg = $upload_errors[$_FILES['attachments']['error'][$i]] ?? "Unknown upload error";
+                    throw new Exception($error_msg);
+                }
+            }
+        }
+        
+        // Create ticket log
+        $stmt = $pdo->prepare("
+            INSERT INTO ticket_logs (ticket_id, staff_id, action, description) 
+            VALUES (?, ?, ?, ?)
+        ");
+        
+        $staff_id = $current_user['staff_profile']['id'] ?? null;
+        $action = 'Ticket Created';
+        $description = "Ticket #{$ticket_number} created by " . ($current_user['staff_profile']['full_name'] ?? $current_user['email']);
+        
+        // Add location info
+        if (!empty($ticket_data['location_manual'])) {
+            $description .= " at location: " . $ticket_data['location_manual'];
+        } elseif (!empty($ticket_data['location_id'])) {
+            $description .= " at selected location";
+        }
+        
+        // Add estimated hours
+        if (!empty($ticket_data['estimated_hours'])) {
+            $description .= ". Estimated: " . $ticket_data['estimated_hours'] . " hours";
+        }
+        
+        if (!empty($uploaded_files)) {
+            $description .= " with " . count($uploaded_files) . " attachment(s)";
+        }
+        
+        $stmt->execute([$ticket_id, $staff_id, $action, $description]);
+        
+        // Commit transaction
+        $pdo->commit();
+        
+        // Set success message
+        $success_msg = "Ticket #{$ticket_number} created successfully!";
+        if (!empty($uploaded_files)) {
+            $success_msg .= " (" . count($uploaded_files) . " file(s) uploaded)";
+        }
+        if ($_POST['work_pattern'] === 'multi') {
+            $success_msg .= " Initial work log added.";
+        }
+        
+        // Store success in session for display after redirect
+        $_SESSION['success_message'] = $success_msg;
+        
+        // Redirect to ticket view
+        header('Location: view.php?id=' . $ticket_id);
+        exit;
+        
+    } catch (Exception $e) {
+        // Rollback transaction on error
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $error = $e->getMessage();
+        // Keep form data for repopulation
+        $form_data = $_POST;
+        
+        // Log error for debugging
+        error_log("Ticket creation error: " . $error);
+    }
+}
+
+// Helper function to format bytes
+function formatBytes($bytes, $precision = 2) {
+    if ($bytes === 0) return '0 Bytes';
+    $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    $bytes = max($bytes, 0);
+    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+    $pow = min($pow, count($units) - 1);
+    $bytes /= pow(1024, $pow);
+    return round($bytes, $precision) . ' ' . $units[$pow];
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Ticket | MSP Application</title>
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .form-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        
+        .form-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .form-section h4 {
+            color: #004E89;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .required-label::after {
+            content: " *";
+            color: #dc3545;
+        }
+        
+        .priority-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 500;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .priority-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .priority-badge.selected {
+            border-color: #004E89;
+        }
+        
+        .badge-critical { background: #dc3545; color: white; }
+        .badge-high { background: #fd7e14; color: white; }
+        .badge-medium { background: #ffc107; color: #212529; }
+        .badge-low { background: #6c757d; color: white; }
+        
+        .char-count {
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* File Upload Styles */
+        .file-upload-container {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+        
+        .file-upload-container:hover {
+            border-color: #004E89;
+            background: #e8f4fd;
+        }
+        
+        .file-upload-container.dragover {
+            border-color: #FF6B35;
+            background: #fff9f7;
+            transform: scale(1.02);
+        }
+        
+        .file-upload-icon {
+            font-size: 48px;
+            color: #004E89;
+            margin-bottom: 15px;
+        }
+        
+        .file-list {
+            margin-top: 20px;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        
+        .file-icon {
+            font-size: 20px;
+            color: #666;
+        }
+        
+        .file-details {
+            flex: 1;
+        }
+        
+        .file-name {
+            font-weight: 500;
+            margin-bottom: 2px;
+            word-break: break-all;
+        }
+        
+        .file-size {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .file-remove {
+            color: #dc3545;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 5px;
+        }
+        
+        .file-remove:hover {
+            color: #bd2130;
+        }
+        
+        .file-type-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+        
+        .badge-image { background: #4CAF50; color: white; }
+        .badge-pdf { background: #f44336; color: white; }
+        .badge-doc { background: #2196F3; color: white; }
+        .badge-excel { background: #4CAF50; color: white; }
+        .badge-zip { background: #FF9800; color: white; }
+        .badge-text { background: #9E9E9E; color: white; }
+        .badge-video { background: #E91E63; color: white; }
+        .badge-audio { background: #9C27B0; color: white; }
+        .badge-other { background: #607D8B; color: white; }
+        
+        /* Progress bar */
+        .upload-progress {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .progress-container {
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            height: 20px;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* Large file warning */
+        .large-file-warning {
+            background: #ffebee;
+            border: 1px solid #ffcdd2;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #c62828;
+        }
+        
+        /* Work pattern toggle */
+        .work-pattern-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .pattern-option {
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        .pattern-option:hover {
+            border-color: #004E89;
+            background: #e8f4fd;
+        }
+        
+        .pattern-option.selected {
+            border-color: #004E89;
+            background: #e8f4fd;
+        }
+        
+        .pattern-icon {
+            font-size: 24px;
+            color: #004E89;
+            margin-bottom: 10px;
+        }
+        
+        /* Work log section */
+        .work-log-section {
+            background: #fff9f7;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .hours-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #004E89;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .form-card {
+                padding: 20px;
+            }
+            
+            .priority-badge {
+                display: block;
+                margin-right: 0;
+                text-align: center;
+            }
+            
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .file-info {
+                width: 100%;
+            }
+            
+            .file-remove {
+                align-self: flex-end;
+            }
+            
+            .pattern-option {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Include Sidebar -->
+        <?php 
+        $sidebar = '
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-network-wired"></i> MSP Portal</h3>
+                <p>' . htmlspecialchars($current_user['staff_profile']['full_name'] ?? $current_user['email']) . '</p>
+                <span class="user-role">' . ucfirst(str_replace('_', ' ', $current_user['user_type'])) . '</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="../../dashboard.php">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a></li>
+                    
+                    <li><a href="index.php">
+                        <i class="fas fa-ticket-alt"></i> Tickets
+                    </a></li>
+                    
+                    <li><a href="create.php" class="active">
+                        <i class="fas fa-plus-circle"></i> Create Ticket
+                    </a></li>
+                    
+                    <li><a href="../clients/index.php">
+                        <i class="fas fa-building"></i> Clients
+                    </a></li>
+                    
+                    <li><a href="../../logout.php">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>';
+        echo $sidebar;
+        ?>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1><i class="fas fa-plus-circle"></i> Create New Ticket</h1>
+                <a href="index.php" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Tickets
+                </a>
+            </div>
+            
+            <!-- Error Message -->
+            <?php if ($error): ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-triangle"></i>
+                <?php echo htmlspecialchars($error); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <?php endif; ?>
+            
+            <!-- Large File Warning -->
+            <div class="large-file-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Note:</strong> Large files (up to 200MB each) are supported. 
+                Total upload limit is 500MB. Ensure PHP configuration allows large uploads.
+            </div>
+            
+            <!-- Create Ticket Form -->
+            <div class="form-card">
+                <form method="POST" id="ticketForm" enctype="multipart/form-data">
+                    <!-- Basic Information Section -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-info-circle"></i> Basic Information</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label required-label">Ticket Title</label>
+                                    <input type="text" class="form-control" id="title" name="title" 
+                                           value="<?php echo htmlspecialchars($form_data['title']); ?>"
+                                           required placeholder="Brief description of the issue" maxlength="150">
+                                    <div class="char-count" id="titleCount">0/150 characters</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">Category</label>
+                                    <select class="form-select" id="category" name="category">
+                                        <option value="General" <?php echo $form_data['category'] == 'General' ? 'selected' : ''; ?>>General</option>
+                                        <option value="Network" <?php echo $form_data['category'] == 'Network' ? 'selected' : ''; ?>>Network</option>
+                                        <option value="Hardware" <?php echo $form_data['category'] == 'Hardware' ? 'selected' : ''; ?>>Hardware</option>
+                                        <option value="Software" <?php echo $form_data['category'] == 'Software' ? 'selected' : ''; ?>>Software</option>
+                                        <option value="Email" <?php echo $form_data['category'] == 'Email' ? 'selected' : ''; ?>>Email</option>
+                                        <option value="Security" <?php echo $form_data['category'] == 'Security' ? 'selected' : ''; ?>>Security</option>
+                                        <option value="CCTV" <?php echo $form_data['category'] == 'CCTV' ? 'selected' : ''; ?>>CCTV</option>
+                                        <option value="Biometric" <?php echo $form_data['category'] == 'Biometric' ? 'selected' : ''; ?>>Biometric</option>
+                                        <option value="Server" <?php echo $form_data['category'] == 'Server' ? 'selected' : ''; ?>>Server</option>
+                                        <option value="Firewall" <?php echo $form_data['category'] == 'Firewall' ? 'selected' : ''; ?>>Firewall</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Detailed Description</label>
+                            <textarea class="form-control" id="description" name="description" 
+                                      rows="5" placeholder="Provide detailed information about the issue..." maxlength="2000"><?php echo htmlspecialchars($form_data['description']); ?></textarea>
+                            <div class="char-count" id="descCount">0/2000 characters</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Client Information Section -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-building"></i> Client Information</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="client_id" class="form-label required-label">Client</label>
+                                    <select class="form-select" id="client_id" name="client_id" required>
+                                        <option value="">Select a client</option>
+                                        <?php foreach ($clients as $client): ?>
+                                        <option value="<?php echo htmlspecialchars($client['id']); ?>" 
+                                                <?php echo $form_data['client_id'] == $client['id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($client['company_name']); ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <?php if (empty($clients)): ?>
+                                    <div class="text-muted small mt-1">
+                                        No clients available. <a href="../clients/create.php">Add a client first</a>.
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="location_id" class="form-label">Select Location (Optional)</label>
+                                    <select class="form-select" id="location_id" name="location_id">
+                                        <option value="">Select location</option>
+                                        <?php 
+                                        if (!empty($form_data['client_id'])) {
+                                            foreach ($client_locations as $location) {
+                                                if ($location['client_id'] == $form_data['client_id']) {
+                                                    echo '<option value="' . htmlspecialchars($location['id']) . '" ' . 
+                                                         ($form_data['location_id'] == $location['id'] ? 'selected' : '') . '>' .
+                                                         htmlspecialchars($location['location_name']) . '</option>';
+                                                }
+                                            }
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Manual Location Input -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="location_manual" class="form-label">Or Enter Location Manually</label>
+                                    <input type="text" class="form-control" id="location_manual" name="location_manual" 
+                                           value="<?php echo htmlspecialchars($form_data['location_manual']); ?>"
+                                           placeholder="e.g., Floor 5, Server Room, Building A, etc.">
+                                    <div class="text-muted small mt-1">
+                                        <i class="fas fa-info-circle"></i> 
+                                        Use this if location is not in the dropdown. This will override the selected location.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Work Assignment & Time Tracking Section -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-clock"></i> Work Assignment & Time Tracking</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="assigned_to" class="form-label">Assign To (Optional)</label>
+                                    <select class="form-select" id="assigned_to" name="assigned_to">
+                                        <option value="">Unassigned</option>
+                                        <?php foreach ($staff_members as $staff): ?>
+                                        <option value="<?php echo htmlspecialchars($staff['id']); ?>" 
+                                                <?php echo $form_data['assigned_to'] == $staff['id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($staff['full_name']); ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <?php if (empty($staff_members)): ?>
+                                    <div class="text-muted small mt-1">
+                                        No staff members available.
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="estimated_hours" class="form-label">Estimated Work Hours</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="estimated_hours" name="estimated_hours" 
+                                               value="<?php echo htmlspecialchars($form_data['estimated_hours']); ?>"
+                                               min="0" step="0.5" placeholder="e.g., 2.5">
+                                        <span class="input-group-text">hours</span>
+                                    </div>
+                                    <div class="text-muted small mt-1">
+                                        <i class="fas fa-info-circle"></i> 
+                                        Estimated time to complete this task
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="work_start_time" class="form-label">Schedule Start Time (Optional)</label>
+                                    <input type="datetime-local" class="form-control" id="work_start_time" name="work_start_time"
+                                           value="<?php echo htmlspecialchars($form_data['work_start_time']); ?>">
+                                    <div class="text-muted small mt-1">
+                                        <i class="fas fa-info-circle"></i> 
+                                        When work should begin on this ticket
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="notify_client" name="notify_client" checked>
+                                        <label class="form-check-label" for="notify_client">
+                                            <i class="fas fa-bell"></i> Notify client about this ticket
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="urgent" name="urgent">
+                                        <label class="form-check-label" for="urgent">
+                                            <i class="fas fa-bolt"></i> Mark as urgent (SLA starts immediately)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Work Pattern Selection -->
+                        <div class="work-pattern-card">
+                            <label class="form-label mb-3">Work Pattern</label>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="pattern-option <?php echo $form_data['work_pattern'] == 'single' ? 'selected' : ''; ?>" 
+                                         onclick="selectWorkPattern('single')">
+                                        <div class="pattern-icon">
+                                            <i class="fas fa-calendar-day"></i>
+                                        </div>
+                                        <h5>Single Session</h5>
+                                        <p class="text-muted small">Work will be completed in one continuous session</p>
+                                        <input type="radio" name="work_pattern" value="single" 
+                                               <?php echo $form_data['work_pattern'] == 'single' ? 'checked' : ''; ?> style="display: none;">
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="pattern-option <?php echo $form_data['work_pattern'] == 'multi' ? 'selected' : ''; ?>" 
+                                         onclick="selectWorkPattern('multi')">
+                                        <div class="pattern-icon">
+                                            <i class="fas fa-calendar-week"></i>
+                                        </div>
+                                        <h5>Multiple Sessions</h5>
+                                        <p class="text-muted small">Work will be spread across multiple days/sessions</p>
+                                        <input type="radio" name="work_pattern" value="multi" 
+                                               <?php echo $form_data['work_pattern'] == 'multi' ? 'checked' : ''; ?> style="display: none;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Multi-day Work Configuration -->
+                        <div id="multiDayConfig" style="display: <?php echo $form_data['work_pattern'] == 'multi' ? 'block' : 'none'; ?>;">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="expected_days" class="form-label">Expected Days to Complete</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="expected_days" name="expected_days" 
+                                                   min="1" max="30" value="<?php echo htmlspecialchars($form_data['expected_days']); ?>">
+                                            <span class="input-group-text">days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Initial Work Log -->
+                            <div class="work-log-section">
+                                <h5><i class="fas fa-clock"></i> Initial Work Entry (Day 1)</h5>
+                                <p class="text-muted small">Add work details for the first day</p>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="work_date" class="form-label">Date</label>
+                                            <input type="date" class="form-control" id="work_date" name="work_date" 
+                                                   value="<?php echo htmlspecialchars($form_data['work_date']); ?>">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="log_start_time" class="form-label">Start Time</label>
+                                            <input type="time" class="form-control" id="log_start_time" name="log_start_time"
+                                                   value="<?php echo htmlspecialchars($form_data['log_start_time']); ?>">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="log_end_time" class="form-label">End Time</label>
+                                            <input type="time" class="form-control" id="log_end_time" name="log_end_time"
+                                                   value="<?php echo htmlspecialchars($form_data['log_end_time']); ?>">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="mb-3">
+                                            <label for="work_description" class="form-label">Work Description</label>
+                                            <textarea class="form-control" id="work_description" name="work_description" 
+                                                      rows="3" placeholder="What work will be done on the first day..."><?php echo htmlspecialchars($form_data['work_description']); ?></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="d-flex flex-column h-100 justify-content-center">
+                                            <div class="hours-display" id="calculatedHoursDisplay">
+                                                0.00 hours
+                                            </div>
+                                            <div class="text-center text-muted small">
+                                                <i class="fas fa-calculator"></i> Calculated hours
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Priority Section -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-flag"></i> Priority</h4>
+                        
+                        <div class="mb-3">
+                            <input type="hidden" id="priority" name="priority" value="<?php echo htmlspecialchars($form_data['priority']); ?>">
+                            
+                            <span class="priority-badge badge-critical <?php echo $form_data['priority'] == 'Critical' ? 'selected' : ''; ?>" 
+                                  data-value="Critical" onclick="selectPriority('Critical')">
+                                <i class="fas fa-exclamation-triangle"></i> Critical
+                            </span>
+                            
+                            <span class="priority-badge badge-high <?php echo $form_data['priority'] == 'High' ? 'selected' : ''; ?>" 
+                                  data-value="High" onclick="selectPriority('High')">
+                                <i class="fas fa-exclamation-circle"></i> High
+                            </span>
+                            
+                            <span class="priority-badge badge-medium <?php echo $form_data['priority'] == 'Medium' ? 'selected' : ''; ?>" 
+                                  data-value="Medium" onclick="selectPriority('Medium')">
+                                <i class="fas fa-info-circle"></i> Medium
+                            </span>
+                            
+                            <span class="priority-badge badge-low <?php echo $form_data['priority'] == 'Low' ? 'selected' : ''; ?>" 
+                                  data-value="Low" onclick="selectPriority('Low')">
+                                <i class="fas fa-arrow-down"></i> Low
+                            </span>
+                            
+                            <div class="text-muted small mt-2">
+                                <i class="fas fa-info-circle"></i> 
+                                Critical: Immediate attention needed (Response within 1 hour)<br>
+                                High: Resolve within 4 hours<br>
+                                Medium: Resolve within 24 hours<br>
+                                Low: Resolve within 3 days
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- File Attachments Section -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-paperclip"></i> Attachments (Optional)</h4>
+                        <p class="text-muted mb-3">
+                            Upload supporting files. Max 200MB per file, 500MB total.
+                            <button type="button" class="btn btn-link btn-sm p-0" onclick="showSupportedFormats()">
+                                View supported formats
+                            </button>
+                        </p>
+                        
+                        <!-- File Upload Area -->
+                        <div class="file-upload-container" id="fileDropArea">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <h5>Drag & Drop Files Here</h5>
+                            <p class="text-muted">or click to browse (up to 200MB per file)</p>
+                            <input type="file" id="fileInput" name="attachments[]" multiple 
+                                   style="display: none;"
+                                   accept="<?php echo '.' . implode(',.', $ALLOWED_EXTENSIONS); ?>">
+                            <button type="button" class="btn btn-outline-primary mt-2" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-folder-open"></i> Select Files
+                            </button>
+                            <div class="text-muted small mt-2">
+                                <i class="fas fa-info-circle"></i> 
+                                Upload progress will be shown for large files
+                            </div>
+                        </div>
+                        
+                        <!-- Upload Progress -->
+                        <div class="upload-progress" id="uploadProgress">
+                            <div class="progress-container">
+                                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                            </div>
+                            <div class="progress-info">
+                                <span id="progressText">0%</span>
+                                <span id="speedText">-</span>
+                                <span id="timeRemaining">-</span>
+                            </div>
+                        </div>
+                        
+                        <!-- File List -->
+                        <div class="file-list" id="fileList">
+                            <div class="text-muted text-center py-3">No files selected</div>
+                        </div>
+                        
+                        <!-- Upload Stats -->
+                        <div class="mt-3" id="uploadStats">
+                            <div class="text-muted small">
+                                <i class="fas fa-chart-bar"></i>
+                                <span id="totalFiles">0 files</span> | 
+                                <span id="totalSize">0 B</span> | 
+                                <span id="remainingSpace">500 MB available</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Actions -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                                    <i class="fas fa-redo"></i> Reset Form
+                                </button>
+                                
+                                <div>
+                                    <a href="index.php" class="btn btn-outline-secondary me-2">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                                        <i class="fas fa-save"></i> Create Ticket
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modal for supported formats -->
+    <div class="modal fade" id="formatsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-alt"></i> Supported File Formats</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-image text-success"></i> Images</h6>
+                            <ul class="list-unstyled">
+                                <li>• JPG, JPEG</li>
+                                <li>• PNG</li>
+                                <li>• GIF</li>
+                                <li>• BMP</li>
+                                <li>• WEBP</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-file-pdf text-danger"></i> Documents</h6>
+                            <ul class="list-unstyled">
+                                <li>• PDF</li>
+                                <li>• DOC, DOCX</li>
+                                <li>• XLS, XLSX</li>
+                                <li>• PPT, PPTX</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-file-archive text-warning"></i> Archives</h6>
+                            <ul class="list-unstyled">
+                                <li>• ZIP</li>
+                                <li>• RAR</li>
+                                <li>• 7Z</li>
+                                <li>• TAR, GZ</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-file-video text-primary"></i> Media</h6>
+                            <ul class="list-unstyled">
+                                <li>• MP4, AVI, MOV</li>
+                                <li>• MP3, WAV, OGG</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-file-code text-info"></i> Text/Config</h6>
+                            <ul class="list-unstyled">
+                                <li>• TXT, CSV, RTF</li>
+                                <li>• LOG, CONFIG, INI</li>
+                                <li>• XML, JSON, YAML</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-database text-secondary"></i> Other</h6>
+                            <ul class="list-unstyled">
+                                <li>• SQL, DUMP</li>
+                                <li>• PCAP, CAP</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Configuration
+        const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
+        const MAX_TOTAL_SIZE = 500 * 1024 * 1024; // 500MB
+        let uploadedFiles = [];
+        
+        // Format bytes
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+        
+        // Update upload stats
+        function updateUploadStats() {
+            let totalSize = 0;
+            uploadedFiles.forEach(file => {
+                totalSize += file.size;
+            });
+            
+            const remaining = MAX_TOTAL_SIZE - totalSize;
+            
+            document.getElementById('totalFiles').textContent = uploadedFiles.length + ' file' + (uploadedFiles.length !== 1 ? 's' : '');
+            document.getElementById('totalSize').textContent = formatBytes(totalSize);
+            
+            if (remaining >= 0) {
+                document.getElementById('remainingSpace').textContent = formatBytes(remaining) + ' available';
+                document.getElementById('remainingSpace').style.color = '#666';
+            } else {
+                document.getElementById('remainingSpace').innerHTML = 
+                    '<i class="fas fa-exclamation-triangle"></i> Exceeds limit by ' + formatBytes(Math.abs(remaining));
+                document.getElementById('remainingSpace').style.color = '#dc3545';
+            }
+        }
+        
+        // Handle file selection
+        function handleFiles(files) {
+            let totalNewSize = 0;
+            
+            // Calculate total size of new files
+            for (let file of files) {
+                totalNewSize += file.size;
+            }
+            
+            // Check total size limit
+            let currentTotalSize = uploadedFiles.reduce((sum, file) => sum + file.size, 0);
+            if (currentTotalSize + totalNewSize > MAX_TOTAL_SIZE) {
+                alert('Adding these files would exceed the 500MB total upload limit.');
+                return;
+            }
+            
+            // Process each file
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // Check individual file size
+                if (file.size > MAX_FILE_SIZE) {
+                    alert(`File "${file.name}" exceeds the 200MB limit.`);
+                    continue;
+                }
+                
+                // Create unique ID for file
+                const fileId = Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                
+                // Add to uploaded files
+                uploadedFiles.push({
+                    id: fileId,
+                    file: file,
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    extension: file.name.split('.').pop().toLowerCase()
+                });
+                
+                // Add to file list
+                addFileToList(fileId, file);
+            }
+            
+            updateUploadStats();
+            updateFileInput();
+        }
+        
+        // Add file to list
+        function addFileToList(id, file) {
+            const fileList = document.getElementById('fileList');
+            
+            // Remove "no files" message if present
+            const noFilesMsg = fileList.querySelector('.text-muted.text-center');
+            if (noFilesMsg) {
+                noFilesMsg.remove();
+            }
+            
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.dataset.id = id;
+            
+            // Create preview based on file type
+            let preview = '';
+            const extension = file.name.split('.').pop().toLowerCase();
+            
+            if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension)) {
+                preview = `<div style="width:60px;height:60px;background:#4CAF50;color:white;display:flex;align-items:center;justify-content:center;border-radius:5px;margin-right:10px;"><i class="fas fa-image fa-lg"></i></div>`;
+            } else if (['mp4', 'avi', 'mov', 'wmv'].includes(extension)) {
+                preview = '<div style="width:60px;height:60px;background:#E91E63;color:white;display:flex;align-items:center;justify-content:center;border-radius:5px;margin-right:10px;"><i class="fas fa-film fa-lg"></i></div>';
+            } else if (extension === 'pdf') {
+                preview = '<div style="width:60px;height:60px;background:#f44336;color:white;display:flex;align-items:center;justify-content:center;border-radius:5px;margin-right:10px;"><i class="fas fa-file-pdf fa-lg"></i></div>';
+            } else {
+                preview = '<div style="width:60px;height:60px;background:#666;color:white;display:flex;align-items:center;justify-content:center;border-radius:5px;margin-right:10px;"><i class="fas fa-file fa-lg"></i></div>';
+            }
+            
+            fileItem.innerHTML = `
+                <div class="file-info">
+                    ${preview}
+                    <div class="file-details">
+                        <div class="file-name">${escapeHtml(file.name)}</div>
+                        <div class="file-size">${formatBytes(file.size)}</div>
+                    </div>
+                    <span class="file-type-badge ${getFileBadgeClass(extension)}">${extension.toUpperCase()}</span>
+                </div>
+                <button type="button" class="file-remove" onclick="removeFile('${id}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            fileList.appendChild(fileItem);
+        }
+        
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Get badge class for file type
+        function getFileBadgeClass(extension) {
+            if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension)) {
+                return 'badge-image';
+            } else if (extension === 'pdf') {
+                return 'badge-pdf';
+            } else if (['doc', 'docx'].includes(extension)) {
+                return 'badge-doc';
+            } else if (['xls', 'xlsx'].includes(extension)) {
+                return 'badge-excel';
+            } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension)) {
+                return 'badge-zip';
+            } else if (['mp4', 'avi', 'mov', 'wmv'].includes(extension)) {
+                return 'badge-video';
+            } else if (['mp3', 'wav', 'ogg'].includes(extension)) {
+                return 'badge-audio';
+            } else {
+                return 'badge-text';
+            }
+        }
+        
+        // Remove file
+        function removeFile(id) {
+            uploadedFiles = uploadedFiles.filter(file => file.id !== id);
+            
+            const fileItem = document.querySelector(`.file-item[data-id="${id}"]`);
+            if (fileItem) {
+                fileItem.remove();
+            }
+            
+            // Show "no files" message if empty
+            if (uploadedFiles.length === 0) {
+                const fileList = document.getElementById('fileList');
+                fileList.innerHTML = '<div class="text-muted text-center py-3">No files selected</div>';
+            }
+            
+            updateUploadStats();
+            updateFileInput();
+        }
+        
+        // Update file input
+        function updateFileInput() {
+            const dataTransfer = new DataTransfer();
+            uploadedFiles.forEach(fileObj => {
+                dataTransfer.items.add(fileObj.file);
+            });
+            
+            document.getElementById('fileInput').files = dataTransfer.files;
+        }
+        
+        // Show supported formats modal
+        function showSupportedFormats() {
+            new bootstrap.Modal(document.getElementById('formatsModal')).show();
+        }
+        
+        // Drag and drop functionality
+        const fileDropArea = document.getElementById('fileDropArea');
+        const fileInput = document.getElementById('fileInput');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            fileDropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            fileDropArea.classList.add('dragover');
+        }
+        
+        function unhighlight() {
+            fileDropArea.classList.remove('dragover');
+        }
+        
+        fileDropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+        
+        // File input change event
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        // Priority selection
+        function selectPriority(priority) {
+            document.getElementById('priority').value = priority;
+            document.querySelectorAll('.priority-badge').forEach(badge => {
+                badge.classList.remove('selected');
+            });
+            document.querySelector(`.priority-badge[data-value="${priority}"]`).classList.add('selected');
+        }
+        
+        // Work pattern selection
+        function selectWorkPattern(pattern) {
+            // Update radio button
+            document.querySelector(`input[name="work_pattern"][value="${pattern}"]`).checked = true;
+            
+            // Update UI
+            document.querySelectorAll('.pattern-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            
+            // Show/hide multi-day configuration
+            const multiDayConfig = document.getElementById('multiDayConfig');
+            if (pattern === 'multi') {
+                multiDayConfig.style.display = 'block';
+                calculateWorkHours(); // Calculate initial hours
+            } else {
+                multiDayConfig.style.display = 'none';
+            }
+        }
+        
+        // Calculate work hours for multi-day
+        function calculateWorkHours() {
+            const startTime = document.getElementById('log_start_time').value;
+            const endTime = document.getElementById('log_end_time').value;
+            
+            if (startTime && endTime) {
+                const start = new Date(`2000-01-01T${startTime}`);
+                const end = new Date(`2000-01-01T${endTime}`);
+                
+                // Handle overnight shifts
+                if (end < start) {
+                    end.setDate(end.getDate() + 1);
+                }
+                
+                const diffMs = end - start;
+                const diffHours = diffMs / (1000 * 60 * 60);
+                
+                // Update display
+                document.getElementById('calculatedHoursDisplay').textContent = diffHours.toFixed(2) + ' hours';
+                
+                // Update estimated hours if not set
+                const estimatedHoursInput = document.getElementById('estimated_hours');
+                if (!estimatedHoursInput.value || estimatedHoursInput.value == '0') {
+                    estimatedHoursInput.value = diffHours.toFixed(2);
+                }
+                
+                return diffHours;
+            }
+            return 0;
+        }
+        
+        // Form submission
+        document.getElementById('ticketForm').addEventListener('submit', function(e) {
+            // Basic validation
+            const title = document.getElementById('title').value.trim();
+            const client = document.getElementById('client_id').value;
+            
+            if (!title) {
+                e.preventDefault();
+                alert('Please enter a ticket title');
+                document.getElementById('title').focus();
+                return;
+            }
+            
+            if (!client) {
+                e.preventDefault();
+                alert('Please select a client');
+                document.getElementById('client_id').focus();
+                return;
+            }
+            
+            // Validate location
+            const locationId = document.getElementById('location_id').value;
+            const locationManual = document.getElementById('location_manual').value;
+            if (!locationId && !locationManual) {
+                e.preventDefault();
+                alert('Please either select a location from dropdown or enter one manually');
+                return;
+            }
+            
+            // Check total file size
+            const totalSize = uploadedFiles.reduce((sum, file) => sum + file.size, 0);
+            if (totalSize > MAX_TOTAL_SIZE) {
+                e.preventDefault();
+                alert('Total file size exceeds 500MB limit. Please remove some files.');
+                return;
+            }
+            
+            // Validate multi-day work log if selected
+            const workPattern = document.querySelector('input[name="work_pattern"]:checked').value;
+            if (workPattern === 'multi') {
+                const workDescription = document.getElementById('work_description').value.trim();
+                if (!workDescription) {
+                    e.preventDefault();
+                    alert('Please enter work description for the initial work log');
+                    document.getElementById('work_description').focus();
+                    return;
+                }
+            }
+            
+            // Show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Ticket...';
+            submitBtn.disabled = true;
+            
+            // Show progress for large files
+            if (totalSize > 10 * 1024 * 1024) {
+                document.getElementById('uploadProgress').style.display = 'block';
+                simulateUploadProgress();
+            }
+        });
+        
+        // Simulate upload progress
+        function simulateUploadProgress() {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            let progress = 0;
+            
+            const interval = setInterval(() => {
+                progress += 5;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                }
+                
+                progressBar.style.width = progress + '%';
+                progressText.textContent = progress + '%';
+            }, 100);
+        }
+        
+        // Reset form
+        function resetForm() {
+            if (confirm('Are you sure you want to reset the form? All entered data will be lost.')) {
+                document.getElementById('ticketForm').reset();
+                uploadedFiles = [];
+                document.getElementById('fileList').innerHTML = '<div class="text-muted text-center py-3">No files selected</div>';
+                document.getElementById('uploadProgress').style.display = 'none';
+                updateUploadStats();
+                selectPriority('Medium');
+                selectWorkPattern('single');
+                localStorage.removeItem('ticketDraft');
+                
+                // Re-enable submit button
+                const submitBtn = document.getElementById('submitBtn');
+                submitBtn.innerHTML = '<i class="fas fa-save"></i> Create Ticket';
+                submitBtn.disabled = false;
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize file list message
+            const fileList = document.getElementById('fileList');
+            if (!fileList.querySelector('.file-item')) {
+                fileList.innerHTML = '<div class="text-muted text-center py-3">No files selected</div>';
+            }
+            
+            // Load draft if exists
+            const draft = localStorage.getItem('ticketDraft');
+            if (draft) {
+                if (confirm('You have a saved draft. Load it?')) {
+                    const draftData = JSON.parse(draft);
+                    Object.keys(draftData).forEach(key => {
+                        const element = document.querySelector(`[name="${key}"]`);
+                        if (element) {
+                            element.value = draftData[key];
+                            if (element.tagName === 'SELECT') {
+                                element.dispatchEvent(new Event('change'));
+                            }
+                        }
+                    });
+                    
+                    // Update work pattern UI
+                    if (draftData.work_pattern) {
+                        selectWorkPattern(draftData.work_pattern);
+                    }
+                }
+            }
+            
+            // Auto-save draft
+            const form = document.getElementById('ticketForm');
+            const saveDraft = debounce(() => {
+                const formData = new FormData(form);
+                const draft = {};
+                
+                for (let [key, value] of formData.entries()) {
+                    if (key !== 'attachments[]') {
+                        draft[key] = value;
+                    }
+                }
+                
+                localStorage.setItem('ticketDraft', JSON.stringify(draft));
+            }, 2000);
+            
+            form.addEventListener('input', saveDraft);
+            
+            // Clear draft on successful submission
+            form.addEventListener('submit', () => {
+                localStorage.removeItem('ticketDraft');
+            });
+            
+            // Calculate work hours when times change
+            document.getElementById('log_start_time')?.addEventListener('change', calculateWorkHours);
+            document.getElementById('log_end_time')?.addEventListener('change', calculateWorkHours);
+            
+            // Update locations when client changes
+            document.getElementById('client_id').addEventListener('change', function() {
+                const clientId = this.value;
+                const locationSelect = document.getElementById('location_id');
+                
+                // In a real application, you would fetch locations via AJAX
+                console.log('Client selected:', clientId);
+                // You would make an AJAX call here to get locations for this client
+            });
+        });
+        
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Character counters
+        function updateCharCount(input, counter, max) {
+            const length = input.value.length;
+            counter.textContent = `${length}/${max} characters`;
+            if (length > max * 0.9) {
+                counter.style.color = '#dc3545';
+            } else if (length > max * 0.7) {
+                counter.style.color = '#ffc107';
+            } else {
+                counter.style.color = '#666';
+            }
+        }
+        
+        // Initialize character counters
+        const titleInput = document.getElementById('title');
+        const descInput = document.getElementById('description');
+        const titleCount = document.getElementById('titleCount');
+        const descCount = document.getElementById('descCount');
+        
+        if (titleInput && titleCount) {
+            titleInput.addEventListener('input', () => updateCharCount(titleInput, titleCount, 150));
+            updateCharCount(titleInput, titleCount, 150);
+        }
+        
+        if (descInput && descCount) {
+            descInput.addEventListener('input', () => updateCharCount(descInput, descCount, 2000));
+            updateCharCount(descInput, descCount, 2000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+C:\xampp\htdocs\mit\
+├── index.php
+├── login.php
+├── logout.php
+├── dashboard.php
+├── setup.php
+├── config/
+│   └── database.php
+├── css/
+│   └── style.css
+├── js/
+│   └── main.js
+├── includes/
+│   ├── header.php
+│   ├── footer.php
+│   ├── sidebar.php
+│   └── auth.php
+└── pages/
+    ├── users/
+    │   ├── index.php
+    │   ├── create.php
+    │   ├── edit.php
+    │   └── view.php
+    ├── clients/
+    │   ├── index.php
+    │   ├── create.php
+    │   └── view.php
+    ├── tickets/
+    │   ├── index.php
+    │   ├── create.php
+    │   └── view.php
+    ├── assets/
+    │   ├── index.php
+    │   └── create.php
+    ├── contracts/
+    │   └── index.php
+    └── reports/
+        └── index.php

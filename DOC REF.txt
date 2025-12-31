@@ -1,0 +1,31 @@
+C:\xampp\htdocs\mit\
+├── index.php
+├── login.php
+├── logout.php
+├── dashboard.php
+├── config/
+│   └── database.php
+├── includes/
+│   ├── header.php
+│   ├── footer.php
+│   ├── auth.php
+│   └── functions.php
+├── css/
+│   └── style.css
+├── js/
+│   └── main.js
+├── assets/
+│   └── images/
+├── api/
+│   ├── auth.php
+│   ├── tickets.php
+│   └── staff.php
+└── pages/
+    ├── staff/
+    │   ├── profile.php
+    │   └── dashboard.php
+    ├── admin/
+    │   ├── dashboard.php
+    │   └── staff-management.php
+    └── manager/
+        └── dashboard.php

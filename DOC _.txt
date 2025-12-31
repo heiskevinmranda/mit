@@ -1,0 +1,13 @@
+C:\xampp\htdocs\mit\
+├── index.php (redirect to login)
+├── login.php
+├── dashboard.php
+├── logout.php
+├── setup.php
+├── config/
+│   └── database.php
+├── css/
+│   └── style.css
+├── js/
+│   └── main.js
+└── database_schema.sql
