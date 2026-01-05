@@ -77,10 +77,82 @@ function isAdmin() {
 }
 
 /**
+ * Check if user has admin-level privileges or higher (based on role hierarchy)
+ */
+function hasAdminLevel() {
+    if (!isset($_SESSION['user_type'])) {
+        return false;
+    }
+    
+    // Role hierarchy (higher number = more permissions)
+    $role_hierarchy = [
+        'super_admin' => 5,
+        'admin' => 4,
+        'manager' => 3,
+        'support_tech' => 2,
+        'client' => 1
+    ];
+    
+    $user_role = $_SESSION['user_type'];
+    $user_level = isset($role_hierarchy[$user_role]) ? $role_hierarchy[$user_role] : 0;
+    
+    // Admin level is 4 or higher
+    return $user_level >= 4;
+}
+
+/**
+ * Check if user has support tech-level privileges or higher (based on role hierarchy)
+ */
+function hasSupportTechLevel() {
+    if (!isset($_SESSION['user_type'])) {
+        return false;
+    }
+    
+    // Role hierarchy (higher number = more permissions)
+    $role_hierarchy = [
+        'super_admin' => 5,
+        'admin' => 4,
+        'manager' => 3,
+        'support_tech' => 2,
+        'client' => 1
+    ];
+    
+    $user_role = $_SESSION['user_type'];
+    $user_level = isset($role_hierarchy[$user_role]) ? $role_hierarchy[$user_role] : 0;
+    
+    // Support tech level is 2 or higher
+    return $user_level >= 2;
+}
+
+/**
  * Check if user is Manager or higher
  */
 function isManager() {
     return isset($_SESSION['user_type']) && in_array($_SESSION['user_type'], ['manager', 'admin', 'super_admin']);
+}
+
+/**
+ * Check if user has manager-level privileges or higher (based on role hierarchy)
+ */
+function hasManagerLevel() {
+    if (!isset($_SESSION['user_type'])) {
+        return false;
+    }
+    
+    // Role hierarchy (higher number = more permissions)
+    $role_hierarchy = [
+        'super_admin' => 5,
+        'admin' => 4,
+        'manager' => 3,
+        'support_tech' => 2,
+        'client' => 1
+    ];
+    
+    $user_role = $_SESSION['user_type'];
+    $user_level = isset($role_hierarchy[$user_role]) ? $role_hierarchy[$user_role] : 0;
+    
+    // Manager level is 3 or higher
+    return $user_level >= 3;
 }
 
 /**

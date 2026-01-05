@@ -751,20 +751,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     <div class="main-wrapper">
         <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-content">
-                <ul class="sidebar-menu">
-                    <li><a href="../../dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="../../pages/users/index.php"><i class="fas fa-users"></i> User Management</a></li>
-                    <li><a href="index.php" class="active"><i class="fas fa-building"></i> Client Management</a></li>
-                    <li><a href="../../pages/tickets/index.php"><i class="fas fa-ticket-alt"></i> Tickets</a></li>
-                    <li><a href="../../pages/assets/index.php"><i class="fas fa-server"></i> Assets</a></li>
-                    <li><a href="../../pages/reports/index.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                    <li><a href="../../pages/staff/profile.php"><i class="fas fa-user-circle"></i> My Profile</a></li>
-                    <li><a href="../../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                </ul>
-            </div>
-        </div>
+        <?php include '../../includes/sidebar.php'; ?>
         
         <!-- Main Content -->
         <main class="main-content">

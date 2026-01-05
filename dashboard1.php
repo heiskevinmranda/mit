@@ -99,39 +99,7 @@ try {
 <body>
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h3><i class="fas fa-network-wired"></i> MSP Portal</h3>
-                <p><?php echo htmlspecialchars($staff_profile['full_name'] ?? $_SESSION['email']); ?></p>
-                <p style="font-size: 0.8rem; background: rgba(255,255,255,0.1); padding: 0.25rem; border-radius: 3px; margin-top: 0.5rem;">
-                    <?php echo ucfirst(str_replace('_', ' ', $user_type)); ?>
-                </p>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <ul>
-                    <li><a href="dashboard.php" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    
-                    <?php if (in_array($user_type, ['super_admin', 'admin', 'manager'])): ?>
-                        <li><a href="#"><i class="fas fa-users"></i> Clients</a></li>
-                        <li><a href="#"><i class="fas fa-user-tie"></i> Staff</a></li>
-                        <li><a href="#"><i class="fas fa-file-contract"></i> Contracts</a></li>
-                    <?php endif; ?>
-                    
-                    <li><a href="#"><i class="fas fa-ticket-alt"></i> Tickets</a></li>
-                    <li><a href="#"><i class="fas fa-server"></i> Assets</a></li>
-                    <li><a href="#"><i class="fas fa-map-marker-alt"></i> Site Visits</a></li>
-                    
-                    <?php if (in_array($user_type, ['super_admin', 'admin'])): ?>
-                        <li><a href="#"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                    <?php endif; ?>
-                    
-                    <li><a href="#"><i class="fas fa-user"></i> My Profile</a></li>
-                    <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
-                    <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                </ul>
-            </nav>
-        </div>
+        <?php include 'includes/sidebar.php'; ?>
         
         <!-- Main Content -->
         <div class="main-content">

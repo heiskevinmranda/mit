@@ -262,7 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $ticket_id,
                         $file_name,
                         $unique_name,
-                        str_replace('../../', '', $file_path),
+                        $unique_name,
                         $mime_type,
                         $file_size,
                         $created_by
@@ -371,7 +371,7 @@ function formatBytes($bytes, $precision = 2) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create New Ticket | MSP Application</title>
-    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="/mit/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -656,42 +656,8 @@ function formatBytes($bytes, $precision = 2) {
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Include Sidebar -->
-        <?php 
-        $sidebar = '
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h3><i class="fas fa-network-wired"></i> MSP Portal</h3>
-                <p>' . htmlspecialchars($current_user['staff_profile']['full_name'] ?? $current_user['email']) . '</p>
-                <span class="user-role">' . ucfirst(str_replace('_', ' ', $current_user['user_type'])) . '</span>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <ul>
-                    <li><a href="../../dashboard.php">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a></li>
-                    
-                    <li><a href="index.php">
-                        <i class="fas fa-ticket-alt"></i> Tickets
-                    </a></li>
-                    
-                    <li><a href="create.php" class="active">
-                        <i class="fas fa-plus-circle"></i> Create Ticket
-                    </a></li>
-                    
-                    <li><a href="../clients/index.php">
-                        <i class="fas fa-building"></i> Clients
-                    </a></li>
-                    
-                    <li><a href="../../logout.php">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a></li>
-                </ul>
-            </nav>
-        </aside>';
-        echo $sidebar;
-        ?>
+        <!-- Sidebar -->
+        <?php include '../../includes/sidebar.php'; ?>
         
         <!-- Main Content -->
         <main class="main-content">

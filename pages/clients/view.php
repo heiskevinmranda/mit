@@ -77,6 +77,9 @@ if (!hasClientPermission('view', $client_id)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($client['company_name'] ?? 'Client') ?> - MSP Application</title>
     
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="/mit/css/style.css">
+    
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -139,70 +142,7 @@ if (!hasClientPermission('view', $client_id)) {
             min-height: calc(100vh - 56px);
         }
         
-        /* Sidebar */
-        .sidebar {
-            width: 250px;
-            background-color: var(--secondary-color);
-            color: white;
-            transition: all 0.3s;
-            overflow-y: auto;
-            height: calc(100vh - 56px);
-            position: sticky;
-            top: 56px;
-        }
-        
-        @media (max-width: 992px) {
-            .sidebar {
-                position: fixed;
-                left: -250px;
-                z-index: 1040;
-                box-shadow: 3px 0 10px rgba(0, 0, 0, 0.1);
-            }
-            .sidebar.active {
-                left: 0;
-            }
-        }
-        
-        .sidebar-content {
-            padding: 20px 0;
-        }
-        
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .sidebar-menu li {
-            padding: 0;
-        }
-        
-        .sidebar-menu a {
-            display: flex;
-            align-items: center;
-            padding: 12px 25px;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: all 0.3s;
-            border-left: 4px solid transparent;
-        }
-        
-        .sidebar-menu a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: white;
-            border-left-color: var(--primary-color);
-        }
-        
-        .sidebar-menu a.active {
-            background-color: rgba(255, 255, 255, 0.15);
-            color: white;
-            border-left-color: var(--accent-color);
-        }
-        
-        .sidebar-menu a i {
-            width: 24px;
-            margin-right: 12px;
-            text-align: center;
-        }
+
         
         /* Main Content */
         .main-content {
@@ -638,20 +578,7 @@ if (!hasClientPermission('view', $client_id)) {
     
     <div class="main-wrapper">
         <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-content">
-                <ul class="sidebar-menu">
-                    <li><a href="../../dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="../../pages/users/index.php"><i class="fas fa-users"></i> User Management</a></li>
-                    <li><a href="index.php" class="active"><i class="fas fa-building"></i> Client Management</a></li>
-                    <li><a href="../../pages/tickets/index.php"><i class="fas fa-ticket-alt"></i> Tickets</a></li>
-                    <li><a href="../../pages/assets/index.php"><i class="fas fa-server"></i> Assets</a></li>
-                    <li><a href="../../pages/reports/index.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                    <li><a href="../../pages/staff/profile.php"><i class="fas fa-user-circle"></i> My Profile</a></li>
-                    <li><a href="../../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                </ul>
-            </div>
-        </div>
+        <?php include '../../includes/sidebar.php'; ?>
         
         <!-- Main Content -->
         <main class="main-content">
@@ -1128,7 +1055,11 @@ if (!hasClientPermission('view', $client_id)) {
             }
             
             const companyName = '<?= addslashes($client["company_name"]) ?>';
-            const message = `Hello ${companyName},\n\nThis is a message from MSP Portal.\n\nHow can we assist you today?`;
+            const message = `Hello ${companyName},
+
+This is a message from MSP Portal.
+
+How can we assist you today?`;
             const encodedMessage = encodeURIComponent(message);
             const whatsappNumber = phone.replace('+', '');
             

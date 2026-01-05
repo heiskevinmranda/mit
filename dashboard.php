@@ -16,65 +16,14 @@ $pdo = getDBConnection();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | MSP Application</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="/mit/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h3><i class="fas fa-network-wired"></i> MSP Portal</h3>
-                <p><?php echo htmlspecialchars($staff_profile['full_name'] ?? $current_user['email']); ?></p>
-                <span class="user-role"><?php echo ucfirst(str_replace('_', ' ', $user_type)); ?></span>
-            </div>
-            
-            <nav class="sidebar-nav">
-                <ul>
-                    <li><a href="dashboard.php" class="active">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a></li>
-                    
-                    <?php if (hasPermission('admin')): ?>
-                    <li><a href="pages/users/index.php">
-                        <i class="fas fa-users-cog"></i> User Management
-                    </a></li>
-                    <?php endif; ?>
-                    
-                    <?php if (hasPermission('manager')): ?>
-                    <li><a href="pages/clients/index.php">
-                        <i class="fas fa-building"></i> Clients
-                    </a></li>
-                    <li><a href="pages/contracts/index.php">
-                        <i class="fas fa-file-contract"></i> Contracts
-                    </a></li>
-                    <?php endif; ?>
-                    
-                    <li><a href="pages/tickets/index.php">
-                        <i class="fas fa-ticket-alt"></i> Tickets
-                    </a></li>
-                    
-                    <li><a href="pages/assets/index.php">
-                        <i class="fas fa-server"></i> Assets
-                    </a></li>
-                    
-                    <?php if (hasPermission('manager')): ?>
-                    <li><a href="pages/reports/index.php">
-                        <i class="fas fa-chart-bar"></i> Reports
-                    </a></li>
-                    <?php endif; ?>
-                    
-                    <li><a href="pages/staff/profile.php">
-                        <i class="fas fa-user"></i> My Profile
-                    </a></li>
-                    
-                    <li><a href="logout.php">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a></li>
-                </ul>
-            </nav>
-        </aside>
+        <?php include 'includes/sidebar.php'; ?>
         
         <!-- Main Content -->
         <main class="main-content">

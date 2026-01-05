@@ -6,7 +6,7 @@ define('DB_HOST', 'localhost');
 define('DB_PORT', '5432');
 define('DB_NAME', 'MSP_Application');
 define('DB_USER', 'MSPAppUser');
-define('DB_PASS', '2q+w7wQMH8xd');
+define('DB_PASS', '2q+w7wQMH8xd'); // for postgres user - qwert12345?
 
 // Create connection
 function getDBConnection() {

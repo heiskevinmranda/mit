@@ -60,430 +60,44 @@ $industries = getAllIndustries($pdo);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Client Management - MSP Application</title>
     
-    <!-- Load CSS files with fallback -->
-    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="/mit/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     
 <!-- Add this CSS after the Bootstrap CDN link -->
 <style>
-    /* Override Bootstrap and custom styles to match the image */
-    :root {
-        --primary-color: #004E89;
-        --secondary-color: #FF6B35;
-        --accent-color: #43BCCD;
-        --light-bg: #f8f9fa;
-        --border-color: #dee2e6;
-    }
-    
-    body {
-        background-color: #f0f2f5;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    
-    /* Navbar styling */
-    .navbar {
-        background: linear-gradient(135deg, var(--primary-color) 0%, #002D62 100%);
-        padding: 12px 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .navbar h4 {
-        color: white;
-        margin: 0;
-        font-weight: 600;
-    }
-    
-    /* Main layout */
-    .main-wrapper {
-        display: flex;
-        min-height: calc(100vh - 56px);
-    }
-    
-    /* Sidebar styling - exactly like image */
-    .sidebar {
-        width: 220px;
-        background: white;
-        border-right: 1px solid var(--border-color);
-        padding: 0;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
-    }
-    
-    .sidebar-content {
-        padding: 20px 0;
-    }
-    
-    .sidebar-menu {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    
-    .sidebar-menu li {
-        margin: 0;
-    }
-    
-    .sidebar-menu a {
-        display: flex;
-        align-items: center;
-        padding: 12px 20px;
-        color: #495057;
-        text-decoration: none;
-        border-left: 3px solid transparent;
-        transition: all 0.2s;
-    }
-    
-    .sidebar-menu a:hover {
-        background-color: var(--light-bg);
-        color: var(--primary-color);
-        border-left-color: var(--primary-color);
-    }
-    
-    .sidebar-menu a.active {
-        background-color: #e3f2fd;
-        color: var(--primary-color);
-        border-left-color: var(--primary-color);
-        font-weight: 500;
-    }
-    
-    .sidebar-menu i {
-        width: 24px;
-        margin-right: 12px;
-        font-size: 16px;
-        text-align: center;
-    }
-    
-    /* Main content area */
-    .main-content {
-        flex: 1;
-        padding: 25px;
-        background-color: #f0f2f5;
-        min-height: calc(100vh - 56px);
-    }
-    
-    /* Page header */
-    .main-content .h2 {
-        color: var(--primary-color);
-        font-weight: 600;
-        margin-bottom: 8px;
-    }
-    
-    .main-content .text-muted {
-        color: #6c757d !important;
-    }
-    
-    /* Card styling - match image */
-    .card {
-        border: none;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        margin-bottom: 24px;
-        overflow: hidden;
-    }
-    
-    .card-header {
-        background-color: var(--primary-color);
-        color: white;
-        border-bottom: none;
-        padding: 16px 20px;
-        font-weight: 600;
-    }
-    
-    .card-header h5 {
-        margin: 0;
-        font-weight: 600;
-    }
-    
-    .card-body {
-        padding: 25px;
-    }
-    
-    /* Form controls */
-    .form-control {
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        padding: 10px 12px;
-        transition: all 0.2s;
-    }
-    
-    .form-control:focus {
-        border-color: var(--accent-color);
-        box-shadow: 0 0 0 0.2rem rgba(67, 188, 205, 0.25);
-    }
-    
-    .input-group-text {
-        background-color: #f8f9fa;
-        border-color: #ced4da;
-    }
-    
-    /* Buttons */
-    .btn-primary {
-        background-color: var(--secondary-color);
-        border-color: var(--secondary-color);
-        padding: 10px 20px;
-        font-weight: 500;
-        border-radius: 6px;
-        transition: all 0.2s;
-    }
-    
-    .btn-primary:hover {
-        background-color: #e85c2a;
-        border-color: #e85c2a;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
-    }
-    
-    .btn-outline-secondary {
-        border-radius: 6px;
-        padding: 6px 12px;
-    }
-    
-    .btn-group-sm .btn {
-        padding: 5px 10px;
-        border-radius: 4px;
-    }
-    
-    /* Table styling - exactly like image */
-    .table {
-        background-color: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    
-    .table thead {
-        background-color: #f8f9fa;
-    }
-    
-    .table th {
-        font-weight: 600;
-        color: #495057;
-        text-transform: uppercase;
-        font-size: 13px;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid #dee2e6;
-        padding: 16px 20px;
-        white-space: nowrap;
-    }
-    
-    .table td {
-        padding: 16px 20px;
-        vertical-align: middle;
-        border-bottom: 1px solid #f1f1f1;
-    }
-    
-    .table tbody tr:hover {
-        background-color: rgba(0, 78, 137, 0.03);
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 78, 137, 0.05);
-    }
-    
-    /* Badge styling */
-    .badge {
-        font-weight: 500;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-    }
-    
-    .bg-secondary {
-        background-color: #6c757d !important;
-    }
-    
-    .badge-client {
-        background-color: #e3f2fd;
-        color: var(--primary-color);
-        border: 1px solid #bbdefb;
-    }
-    
-    .badge-location {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        border: 1px solid #c8e6c9;
-    }
-    
-    .status-active {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    
-    /* Alert styling */
-    .alert {
-        border: none;
-        border-radius: 8px;
-        padding: 15px 20px;
-        margin-bottom: 20px;
-    }
-    
-    .alert-success {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        border-left: 4px solid #4caf50;
-    }
-    
-    .alert-danger {
-        background-color: #ffebee;
-        color: #c62828;
-        border-left: 4px solid #f44336;
-    }
-    
-    /* Mobile responsive */
-    @media (max-width: 768px) {
-        .sidebar {
-            position: fixed;
-            top: 56px;
-            left: -250px;
-            height: calc(100vh - 56px);
-            z-index: 1000;
-            transition: left 0.3s;
-        }
-        
-        .sidebar.show {
-            left: 0;
-        }
-        
-        .main-content {
-            padding: 15px;
-        }
-        
-        .card-body {
-            padding: 15px;
-        }
-    }
-    
-    /* Search results info */
-    .text-muted {
-        font-size: 14px;
-    }
-    
-    /* Empty state */
-    .text-center.py-5 i {
-        font-size: 48px;
-        opacity: 0.3;
-        margin-bottom: 20px;
-    }
-    
-    /* Phone formatting */
-    small.text-muted {
-        display: block;
-        margin-top: 4px;
-    }
-    
-    /* ID badge */
-    .badge.bg-secondary {
-        font-family: 'Courier New', monospace;
-        font-size: 11px;
-        padding: 4px 8px;
-    }
-    
-    /* Force table display */
-    table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-    }
-    
-    th, td {
-        display: table-cell !important;
-        vertical-align: middle !important;
-    }
-    
-    /* Client name styling */
-    .fw-bold {
-        color: #2c3e50;
-        font-size: 15px;
-    }
-    
-    /* Action buttons */
-    .btn-info {
-        background-color: #17a2b8;
-        border-color: #17a2b8;
-    }
-    
-    .btn-warning {
-        background-color: #ffc107;
-        border-color: #ffc107;
-    }
-    
-    .btn-danger {
-        background-color: #dc3545;
-        border-color: #dc3545;
-    }
-    
-    /* Row hover effect */
-    .table tbody tr {
-        transition: background-color 0.2s;
-    }
-    
-    /* Ensure proper spacing */
-    .mb-4 {
-        margin-bottom: 1.5rem !important;
-    }
-    
-    .mt-2 {
-        margin-top: 0.5rem !important;
-    }
-    
-    /* Make sure everything is visible */
-    * {
-        box-sizing: border-box;
-    }
+
 </style>
 </head>
 <body>
-    <!-- Simple Header -->
-    <nav class="navbar">
-        <div class="container-fluid">
-            <h4><i class="fas fa-tools me-2"></i>MSP Portal</h4>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">
-                    <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
-                </span>
-                <a href="../../logout.php" class="btn btn-sm btn-outline-light">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </nav>
-    
-    <div class="main-wrapper">
-        <!-- Simple Sidebar -->
-        <div class="sidebar d-none d-md-block">
-            <div class="sidebar-content">
-                <ul class="sidebar-menu">
-                    <li><a href="../../dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="../../pages/users/index.php"><i class="fas fa-users"></i> User Management</a></li>
-                    <li><a href="index.php" class="active"><i class="fas fa-building"></i> Client Management</a></li>
-                    <li><a href="../../pages/tickets/index.php"><i class="fas fa-ticket-alt"></i> Tickets</a></li>
-                    <li><a href="../../pages/assets/index.php"><i class="fas fa-server"></i> Assets</a></li>
-                    <li><a href="../../pages/reports/index.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                    <li><a href="../../pages/staff/profile.php"><i class="fas fa-user-circle"></i> My Profile</a></li>
-                    <li><a href="../../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                </ul>
-            </div>
-        </div>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <?php include '../../includes/sidebar.php'; ?>
         
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Page Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h2 mb-1">
-                        <i class="fas fa-building text-primary"></i> Client Management
-                    </h1>
-                    <p class="text-muted mb-0">Manage your client companies and their information</p>
+            <div class="header">
+                <h1><i class="fas fa-building"></i> Client Management</h1>
+                <div class="btn-group">
+                    <?php if ($can_create): ?>
+                    <a href="create.php" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add New Client
+                    </a>
+                    <?php endif; ?>
                 </div>
-                <?php if ($can_create): ?>
-                <a href="create.php" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Add New Client
-                </a>
-                <?php endif; ?>
             </div>
+            
+            <!-- Flash Messages -->
+            <?php 
+            $flash = getFlashMessage();
+            if ($flash): 
+            ?>
+            <div class="alert alert-<?php echo $flash['type']; ?> alert-dismissible fade show">
+                <i class="fas fa-<?php echo $flash['type'] == 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
+                <?php echo htmlspecialchars($flash['message']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <?php endif; ?>
             
             <!-- Search and Filter -->
             <div class="card mb-4">
@@ -529,18 +143,23 @@ $industries = getAllIndustries($pdo);
                 </div>
             </div>
             
-            <!-- Messages -->
+            <!-- Success Message -->
             <?php if (isset($_SESSION['success'])): ?>
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle me-2"></i> <?= htmlspecialchars($_SESSION['success']) ?>
+            <div class="alert alert-success alert-dismissible fade show">
+                <i class="fas fa-check-circle"></i>
+                <?php echo htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-            <?php unset($_SESSION['success']); endif; ?>
+            <?php endif; ?>
             
+            <!-- Error Message -->
             <?php if (isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($_SESSION['error']) ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <i class="fas fa-exclamation-triangle"></i>
+                <?php echo htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
-            <?php unset($_SESSION['error']); endif; ?>
+            <?php endif; ?>
             
             <!-- Clients Table -->
             <div class="card">
@@ -604,18 +223,18 @@ $industries = getAllIndustries($pdo);
                                     </td>
                                     <td>
                                         <?php if ($client['industry']): ?>
-                                        <span class="badge badge-client"><?= htmlspecialchars($client['industry']) ?></span>
+                                        <span class="badge bg-primary"><?= htmlspecialchars($client['industry']) ?></span>
                                         <?php else: ?>
                                         <span class="badge bg-light text-dark">Not Set</span>
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span class="badge badge-location">
+                                        <span class="badge bg-success">
                                             <i class="fas fa-map-marker-alt"></i> <?= $client['location_count'] ?>
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="badge status-active">Active</span>
+                                        <span class="badge bg-success">Active</span>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
@@ -645,19 +264,8 @@ $industries = getAllIndustries($pdo);
         </main>
     </div>
     
-    <!-- Mobile Menu Toggle -->
-    <button class="btn btn-primary d-md-none fixed-bottom m-3" style="z-index: 1000;" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i> Menu
-    </button>
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Simple mobile menu toggle
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('d-none');
-        }
-        
         // Auto-hide alerts
         setTimeout(function() {
             const alerts = document.querySelectorAll('.alert');

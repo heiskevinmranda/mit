@@ -244,7 +244,7 @@ function formatPhone($phone) {
     <title>Create User - MSP Application</title>
     
     <!-- Load CSS files with fallback -->
-    <link rel="stylesheet" href="../../assets/css/style.css">
+    <link rel="stylesheet" href="/mit/assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -599,21 +599,8 @@ function formatPhone($phone) {
     </nav>
     
     <div class="main-wrapper">
-        <!-- Simple Sidebar -->
-        <div class="sidebar d-none d-md-block">
-            <div class="sidebar-content">
-                <ul class="sidebar-menu">
-                    <li><a href="../../dashboard.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    <li><a href="index.php"><i class="fas fa-users"></i> User Management</a></li>
-                    <li><a href="../clients/index.php"><i class="fas fa-building"></i> Client Management</a></li>
-                    <li><a href="../tickets/index.php"><i class="fas fa-ticket-alt"></i> Tickets</a></li>
-                    <li><a href="../assets/index.php"><i class="fas fa-server"></i> Assets</a></li>
-                    <li><a href="../reports/index.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                    <li><a href="../staff/profile.php"><i class="fas fa-user-circle"></i> My Profile</a></li>
-                    <li><a href="../../logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                </ul>
-            </div>
-        </div>
+        <!-- Sidebar -->
+        <?php include '../../includes/sidebar.php'; ?>
         
         <!-- Main Content -->
         <main class="main-content">

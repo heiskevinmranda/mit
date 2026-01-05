@@ -275,7 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
                         $ticket_id,
                         $file_name,
                         $unique_name,
-                        str_replace('../../', '', $file_path),
+                        $unique_name,
                         $mime_type,
                         $file_size,
                         $current_user['id']
