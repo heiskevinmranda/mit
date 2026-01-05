@@ -38,6 +38,8 @@ $ALLOWED_EXTENSIONS = [
 // Fetch existing ticket data
 $ticket = [];
 $existing_attachments = [];
+$existing_assignees = [];
+$existing_work_logs = [];
 $total_logged_hours = 0;
 
 try {
@@ -67,10 +69,37 @@ try {
     // Check permissions - only allow editing if user is admin/manager or created the ticket
     $is_creator = ($current_user['id'] == $ticket['created_by']);
     $is_admin_or_manager = (isAdmin() || isManager());
-    $is_assigned = ($current_user['staff_profile']['id'] ?? null) == $ticket['assigned_to'];
+    
+    // Check if user is assigned to the ticket
+    $is_assigned = false;
+    if (isset($current_user['staff_profile']['id'])) {
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as count FROM ticket_assignees 
+            WHERE ticket_id = ? AND staff_id = ?
+        ");
+        $stmt->execute([$ticket_id, $current_user['staff_profile']['id']]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $is_assigned = ($result['count'] > 0);
+    }
     
     if (!$is_creator && !$is_admin_or_manager && !$is_assigned) {
         throw new Exception("You don't have permission to edit this ticket");
+    }
+    
+    // Get existing assignees
+    try {
+        $stmt = $pdo->prepare("
+            SELECT ta.*, sp.full_name
+            FROM ticket_assignees ta
+            LEFT JOIN staff_profiles sp ON ta.staff_id = sp.id
+            WHERE ta.ticket_id = ?
+            ORDER BY ta.is_primary DESC, ta.assigned_at ASC
+        ");
+        
+        $stmt->execute([$ticket_id]);
+        $existing_assignees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        error_log("Error loading assignees: " . $e->getMessage());
     }
     
     // Get existing attachments
@@ -88,12 +117,19 @@ try {
         error_log("Error loading attachments: " . $e->getMessage());
     }
     
-    // Get total logged hours from work_logs
+    // Get existing work logs
     try {
-        $stmt = $pdo->prepare("SELECT COALESCE(SUM(total_hours), 0) as total FROM work_logs WHERE ticket_id = ?");
+        $stmt = $pdo->prepare("
+            SELECT wl.*, sp.full_name as staff_name
+            FROM work_logs wl
+            LEFT JOIN staff_profiles sp ON wl.staff_id = sp.id
+            WHERE wl.ticket_id = ?
+            ORDER BY wl.work_date ASC, wl.start_time ASC
+        ");
+        
         $stmt->execute([$ticket_id]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $total_logged_hours = $result['total'] ?? 0;
+        $existing_work_logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $total_logged_hours = array_sum(array_column($existing_work_logs, 'total_hours'));
     } catch (Exception $e) {
         error_log("Error loading work logs: " . $e->getMessage());
     }
@@ -112,11 +148,27 @@ $form_data = [
     'location_manual' => $_POST['location_manual'] ?? $ticket['location_manual'] ?? '',
     'category' => $_POST['category'] ?? $ticket['category'] ?? 'General',
     'priority' => $_POST['priority'] ?? $ticket['priority'] ?? 'Medium',
-    'assigned_to' => $_POST['assigned_to'] ?? $ticket['assigned_to'] ?? '',
+    'assigned_to' => $_POST['assigned_to'] ?? array_column($existing_assignees, 'staff_id'),
     'status' => $_POST['status'] ?? $ticket['status'] ?? 'Open',
     'estimated_hours' => $_POST['estimated_hours'] ?? $ticket['estimated_hours'] ?? '',
-    'work_start_time' => $_POST['work_start_time'] ?? ($ticket['work_start_time'] ? substr($ticket['work_start_time'], 0, 16) : '')
+    'work_start_time' => $_POST['work_start_time'] ?? ($ticket['work_start_time'] ? substr($ticket['work_start_time'], 0, 16) : ''),
+    'work_pattern' => 'existing', // For edit, we show existing work logs
+    'expected_days' => $_POST['expected_days'] ?? count($existing_work_logs) ?: 1,
+    'work_days' => $_POST['work_days'] ?? []
 ];
+
+// If no work_days in POST and we have existing work logs, populate them
+if (empty($_POST['work_days']) && !empty($existing_work_logs)) {
+    foreach ($existing_work_logs as $index => $log) {
+        $form_data['work_days'][] = [
+            'date' => $log['work_date'],
+            'start' => substr($log['start_time'], 0, 5),
+            'end' => $log['end_time'] ? substr($log['end_time'], 0, 5) : '',
+            'desc' => $log['description'],
+            'staff_id' => $log['staff_id']
+        ];
+    }
+}
 
 // Get clients for dropdown
 $clients = [];
@@ -161,6 +213,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
             throw new Exception("Please either select a location or enter one manually");
         }
         
+        // Start transaction
+        $pdo->beginTransaction();
+        
         // Prepare update data
         $update_data = [
             'title' => trim($_POST['title']),
@@ -171,19 +226,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
             'category' => $_POST['category'] ?? 'General',
             'priority' => $_POST['priority'],
             'status' => $_POST['status'] ?? $ticket['status'],
-            'assigned_to' => !empty($_POST['assigned_to']) ? $_POST['assigned_to'] : null,
             'estimated_hours' => !empty($_POST['estimated_hours']) ? $_POST['estimated_hours'] : null,
             'work_start_time' => !empty($_POST['work_start_time']) ? $_POST['work_start_time'] : null
         ];
-        
-        // Start transaction
-        $pdo->beginTransaction();
         
         // Update ticket
         $stmt = $pdo->prepare("
             UPDATE tickets 
             SET title = ?, description = ?, client_id = ?, location_id = ?, location_manual = ?,
-                category = ?, priority = ?, status = ?, assigned_to = ?, 
+                category = ?, priority = ?, status = ?, 
                 estimated_hours = ?, work_start_time = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         ");
@@ -197,11 +248,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
             $update_data['category'],
             $update_data['priority'],
             $update_data['status'],
-            $update_data['assigned_to'],
             $update_data['estimated_hours'],
             $update_data['work_start_time'],
             $ticket_id
         ]);
+        
+        // Handle multiple assignees
+        $assigned_staff = [];
+        $new_assignees = !empty($_POST['assigned_to']) ? $_POST['assigned_to'] : [];
+        
+        // First, remove all existing assignees
+        $stmt = $pdo->prepare("DELETE FROM ticket_assignees WHERE ticket_id = ?");
+        $stmt->execute([$ticket_id]);
+        
+        // Then add new assignees
+        if (!empty($new_assignees) && is_array($new_assignees)) {
+            $primary_set = false;
+            foreach ($new_assignees as $staff_id) {
+                if (!empty($staff_id)) {
+                    $is_primary = (!$primary_set) ? 1 : 0;
+                    $primary_set = true;
+                    
+                    $stmt = $pdo->prepare("
+                        INSERT INTO ticket_assignees (ticket_id, staff_id, assigned_at, assigned_by, is_primary)
+                        VALUES (?, ?, NOW(), ?, ?)
+                    ");
+                    
+                    $stmt->execute([$ticket_id, $staff_id, $current_user['id'], $is_primary]);
+                    
+                    $assigned_staff[] = $staff_id;
+                    
+                    // Update tickets.assigned_to with the primary assignee
+                    if ($is_primary) {
+                        $stmt = $pdo->prepare("UPDATE tickets SET assigned_to = ? WHERE id = ?");
+                        $stmt->execute([$staff_id, $ticket_id]);
+                    }
+                }
+            }
+        } else {
+            // If no assignees, set assigned_to to null
+            $stmt = $pdo->prepare("UPDATE tickets SET assigned_to = NULL WHERE id = ?");
+            $stmt->execute([$ticket_id]);
+        }
+        
+        // Handle multi-day work logs
+        if ($_POST['work_pattern'] === 'multi' && !empty($_POST['work_days'])) {
+            // First, remove all existing work logs
+            $stmt = $pdo->prepare("DELETE FROM work_logs WHERE ticket_id = ?");
+            $stmt->execute([$ticket_id]);
+            
+            $total_work_hours = 0;
+            foreach ($_POST['work_days'] as $index => $day) {
+                if (!empty($day['date']) && !empty($day['start']) && !empty($day['end']) && !empty($day['desc'])) {
+                    // Calculate hours
+                    $start_time = $day['start'];
+                    $end_time = $day['end'];
+                    $work_date = $day['date'];
+                    
+                    $start = DateTime::createFromFormat('H:i', $start_time);
+                    $end = DateTime::createFromFormat('H:i', $end_time);
+                    
+                    if ($end < $start) {
+                        $end->modify('+1 day');
+                    }
+                    
+                    $interval = $start->diff($end);
+                    $day_hours = $interval->h + ($interval->i / 60);
+                    $total_work_hours += $day_hours;
+                    
+                    // Use assigned staff or default to primary assignee
+                    $day_staff_id = !empty($day['staff_id']) ? $day['staff_id'] : 
+                                   (!empty($assigned_staff[0]) ? $assigned_staff[0] : null);
+                    
+                    // Insert work log
+                    $stmt = $pdo->prepare("
+                        INSERT INTO work_logs (ticket_id, staff_id, work_date, start_time, end_time, total_hours, description, work_type)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    
+                    $stmt->execute([
+                        $ticket_id,
+                        $day_staff_id,
+                        $work_date,
+                        $start_time,
+                        $end_time,
+                        $day_hours,
+                        $day['desc'],
+                        'Regular'
+                    ]);
+                }
+            }
+            
+            // Update ticket with total work hours
+            if ($total_work_hours > 0) {
+                $stmt = $pdo->prepare("UPDATE tickets SET total_work_hours = ? WHERE id = ?");
+                $stmt->execute([$total_work_hours, $ticket_id]);
+            }
+        }
         
         // Handle file uploads
         $uploaded_files = [];
@@ -281,13 +424,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
                         $current_user['id']
                     ]);
                     
-                    $uploaded_files[] = [
-                        'original_name' => $file_name,
-                        'saved_name' => $unique_name,
-                        'file_path' => $file_path,
-                        'file_type' => $mime_type,
-                        'file_size' => $file_size
-                    ];
+                    $uploaded_files[] = $file_name;
                 }
             }
         }
@@ -313,7 +450,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
         $original_ticket = $ticket;
         
         // Check what changed
-        $fields_to_check = ['title', 'description', 'client_id', 'location_id', 'location_manual', 'category', 'priority', 'status', 'assigned_to', 'estimated_hours', 'work_start_time'];
+        $fields_to_check = ['title', 'description', 'client_id', 'location_id', 'location_manual', 'category', 'priority', 'status', 'estimated_hours', 'work_start_time'];
         foreach ($fields_to_check as $field) {
             $old_value = $original_ticket[$field] ?? null;
             $new_value = $update_data[$field] ?? null;
@@ -334,9 +471,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
                     $new_time = $new_value ? date('M j, Y g:i A', strtotime($new_value)) : 'Not set';
                     $changes[] = "Scheduled start: $old_time → $new_time";
                 } else {
-                    $changes[] = "$field: '$old_value' → '$new_value'";
+                    $old_display = $old_value ?? 'Not set';
+                    $new_display = $new_value ?? 'Not set';
+                    $changes[] = "$field: '$old_display' → '$new_display'";
                 }
             }
+        }
+        
+        // Check for assignee changes
+        $old_assignees = array_column($existing_assignees, 'staff_id');
+        $new_assignees = $assigned_staff;
+        if (array_diff($old_assignees, $new_assignees) || array_diff($new_assignees, $old_assignees)) {
+            $changes[] = "Assignee list updated";
         }
         
         if (!empty($changes) || !empty($uploaded_files) || !empty($_POST['delete_attachments'])) {
@@ -378,6 +524,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
             $delete_count = count(explode(',', $_POST['delete_attachments']));
             $success_msg .= " (" . $delete_count . " file(s) removed)";
         }
+        if (!empty($new_assignees)) {
+            $success_msg .= " (" . count($new_assignees) . " staff assigned)";
+        }
         
         // Store success in session for display after redirect
         $_SESSION['success_message'] = $success_msg;
@@ -411,17 +560,20 @@ function formatBytes($bytes, $precision = 2) {
     return round($bytes, $precision) . ' ' . $units[$pow];
 }
 
-// Helper function to get status badge color
-function getStatusBadge($status) {
-    $colors = [
-        'Open' => 'badge-open',
-        'In Progress' => 'badge-inprogress',
-        'Waiting' => 'badge-waiting',
-        'Resolved' => 'badge-resolved',
-        'Closed' => 'badge-closed'
-    ];
+// Helper function to calculate hours
+function calculateHours($start_time, $end_time) {
+    if (empty($start_time) || empty($end_time)) return '0.00';
     
-    return $colors[$status] ?? 'badge-closed';
+    $start = DateTime::createFromFormat('H:i', $start_time);
+    $end = DateTime::createFromFormat('H:i', $end_time);
+    
+    if ($end < $start) {
+        $end->modify('+1 day');
+    }
+    
+    $interval = $start->diff($end);
+    $hours = $interval->h + ($interval->i / 60);
+    return number_format($hours, 2);
 }
 ?>
 
@@ -435,6 +587,7 @@ function getStatusBadge($status) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        /* Add all the CSS from create.php here */
         .form-card {
             background: white;
             border-radius: 10px;
@@ -522,7 +675,85 @@ function getStatusBadge($status) {
             margin-top: 5px;
         }
         
-        /* File Upload Styles */
+        /* Work pattern toggle */
+        .work-pattern-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .pattern-option {
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        .pattern-option:hover {
+            border-color: #004E89;
+            background: #e8f4fd;
+        }
+        
+        .pattern-option.selected {
+            border-color: #004E89;
+            background: #e8f4fd;
+        }
+        
+        .pattern-icon {
+            font-size: 24px;
+            color: #004E89;
+            margin-bottom: 10px;
+        }
+        
+        /* Work log section */
+        .work-day-form {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .work-day-form .card-header {
+            background: #f8f9fa;
+        }
+        
+        .total-hours-display {
+            font-size: 20px;
+            font-weight: bold;
+            color: #004E89;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        /* Multi-select styling */
+        select[multiple] {
+            height: auto;
+            min-height: 120px;
+        }
+        
+        .selected-assignees {
+            margin-top: 10px;
+        }
+        
+        .assignee-tag {
+            display: inline-block;
+            background: #e8f4fd;
+            border: 1px solid #004E89;
+            border-radius: 20px;
+            padding: 5px 12px;
+            margin: 2px 5px 2px 0;
+            font-size: 14px;
+        }
+        
+        .assignee-tag .badge {
+            margin-left: 5px;
+            font-size: 11px;
+        }
+        
+        /* File Upload Styles (from create.php) */
         .file-upload-container {
             border: 2px dashed #ddd;
             border-radius: 10px;
@@ -711,6 +942,14 @@ function getStatusBadge($status) {
             .file-remove {
                 align-self: flex-end;
             }
+            
+            .pattern-option {
+                padding: 10px;
+            }
+            
+            .work-day-form .row > div {
+                margin-bottom: 10px;
+            }
         }
     </style>
 </head>
@@ -834,6 +1073,7 @@ function getStatusBadge($status) {
                 <form method="POST" id="ticketForm" enctype="multipart/form-data">
                     <!-- Hidden field for deleted attachments -->
                     <input type="hidden" id="delete_attachments" name="delete_attachments" value="">
+                    <input type="hidden" name="work_pattern" value="multi">
                     
                     <!-- Basic Information Section -->
                     <div class="form-section">
@@ -931,6 +1171,201 @@ function getStatusBadge($status) {
                         </div>
                     </div>
                     
+                    <!-- Work Assignment & Time Tracking Section -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-clock"></i> Work Assignment & Time Tracking</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="assigned_to" class="form-label">Assign To (Multiple Selection)</label>
+                                    <select class="form-select" id="assigned_to" name="assigned_to[]" multiple size="5">
+                                        <option value="">Select staff members...</option>
+                                        <?php foreach ($staff_members as $staff): ?>
+                                        <option value="<?php echo htmlspecialchars($staff['id']); ?>" 
+                                                <?php 
+                                                if (isset($form_data['assigned_to'])) {
+                                                    if (is_array($form_data['assigned_to'])) {
+                                                        echo in_array($staff['id'], $form_data['assigned_to']) ? 'selected' : '';
+                                                    } else {
+                                                        echo $form_data['assigned_to'] == $staff['id'] ? 'selected' : '';
+                                                    }
+                                                }
+                                                ?>>
+                                            <?php echo htmlspecialchars($staff['full_name']); ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="text-muted small mt-1">
+                                        <i class="fas fa-info-circle"></i> 
+                                        Hold Ctrl (or Cmd on Mac) to select multiple staff members. First selected will be primary.
+                                    </div>
+                                    <div class="selected-assignees mt-2" id="selectedAssignees">
+                                        <!-- Selected assignees will appear here -->
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="estimated_hours" class="form-label">Estimated Work Hours</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="estimated_hours" name="estimated_hours" 
+                                               value="<?php echo htmlspecialchars($form_data['estimated_hours']); ?>"
+                                               min="0" step="0.5" placeholder="e.g., 2.5">
+                                        <span class="input-group-text">hours</span>
+                                    </div>
+                                    <div class="text-muted small mt-1">
+                                        <i class="fas fa-info-circle"></i> 
+                                        Estimated time to complete this task
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="work_start_time" class="form-label">Schedule Start Time (Optional)</label>
+                                    <input type="datetime-local" class="form-control" id="work_start_time" name="work_start_time"
+                                           value="<?php echo htmlspecialchars($form_data['work_start_time']); ?>">
+                                    <div class="text-muted small mt-1">
+                                        <i class="fas fa-info-circle"></i> 
+                                        When work should begin on this ticket
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="notify_client" name="notify_client" checked>
+                                        <label class="form-check-label" for="notify_client">
+                                            <i class="fas fa-bell"></i> Notify client about changes
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="urgent" name="urgent">
+                                        <label class="form-check-label" for="urgent">
+                                            <i class="fas fa-bolt"></i> Mark as urgent (SLA starts immediately)
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Multi-day Work Configuration -->
+                        <div id="multiDayConfig">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="expected_days" class="form-label">Number of Work Days</label>
+                                    <input type="number" class="form-control" id="expected_days" name="expected_days" 
+                                           min="1" max="30" value="<?php echo htmlspecialchars($form_data['expected_days']); ?>"
+                                           onchange="updateWorkDayForms()">
+                                </div>
+                                <div class="col-md-8 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-primary" onclick="addWorkDay()">
+                                        <i class="fas fa-plus"></i> Add Another Day
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Work Days Container -->
+                            <div id="workDaysContainer">
+                                <?php
+                                $work_days = $form_data['work_days'];
+                                if (empty($work_days)) {
+                                    $work_days = [['date' => date('Y-m-d'), 'start' => '09:00', 'end' => '17:00', 'desc' => '', 'staff_id' => '']];
+                                }
+                                
+                                foreach ($work_days as $index => $day): 
+                                ?>
+                                <div class="work-day-form card mb-3" data-day="<?php echo $index + 1; ?>">
+                                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-calendar-day"></i> Work Day <?php echo $index + 1; ?>
+                                        </h6>
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-day-btn" 
+                                                onclick="removeWorkDay(this)" <?php echo $index === 0 ? 'disabled' : ''; ?>>
+                                            <i class="fas fa-times"></i> Remove
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Date</label>
+                                                    <input type="date" class="form-control work-date" name="work_days[<?php echo $index; ?>][date]" 
+                                                           value="<?php echo htmlspecialchars($day['date'] ?? date('Y-m-d')); ?>"
+                                                           onchange="calculateDayHours(this)">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Start Time</label>
+                                                    <input type="time" class="form-control work-start" name="work_days[<?php echo $index; ?>][start]" 
+                                                           value="<?php echo htmlspecialchars($day['start'] ?? '09:00'); ?>"
+                                                           onchange="calculateDayHours(this)">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-3">
+                                                    <label class="form-label">End Time</label>
+                                                    <input type="time" class="form-control work-end" name="work_days[<?php echo $index; ?>][end]" 
+                                                           value="<?php echo htmlspecialchars($day['end'] ?? '17:00'); ?>"
+                                                           onchange="calculateDayHours(this)">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Hours</label>
+                                                    <input type="text" class="form-control work-hours" readonly 
+                                                           value="<?php echo calculateHours($day['start'] ?? '09:00', $day['end'] ?? '17:00'); ?>">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Staff (Optional)</label>
+                                                    <select class="form-select work-staff" name="work_days[<?php echo $index; ?>][staff_id]">
+                                                        <option value="">Select staff</option>
+                                                        <?php foreach ($staff_members as $staff): ?>
+                                                        <option value="<?php echo htmlspecialchars($staff['id']); ?>"
+                                                            <?php echo ($day['staff_id'] ?? '') == $staff['id'] ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars($staff['full_name']); ?>
+                                                        </option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Work Description</label>
+                                                    <textarea class="form-control work-description" name="work_days[<?php echo $index; ?>][desc]" 
+                                                              rows="2" placeholder="Describe work for this day..."><?php echo htmlspecialchars($day['desc'] ?? ''); ?></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                            
+                            <!-- Total Hours Display -->
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <div class="alert alert-info">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span><i class="fas fa-calculator"></i> Total Estimated Hours for All Days:</span>
+                                            <span class="total-hours-display" id="totalWorkHours"><?php 
+                                                $total = 0;
+                                                foreach ($work_days as $day) {
+                                                    $total += calculateHours($day['start'] ?? '09:00', $day['end'] ?? '17:00');
+                                                }
+                                                echo number_format($total, 2);
+                                            ?> hours</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Status & Priority Section -->
                     <div class="form-section">
                         <h4><i class="fas fa-cog"></i> Status & Priority</h4>
@@ -1002,69 +1437,6 @@ function getStatusBadge($status) {
                                               data-value="Closed" onclick="selectStatus('Closed')">
                                             <i class="fas fa-times"></i> Closed
                                         </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Work Assignment Section -->
-                    <div class="form-section">
-                        <h4><i class="fas fa-user-check"></i> Work Assignment</h4>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="assigned_to" class="form-label">Assign To</label>
-                                    <select class="form-select" id="assigned_to" name="assigned_to">
-                                        <option value="">Unassigned</option>
-                                        <?php foreach ($staff_members as $staff): ?>
-                                        <option value="<?php echo htmlspecialchars($staff['id']); ?>" 
-                                                <?php echo $form_data['assigned_to'] == $staff['id'] ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars($staff['full_name']); ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="estimated_hours" class="form-label">Estimated Work Hours</label>
-                                    <div class="input-group">
-                                        <input type="number" class="form-control" id="estimated_hours" name="estimated_hours" 
-                                               value="<?php echo htmlspecialchars($form_data['estimated_hours']); ?>"
-                                               min="0" step="0.5" placeholder="e.g., 2.5">
-                                        <span class="input-group-text">hours</span>
-                                    </div>
-                                    <div class="text-muted small mt-1">
-                                        <i class="fas fa-info-circle"></i> 
-                                        Estimated time to complete this task
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="work_start_time" class="form-label">Schedule Start Time</label>
-                                    <input type="datetime-local" class="form-control" id="work_start_time" name="work_start_time"
-                                           value="<?php echo htmlspecialchars($form_data['work_start_time']); ?>">
-                                    <div class="text-muted small mt-1">
-                                        <i class="fas fa-info-circle"></i> 
-                                        When work should begin on this ticket
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="notify_client" name="notify_client" checked>
-                                        <label class="form-check-label" for="notify_client">
-                                            <i class="fas fa-bell"></i> Notify client about changes
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="urgent" name="urgent" <?php echo $ticket['priority'] == 'Critical' ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="urgent">
-                                            <i class="fas fa-bolt"></i> Mark as urgent
-                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -1456,6 +1828,233 @@ function getStatusBadge($status) {
             });
         });
         
+        // Calculate hours for a single day
+        function calculateDayHours(inputElement) {
+            const dayForm = inputElement.closest('.work-day-form');
+            const startInput = dayForm.querySelector('.work-start');
+            const endInput = dayForm.querySelector('.work-end');
+            const hoursInput = dayForm.querySelector('.work-hours');
+            
+            const startTime = startInput.value;
+            const endTime = endInput.value;
+            
+            if (startTime && endTime) {
+                const start = new Date(`2000-01-01T${startTime}`);
+                const end = new Date(`2000-01-01T${endTime}`);
+                
+                // Handle overnight shifts
+                if (end < start) {
+                    end.setDate(end.getDate() + 1);
+                }
+                
+                const diffMs = end - start;
+                const diffHours = diffMs / (1000 * 60 * 60);
+                
+                // Update display
+                hoursInput.value = diffHours.toFixed(2);
+                
+                // Update total hours
+                updateTotalWorkHours();
+                
+                return diffHours;
+            }
+            hoursInput.value = '0.00';
+            updateTotalWorkHours();
+            return 0;
+        }
+        
+        // Update total work hours
+        function updateTotalWorkHours() {
+            let total = 0;
+            document.querySelectorAll('.work-day-form').forEach(dayForm => {
+                const hoursInput = dayForm.querySelector('.work-hours');
+                if (hoursInput && hoursInput.value) {
+                    total += parseFloat(hoursInput.value) || 0;
+                }
+            });
+            
+            document.getElementById('totalWorkHours').textContent = total.toFixed(2) + ' hours';
+            
+            // Update estimated hours if not set or lower than total
+            const estimatedHoursInput = document.getElementById('estimated_hours');
+            if (!estimatedHoursInput.value || parseFloat(estimatedHoursInput.value) < total) {
+                estimatedHoursInput.value = total.toFixed(2);
+            }
+        }
+        
+        // Add new work day
+        function addWorkDay() {
+            const container = document.getElementById('workDaysContainer');
+            const dayForms = container.querySelectorAll('.work-day-form');
+            const dayNumber = dayForms.length + 1;
+            
+            // Get staff members HTML
+            let staffOptions = '<option value="">Select staff</option>';
+            <?php foreach ($staff_members as $staff): ?>
+            staffOptions += '<option value="<?php echo htmlspecialchars($staff['id']); ?>"><?php echo htmlspecialchars($staff['full_name']); ?></option>';
+            <?php endforeach; ?>
+            
+            const newDay = document.createElement('div');
+            newDay.className = 'work-day-form card mb-3';
+            newDay.dataset.day = dayNumber;
+            newDay.innerHTML = `
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-calendar-day"></i> Work Day ${dayNumber}
+                    </h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-day-btn" onclick="removeWorkDay(this)">
+                        <i class="fas fa-times"></i> Remove
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Date</label>
+                                <input type="date" class="form-control work-date" name="work_days[${dayNumber - 1}][date]" 
+                                       value="${new Date().toISOString().split('T')[0]}" onchange="calculateDayHours(this)">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">Start Time</label>
+                                <input type="time" class="form-control work-start" name="work_days[${dayNumber - 1}][start]" 
+                                       value="09:00" onchange="calculateDayHours(this)">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">End Time</label>
+                                <input type="time" class="form-control work-end" name="work_days[${dayNumber - 1}][end]" 
+                                       value="17:00" onchange="calculateDayHours(this)">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">Hours</label>
+                                <input type="text" class="form-control work-hours" readonly value="8.00">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label class="form-label">Staff (Optional)</label>
+                                <select class="form-select work-staff" name="work_days[${dayNumber - 1}][staff_id]">
+                                    ${staffOptions}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Work Description</label>
+                                <textarea class="form-control work-description" name="work_days[${dayNumber - 1}][desc]" 
+                                          rows="2" placeholder="Describe work for this day..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(newDay);
+            updateTotalWorkHours();
+            
+            // Update expected days count
+            document.getElementById('expected_days').value = dayNumber;
+        }
+        
+        // Remove work day
+        function removeWorkDay(button) {
+            const dayForm = button.closest('.work-day-form');
+            const dayNumber = parseInt(dayForm.dataset.day);
+            
+            if (dayNumber === 1) {
+                alert('Cannot remove the first work day.');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to remove this work day?')) {
+                dayForm.remove();
+                
+                // Renumber remaining days
+                const container = document.getElementById('workDaysContainer');
+                const dayForms = container.querySelectorAll('.work-day-form');
+                
+                dayForms.forEach((form, index) => {
+                    form.dataset.day = index + 1;
+                    const header = form.querySelector('h6');
+                    header.innerHTML = `<i class="fas fa-calendar-day"></i> Work Day ${index + 1}`;
+                    
+                    // Update input names
+                    const inputs = form.querySelectorAll('input, select, textarea');
+                    inputs.forEach(input => {
+                        const name = input.getAttribute('name');
+                        if (name && name.includes('work_days[')) {
+                            input.setAttribute('name', name.replace(/work_days\[\d+\]/, `work_days[${index}]`));
+                        }
+                    });
+                    
+                    // Disable remove button for first day
+                    const removeBtn = form.querySelector('.remove-day-btn');
+                    if (index === 0) {
+                        removeBtn.disabled = true;
+                    } else {
+                        removeBtn.disabled = false;
+                    }
+                });
+                
+                updateTotalWorkHours();
+                
+                // Update expected days count
+                document.getElementById('expected_days').value = dayForms.length;
+            }
+        }
+        
+        // Update work day forms based on expected days
+        function updateWorkDayForms() {
+            const expectedDays = parseInt(document.getElementById('expected_days').value) || 1;
+            const container = document.getElementById('workDaysContainer');
+            const currentDays = container.querySelectorAll('.work-day-form').length;
+            
+            if (expectedDays > currentDays) {
+                // Add more days
+                for (let i = currentDays; i < expectedDays; i++) {
+                    addWorkDay();
+                }
+            } else if (expectedDays < currentDays) {
+                // Remove extra days (keep at least 1)
+                const daysToRemove = currentDays - expectedDays;
+                for (let i = 0; i < daysToRemove; i++) {
+                    const lastDay = container.lastElementChild;
+                    if (parseInt(lastDay.dataset.day) > 1) {
+                        lastDay.remove();
+                    }
+                }
+            }
+        }
+        
+        // Update selected assignees display
+        function updateSelectedAssignees() {
+            const select = document.getElementById('assigned_to');
+            const container = document.getElementById('selectedAssignees');
+            container.innerHTML = '';
+            
+            const selectedOptions = Array.from(select.selectedOptions);
+            selectedOptions.forEach((option, index) => {
+                if (option.value) {
+                    const tag = document.createElement('span');
+                    tag.className = 'assignee-tag';
+                    tag.innerHTML = `
+                        ${option.text}
+                        <span class="badge ${index === 0 ? 'bg-primary' : 'bg-secondary'}">
+                            ${index === 0 ? 'Primary' : 'Secondary'}
+                        </span>
+                    `;
+                    container.appendChild(tag);
+                }
+            });
+        }
+        
         // Form submission
         document.getElementById('ticketForm').addEventListener('submit', function(e) {
             // Basic validation
@@ -1490,6 +2089,29 @@ function getStatusBadge($status) {
             if (totalSize > MAX_TOTAL_SIZE) {
                 e.preventDefault();
                 alert('Total file size exceeds 500MB limit. Please remove some files.');
+                return;
+            }
+            
+            // Validate work days
+            const workDays = document.querySelectorAll('.work-day-form');
+            let hasEmptyFields = false;
+            let emptyDay = 0;
+            
+            workDays.forEach((dayForm, index) => {
+                const date = dayForm.querySelector('.work-date').value;
+                const start = dayForm.querySelector('.work-start').value;
+                const end = dayForm.querySelector('.work-end').value;
+                const desc = dayForm.querySelector('.work-description').value.trim();
+                
+                if (!date || !start || !end || !desc) {
+                    hasEmptyFields = true;
+                    emptyDay = index + 1;
+                }
+            });
+            
+            if (hasEmptyFields) {
+                e.preventDefault();
+                alert(`Please fill in all fields for Work Day ${emptyDay} (date, start time, end time, and description).`);
                 return;
             }
             
@@ -1544,6 +2166,11 @@ function getStatusBadge($status) {
                 // Reset priority and status badges
                 selectPriority('<?php echo $ticket["priority"] ?? "Medium"; ?>');
                 selectStatus('<?php echo $ticket["status"] ?? "Open"; ?>');
+                
+                // Reset work days to original values
+                updateWorkDayForms();
+                updateTotalWorkHours();
+                updateSelectedAssignees();
             }
         }
         
@@ -1589,13 +2216,15 @@ function getStatusBadge($status) {
             fileList.innerHTML = '<div class="text-muted text-center py-3">No new files selected</div>';
         }
         
-        // Update locations when client changes
-        document.getElementById('client_id').addEventListener('change', function() {
-            const clientId = this.value;
-            const locationSelect = document.getElementById('location_id');
-            
-            // In a real application, you would fetch locations via AJAX
-            console.log('Client selected:', clientId);
+        // Update selected assignees display
+        updateSelectedAssignees();
+        
+        // Listen for changes in assignee selection
+        document.getElementById('assigned_to').addEventListener('change', updateSelectedAssignees);
+        
+        // Initialize work day hours calculation
+        document.querySelectorAll('.work-day-form').forEach(dayForm => {
+            calculateDayHours(dayForm.querySelector('.work-start'));
         });
     </script>
 </body>

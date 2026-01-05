@@ -1,0 +1,16 @@
+mit/
+├── config/
+│   └── database.php
+├── includes/
+│   ├── auth.php
+│   └── permissions.php
+├── pages/
+│   └── clients/
+│       ├── includes/
+│       │   └── client_functions.php    ← Create this file
+│       ├── index.php
+│       ├── create.php
+│       ├── view.php
+│       ├── edit.php
+│       └── delete.php
+└── ...

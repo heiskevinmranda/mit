@@ -1,5 +1,5 @@
 <?php
-// pages/tickets/index.php - FIXED VERSION
+// pages/tickets/index.php - ENHANCED VERSION
 
 // Include authentication
 require_once '../../includes/auth.php';
@@ -21,14 +21,22 @@ $status = $_GET['status'] ?? '';
 $priority = $_GET['priority'] ?? '';
 $assigned_to = $_GET['assigned_to'] ?? '';
 $client_id = $_GET['client_id'] ?? '';
+$category = $_GET['category'] ?? '';
 $search = $_GET['search'] ?? '';
 $page = $_GET['page'] ?? 1;
 $limit = 15;
 $offset = ($page - 1) * $limit;
 
 // ========== BUILD QUERY ==========
-$query = "SELECT t.*, c.company_name, sp.full_name as assigned_to_name, 
-                 u.email as created_by_email, cl.location_name
+$query = "SELECT 
+            t.*, 
+            c.company_name, 
+            sp.full_name as primary_assignee_name, 
+            u.email as created_by_email, 
+            cl.location_name,
+            (SELECT COUNT(*) FROM ticket_assignees ta WHERE ta.ticket_id = t.id) as assignee_count,
+            (SELECT SUM(total_hours) FROM work_logs wl WHERE wl.ticket_id = t.id) as actual_hours,
+            (SELECT COUNT(*) FROM ticket_attachments ta2 WHERE ta2.ticket_id = t.id AND ta2.is_deleted = false) as attachment_count
           FROM tickets t
           LEFT JOIN clients c ON t.client_id = c.id
           LEFT JOIN staff_profiles sp ON t.assigned_to = sp.id
@@ -43,9 +51,11 @@ if (!isManager() && !isAdmin()) {
     // Regular staff can only see tickets assigned to them or created by them
     $staff_id = $current_user['staff_profile']['id'] ?? 0;
     if ($staff_id) {
-        $query .= " AND (t.assigned_to = ? OR t.created_by = ?)";
+        $query .= " AND (t.assigned_to = ? OR t.created_by = ? OR 
+                EXISTS (SELECT 1 FROM ticket_assignees ta WHERE ta.ticket_id = t.id AND ta.staff_id = ?))";
         $params[] = $staff_id;
         $params[] = $current_user['id'];
+        $params[] = $staff_id;
     } else {
         // If no staff profile, show only tickets created by user
         $query .= " AND t.created_by = ?";
@@ -74,8 +84,14 @@ if ($client_id && $client_id !== 'all') {
     $params[] = $client_id;
 }
 
+if ($category && $category !== 'all') {
+    $query .= " AND t.category = ?";
+    $params[] = $category;
+}
+
 if ($search) {
-    $query .= " AND (t.ticket_number ILIKE ? OR t.title ILIKE ? OR c.company_name ILIKE ?)";
+    $query .= " AND (t.ticket_number ILIKE ? OR t.title ILIKE ? OR c.company_name ILIKE ? OR t.description ILIKE ?)";
+    $params[] = "%$search%";
     $params[] = "%$search%";
     $params[] = "%$search%";
     $params[] = "%$search%";
@@ -102,6 +118,12 @@ $query .= " ORDER BY
                 WHEN 'Low' THEN 4 
                 ELSE 5 
             END,
+            CASE 
+                WHEN t.sla_breach_time IS NOT NULL AND t.sla_breach_time < NOW() THEN 0
+                WHEN t.sla_breach_time IS NOT NULL THEN 1
+                ELSE 2
+            END,
+            t.sla_breach_time ASC,
             t.created_at DESC 
             LIMIT ? OFFSET ?";
 
@@ -120,14 +142,80 @@ try {
 // ========== GET FILTER DATA ==========
 $clients = [];
 $staff_members = [];
+$categories = [];
 
 try {
     if (isManager() || isAdmin()) {
         $clients = $pdo->query("SELECT id, company_name FROM clients ORDER BY company_name")->fetchAll();
         $staff_members = $pdo->query("SELECT id, full_name FROM staff_profiles WHERE employment_status = 'Active' ORDER BY full_name")->fetchAll();
     }
+    
+    // Get all unique categories
+    $categories_result = $pdo->query("SELECT DISTINCT category FROM tickets WHERE category IS NOT NULL AND category != '' ORDER BY category")->fetchAll();
+    foreach ($categories_result as $cat) {
+        $categories[] = $cat['category'];
+    }
 } catch (Exception $e) {
     // Ignore errors for filter data
+}
+
+// Function to calculate SLA status
+function getSlaStatus($ticket) {
+    if (empty($ticket['sla_breach_time'])) {
+        return ['status' => 'no-sla', 'class' => 'secondary', 'text' => 'No SLA'];
+    }
+    
+    $now = new DateTime();
+    $breach_time = new DateTime($ticket['sla_breach_time']);
+    
+    if ($breach_time < $now) {
+        return ['status' => 'breached', 'class' => 'danger', 'text' => 'SLA Breached'];
+    }
+    
+    $interval = $now->diff($breach_time);
+    $hours_left = $interval->h + ($interval->days * 24);
+    
+    if ($hours_left < 24) {
+        return ['status' => 'critical', 'class' => 'warning', 'text' => 'Due Soon'];
+    }
+    
+    return ['status' => 'on-track', 'class' => 'success', 'text' => 'On Track'];
+}
+
+// Function to get priority hours
+function getPriorityHours($priority) {
+    switch ($priority) {
+        case 'Critical': return 2; // 2 hours
+        case 'High': return 4; // 4 hours
+        case 'Medium': return 24; // 24 hours
+        case 'Low': return 72; // 72 hours
+        default: return 24;
+    }
+}
+
+// Function to format time difference
+function formatTimeDiff($date1, $date2 = null) {
+    if (!$date2) {
+        $date2 = new DateTime();
+    }
+    
+    if (!($date1 instanceof DateTime)) {
+        $date1 = new DateTime($date1);
+    }
+    
+    if (!($date2 instanceof DateTime)) {
+        $date2 = new DateTime($date2);
+    }
+    
+    $diff = $date1->diff($date2);
+    
+    if ($diff->days > 0) {
+        return $diff->days . 'd ' . $diff->h . 'h';
+    } elseif ($diff->h > 0) {
+        return $diff->h . 'h ' . $diff->i . 'm';
+    } else {
+        return $diff->i . 'm';
+    }
 }
 ?>
 
@@ -155,6 +243,11 @@ try {
             padding: 15px;
             text-align: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-2px);
         }
         
         .stats-card h5 {
@@ -167,6 +260,7 @@ try {
             color: #004E89;
             font-weight: bold;
             margin: 0;
+            font-size: 24px;
         }
         
         .badge-critical { background: #dc3545; color: white; }
@@ -179,6 +273,87 @@ try {
         .badge-waiting { background: #6f42c1; color: white; }
         .badge-resolved { background: #28a745; color: white; }
         .badge-closed { background: #6c757d; color: white; }
+        
+        .ticket-row {
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .ticket-row:hover {
+            background-color: #f8f9fa !important;
+            transform: translateX(5px);
+        }
+        
+        .sla-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 10px;
+        }
+        
+        .assignee-badge {
+            background: #e8f4fd;
+            color: #004E89;
+            border: 1px solid #004E89;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-right: 3px;
+        }
+        
+        .hours-progress {
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .hours-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 3px;
+        }
+        
+        .category-badge {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #dee2e6;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+        
+        .attachment-badge {
+            background: #fff3cd;
+            color: #856404;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+        
+        .time-info {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .time-info i {
+            margin-right: 3px;
+        }
+        
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 10px;
+            }
+            
+            .table-responsive {
+                font-size: 14px;
+            }
+            
+            .badge {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -204,16 +379,16 @@ try {
                         <i class="fas fa-ticket-alt"></i> Tickets
                     </a></li>
                     
+                    <li><a href="create.php">
+                        <i class="fas fa-plus-circle"></i> Create Ticket
+                    </a></li>
+                    
                     <li><a href="../clients/index.php">
                         <i class="fas fa-building"></i> Clients
                     </a></li>
                     
                     <li><a href="../assets/index.php">
                         <i class="fas fa-server"></i> Assets
-                    </a></li>
-                    
-                    <li><a href="../staff/profile.php">
-                        <i class="fas fa-user"></i> My Profile
                     </a></li>
                     
                     <li><a href="../../logout.php">
@@ -232,6 +407,9 @@ try {
                 <div class="btn-group">
                     <a href="create.php" class="btn btn-primary">
                         <i class="fas fa-plus"></i> New Ticket
+                    </a>
+                    <a href="export.php" class="btn btn-outline-secondary">
+                        <i class="fas fa-download"></i> Export
                     </a>
                 </div>
             </div>
@@ -261,7 +439,7 @@ try {
             <div class="row mb-4">
                 <div class="col-md-3">
                     <div class="stats-card">
-                        <h5>Open Tickets</h5>
+                        <h5><i class="fas fa-clock text-primary"></i> Open Tickets</h5>
                         <h2>
                             <?php 
                             try {
@@ -276,7 +454,7 @@ try {
                 </div>
                 <div class="col-md-3">
                     <div class="stats-card">
-                        <h5>Critical Priority</h5>
+                        <h5><i class="fas fa-exclamation-triangle text-danger"></i> Critical</h5>
                         <h2>
                             <?php 
                             try {
@@ -291,12 +469,18 @@ try {
                 </div>
                 <div class="col-md-3">
                     <div class="stats-card">
-                        <h5>Resolved Today</h5>
+                        <h5><i class="fas fa-user-check text-success"></i> My Tickets</h5>
                         <h2>
                             <?php 
                             try {
-                                $stmt = $pdo->query("SELECT COUNT(*) FROM tickets WHERE status = 'Resolved' AND DATE(updated_at) = CURRENT_DATE");
-                                echo $stmt->fetchColumn();
+                                $staff_id = $current_user['staff_profile']['id'] ?? 0;
+                                if ($staff_id) {
+                                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE assigned_to = ? AND status != 'Closed'");
+                                    $stmt->execute([$staff_id]);
+                                    echo $stmt->fetchColumn();
+                                } else {
+                                    echo "0";
+                                }
                             } catch (Exception $e) {
                                 echo "0";
                             }
@@ -306,11 +490,11 @@ try {
                 </div>
                 <div class="col-md-3">
                     <div class="stats-card">
-                        <h5>Total Tickets</h5>
+                        <h5><i class="fas fa-flag text-warning"></i> SLA Breached</h5>
                         <h2>
                             <?php 
                             try {
-                                $stmt = $pdo->query("SELECT COUNT(*) FROM tickets");
+                                $stmt = $pdo->query("SELECT COUNT(*) FROM tickets WHERE sla_breach_time IS NOT NULL AND sla_breach_time < NOW() AND status != 'Closed'");
                                 echo $stmt->fetchColumn();
                             } catch (Exception $e) {
                                 echo "0";
@@ -325,7 +509,7 @@ try {
             <div class="filter-card">
                 <form method="GET" class="row g-3">
                     <div class="col-md-2">
-                        <label class="form-label">Status</label>
+                        <label class="form-label"><i class="fas fa-filter"></i> Status</label>
                         <select name="status" class="form-select">
                             <option value="all">All Status</option>
                             <option value="Open" <?php echo $status == 'Open' ? 'selected' : ''; ?>>Open</option>
@@ -337,7 +521,7 @@ try {
                     </div>
                     
                     <div class="col-md-2">
-                        <label class="form-label">Priority</label>
+                        <label class="form-label"><i class="fas fa-flag"></i> Priority</label>
                         <select name="priority" class="form-select">
                             <option value="all">All Priorities</option>
                             <option value="Critical" <?php echo $priority == 'Critical' ? 'selected' : ''; ?>>Critical</option>
@@ -347,9 +531,22 @@ try {
                         </select>
                     </div>
                     
+                    <div class="col-md-2">
+                        <label class="form-label"><i class="fas fa-tag"></i> Category</label>
+                        <select name="category" class="form-select">
+                            <option value="all">All Categories</option>
+                            <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo htmlspecialchars($cat); ?>" 
+                                    <?php echo $category == $cat ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cat); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    
                     <?php if (isManager() || isAdmin()): ?>
                     <div class="col-md-2">
-                        <label class="form-label">Assigned To</label>
+                        <label class="form-label"><i class="fas fa-user"></i> Assigned To</label>
                         <select name="assigned_to" class="form-select">
                             <option value="all">All Staff</option>
                             <?php foreach ($staff_members as $staff): ?>
@@ -362,7 +559,7 @@ try {
                     </div>
                     
                     <div class="col-md-2">
-                        <label class="form-label">Client</label>
+                        <label class="form-label"><i class="fas fa-building"></i> Client</label>
                         <select name="client_id" class="form-select">
                             <option value="all">All Clients</option>
                             <?php foreach ($clients as $client): ?>
@@ -376,10 +573,15 @@ try {
                     <?php endif; ?>
                     
                     <div class="col-md-3">
-                        <label class="form-label">Search</label>
-                        <input type="text" name="search" class="form-control" 
-                               placeholder="Ticket #, Title, Client..."
-                               value="<?php echo htmlspecialchars($search); ?>">
+                        <label class="form-label"><i class="fas fa-search"></i> Search</label>
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control" 
+                                   placeholder="Ticket #, Title, Client, Description..."
+                                   value="<?php echo htmlspecialchars($search); ?>">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="col-md-12 mt-3">
@@ -389,6 +591,9 @@ try {
                         <a href="index.php" class="btn btn-secondary">
                             <i class="fas fa-redo"></i> Reset
                         </a>
+                        <span class="text-muted ms-3">
+                            <i class="fas fa-info-circle"></i> Showing <?php echo count($tickets); ?> of <?php echo $total; ?> tickets
+                        </span>
                     </div>
                 </form>
             </div>
@@ -401,7 +606,9 @@ try {
                         <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                         <h4>No tickets found</h4>
                         <p class="text-muted"><?php echo $search ? 'Try different search terms' : 'Create your first ticket'; ?></p>
-                        <a href="create.php" class="btn btn-primary">Create New Ticket</a>
+                        <a href="create.php" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create New Ticket
+                        </a>
                     </div>
                     <?php else: ?>
                     <div class="table-responsive">
@@ -409,49 +616,140 @@ try {
                             <thead>
                                 <tr>
                                     <th>Ticket #</th>
-                                    <th>Title</th>
-                                    <th>Client</th>
-                                    <th>Priority</th>
-                                    <th>Status</th>
-                                    <th>Assigned To</th>
+                                    <th>Details</th>
+                                    <th>Client & Category</th>
+                                    <th>Priority & SLA</th>
+                                    <th>Assignees</th>
+                                    <th>Time Tracking</th>
                                     <th>Created</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($tickets as $ticket): ?>
-                                <tr>
+                                <?php foreach ($tickets as $ticket): 
+                                    $sla_status = getSlaStatus($ticket);
+                                    $assignee_count = $ticket['assignee_count'] ?? 0;
+                                    $actual_hours = $ticket['actual_hours'] ?? 0;
+                                    $estimated_hours = $ticket['estimated_hours'] ?? 0;
+                                    $progress_percent = $estimated_hours > 0 ? min(100, ($actual_hours / $estimated_hours) * 100) : 0;
+                                    
+                                    // Calculate due date based on priority if no SLA breach time
+                                    $due_date = $ticket['sla_breach_time'];
+                                    if (!$due_date && $ticket['created_at']) {
+                                        $created = new DateTime($ticket['created_at']);
+                                        $priority_hours = getPriorityHours($ticket['priority']);
+                                        $created->modify("+{$priority_hours} hours");
+                                        $due_date = $created->format('Y-m-d H:i:s');
+                                    }
+                                ?>
+                                <tr class="ticket-row" onclick="window.location='view.php?id=<?php echo $ticket['id']; ?>'">
                                     <td>
-                                        <strong><?php echo htmlspecialchars($ticket['ticket_number']); ?></strong>
-                                        <div class="text-muted small"><?php echo htmlspecialchars($ticket['category'] ?? 'General'); ?></div>
-                                    </td>
-                                    <td>
-                                        <strong><?php echo htmlspecialchars($ticket['title']); ?></strong>
-                                        <div class="text-muted small text-truncate" style="max-width: 250px;">
-                                            <?php echo htmlspecialchars(substr($ticket['description'] ?? '', 0, 50)); ?>...
+                                        <strong class="d-block"><?php echo htmlspecialchars($ticket['ticket_number']); ?></strong>
+                                        <div class="time-info">
+                                            <i class="fas fa-calendar"></i> 
+                                            <?php echo date('M d', strtotime($ticket['created_at'])); ?>
                                         </div>
                                     </td>
-                                    <td><?php echo htmlspecialchars($ticket['company_name'] ?? 'N/A'); ?></td>
                                     <td>
-                                        <span class="badge badge-<?php echo strtolower($ticket['priority']); ?>">
-                                            <?php echo htmlspecialchars($ticket['priority']); ?>
+                                        <strong class="d-block"><?php echo htmlspecialchars($ticket['title']); ?></strong>
+                                        <div class="text-muted small text-truncate" style="max-width: 200px;">
+                                            <?php 
+                                            $desc = $ticket['description'] ?? '';
+                                            echo htmlspecialchars(substr($desc, 0, 50));
+                                            if (strlen($desc) > 50) echo '...';
+                                            ?>
+                                        </div>
+                                        <?php if ($ticket['attachment_count'] > 0): ?>
+                                        <span class="attachment-badge">
+                                            <i class="fas fa-paperclip"></i> <?php echo $ticket['attachment_count']; ?>
                                         </span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
-                                        <span class="badge badge-<?php echo str_replace(' ', '-', strtolower($ticket['status'])); ?>">
-                                            <?php echo htmlspecialchars($ticket['status']); ?>
+                                        <div class="d-block mb-1"><?php echo htmlspecialchars($ticket['company_name'] ?? 'N/A'); ?></div>
+                                        <?php if ($ticket['category']): ?>
+                                        <span class="category-badge">
+                                            <?php echo htmlspecialchars($ticket['category']); ?>
                                         </span>
+                                        <?php endif; ?>
+                                        <?php if ($ticket['location_name']): ?>
+                                        <div class="time-info mt-1">
+                                            <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($ticket['location_name']); ?>
+                                        </div>
+                                        <?php endif; ?>
                                     </td>
-                                    <td><?php echo htmlspecialchars($ticket['assigned_to_name'] ?? 'Unassigned'); ?></td>
-                                    <td><?php echo date('M d, Y', strtotime($ticket['created_at'])); ?></td>
                                     <td>
-                                        <div class="btn-group btn-group-sm">
+                                        <div class="d-flex flex-column gap-1">
+                                            <span class="badge badge-<?php echo strtolower($ticket['priority']); ?>">
+                                                <?php echo htmlspecialchars($ticket['priority']); ?>
+                                            </span>
+                                            <span class="badge badge-<?php echo str_replace(' ', '-', strtolower($ticket['status'])); ?>">
+                                                <?php echo htmlspecialchars($ticket['status']); ?>
+                                            </span>
+                                            <?php if ($sla_status['status'] != 'no-sla'): ?>
+                                            <span class="sla-badge bg-<?php echo $sla_status['class']; ?>">
+                                                <?php echo $sla_status['text']; ?>
+                                                <?php if ($due_date): ?>
+                                                <br><small><?php echo date('M d H:i', strtotime($due_date)); ?></small>
+                                                <?php endif; ?>
+                                            </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <?php if ($ticket['primary_assignee_name']): ?>
+                                        <div class="mb-1"><?php echo htmlspecialchars($ticket['primary_assignee_name']); ?></div>
+                                        <?php endif; ?>
+                                        <?php if ($assignee_count > 0): ?>
+                                        <span class="assignee-badge">
+                                            <i class="fas fa-users"></i> <?php echo $assignee_count; ?> assignee<?php echo $assignee_count > 1 ? 's' : ''; ?>
+                                        </span>
+                                        <?php else: ?>
+                                        <span class="text-muted small">Unassigned</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($estimated_hours > 0): ?>
+                                        <div class="d-flex justify-content-between small">
+                                            <span>Est: <?php echo number_format($estimated_hours, 1); ?>h</span>
+                                            <span>Act: <?php echo number_format($actual_hours, 1); ?>h</span>
+                                        </div>
+                                        <div class="hours-progress">
+                                            <div class="hours-progress-bar" style="width: <?php echo $progress_percent; ?>%"></div>
+                                        </div>
+                                        <?php endif; ?>
+                                        <?php if ($ticket['total_work_hours'] > 0): ?>
+                                        <div class="time-info">
+                                            <i class="fas fa-clock"></i> Total: <?php echo number_format($ticket['total_work_hours'], 1); ?>h
+                                        </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <div class="time-info">
+                                            <i class="fas fa-calendar-plus"></i> 
+                                            <?php echo date('M d', strtotime($ticket['created_at'])); ?>
+                                        </div>
+                                        <div class="time-info">
+                                            <i class="fas fa-clock"></i> 
+                                            <?php echo date('H:i', strtotime($ticket['created_at'])); ?>
+                                        </div>
+                                        <?php if ($ticket['updated_at'] != $ticket['created_at']): ?>
+                                        <div class="time-info">
+                                            <i class="fas fa-sync"></i> Updated 
+                                            <?php echo formatTimeDiff($ticket['updated_at']); ?> ago
+                                        </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" onclick="event.stopPropagation();">
                                             <a href="view.php?id=<?php echo $ticket['id']; ?>" class="btn btn-info" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            <?php if (isManager() || isAdmin() || $ticket['created_by'] == $current_user['id']): ?>
                                             <a href="edit.php?id=<?php echo $ticket['id']; ?>" class="btn btn-warning" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
@@ -466,24 +764,57 @@ try {
                         <ul class="pagination justify-content-center">
                             <li class="page-item <?php echo $page == 1 ? 'disabled' : ''; ?>">
                                 <a class="page-link" 
-                                   href="?page=<?php echo $page - 1; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
-                                    Previous
+                                   href="?page=<?php echo $page - 1; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
+                                    <i class="fas fa-chevron-left"></i>
                                 </a>
                             </li>
                             
-                            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                            <?php 
+                            // Show limited pagination
+                            $start = max(1, $page - 2);
+                            $end = min($total_pages, $page + 2);
+                            
+                            if ($start > 1): ?>
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page=1&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
+                                    1
+                                </a>
+                            </li>
+                            <?php if ($start > 2): ?>
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <?php for ($i = $start; $i <= $end; $i++): ?>
                             <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
                                 <a class="page-link" 
-                                   href="?page=<?php echo $i; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
+                                   href="?page=<?php echo $i; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
                                     <?php echo $i; ?>
                                 </a>
                             </li>
                             <?php endfor; ?>
                             
+                            <?php if ($end < $total_pages): ?>
+                            <?php if ($end < $total_pages - 1): ?>
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            <?php endif; ?>
+                            <li class="page-item">
+                                <a class="page-link" 
+                                   href="?page=<?php echo $total_pages; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
+                                    <?php echo $total_pages; ?>
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                            
                             <li class="page-item <?php echo $page == $total_pages ? 'disabled' : ''; ?>">
                                 <a class="page-link" 
-                                   href="?page=<?php echo $page + 1; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
-                                    Next
+                                   href="?page=<?php echo $page + 1; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
+                                    <i class="fas fa-chevron-right"></i>
                                 </a>
                             </li>
                         </ul>
@@ -495,25 +826,37 @@ try {
         </main>
     </div>
     
-    <!-- Mobile Menu Toggle -->
-    <button class="mobile-menu-toggle">
-        <i class="fas fa-bars"></i>
-    </button>
-    
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Mobile menu toggle
-        document.querySelector('.mobile-menu-toggle')?.addEventListener('click', function() {
-            document.querySelector('.sidebar').classList.toggle('active');
-        });
-        
         // Auto-hide alerts after 5 seconds
         setTimeout(() => {
             document.querySelectorAll('.alert').forEach(alert => {
                 alert.remove();
             });
         }, 5000);
+        
+        // Make entire row clickable
+        document.querySelectorAll('.ticket-row').forEach(row => {
+            row.addEventListener('click', function(e) {
+                // Don't trigger if clicking on buttons or links
+                if (!e.target.closest('a') && !e.target.closest('button')) {
+                    window.location = this.querySelector('a.btn-info').href;
+                }
+            });
+        });
+        
+        // Quick status update
+        document.querySelectorAll('.status-badge').forEach(badge => {
+            badge.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const ticketId = this.dataset.ticketId;
+                const currentStatus = this.dataset.status;
+                
+                // Show status change modal or dropdown
+                console.log('Change status for ticket', ticketId, 'from', currentStatus);
+            });
+        });
     </script>
 </body>
 </html>
