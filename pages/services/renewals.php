@@ -237,8 +237,8 @@ $services = $pdo->query($services_sql)->fetchAll();
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php">Services Management</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('services.index'); ?>">Services Management</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Service Renewals</li>
                 </ol>
             </nav>

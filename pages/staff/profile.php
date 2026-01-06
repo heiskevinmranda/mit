@@ -2,19 +2,19 @@
 require_once '../../includes/auth.php';
 requireLogin();
 
+$page_title = 'My Profile';
+
 $current_user = getCurrentUser();
 $pdo = getDBConnection();
 
 // Get staff profile
-$stmt = $pdo->prepare("
-    SELECT sp.*, u.email as login_email, 
+$stmt = $pdo->prepare("    SELECT sp.*, u.email as login_email, 
            rm.full_name as reporting_manager_name,
            rm.designation as reporting_manager_designation
     FROM staff_profiles sp
     LEFT JOIN users u ON sp.user_id = u.id
     LEFT JOIN staff_profiles rm ON sp.reporting_manager_id = rm.id
-    WHERE sp.user_id = ?
-");
+    WHERE sp.user_id = ?");
 $stmt->execute([$current_user['id']]);
 $staff = $stmt->fetch();
 
@@ -25,37 +25,44 @@ if (!$staff) {
 }
 
 // Get assigned tickets
-$stmt = $pdo->prepare("
-    SELECT COUNT(*) as total_tickets 
+$stmt = $pdo->prepare("    SELECT COUNT(*) as total_tickets 
     FROM tickets 
-    WHERE assigned_to = ?
-");
+    WHERE assigned_to = ?");
 $stmt->execute([$staff['id']]);
 $ticket_count = $stmt->fetch()['total_tickets'];
 
 // Get completed tickets this month
-$stmt = $pdo->prepare("
-    SELECT COUNT(*) as completed_tickets 
+$stmt = $pdo->prepare("    SELECT COUNT(*) as completed_tickets 
     FROM tickets 
     WHERE assigned_to = ? 
     AND status = 'Closed' 
     AND EXTRACT(MONTH FROM closed_at) = EXTRACT(MONTH FROM CURRENT_DATE)
-    AND EXTRACT(YEAR FROM closed_at) = EXTRACT(YEAR FROM CURRENT_DATE)
-");
+    AND EXTRACT(YEAR FROM closed_at) = EXTRACT(YEAR FROM CURRENT_DATE)");
 $stmt->execute([$staff['id']]);
 $completed_this_month = $stmt->fetch()['completed_tickets'];
-?>
 
+// Close PHP and start HTML
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile | MSP Application</title>
+    <title><?php echo $page_title ?? 'MSP Application'; ?></title>
     <link rel="stylesheet" href="/mit/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        .main-content {
+            padding: 1rem !important;
+        }
+
+        @media (min-width: 992px) {
+            .main-content {
+                padding: 1.5rem !important;
+            }
+        }
+
         .profile-header {
             background: linear-gradient(135deg, #004E89 0%, #003d6e 100%);
             color: white;
@@ -63,7 +70,7 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
             border-radius: 10px;
             margin-bottom: 30px;
         }
-        
+
         .profile-avatar {
             width: 120px;
             height: 120px;
@@ -78,50 +85,50 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
             margin: 0 auto 20px;
             border: 5px solid rgba(255, 255, 255, 0.2);
         }
-        
+
         .profile-info {
             text-align: center;
         }
-        
+
         .profile-info h1 {
             margin-bottom: 10px;
             font-weight: 600;
         }
-        
+
         .profile-info .designation {
             font-size: 18px;
             opacity: 0.9;
             margin-bottom: 5px;
         }
-        
+
         .profile-info .department {
             font-size: 16px;
             opacity: 0.8;
             margin-bottom: 20px;
         }
-        
+
         .profile-stats {
             display: flex;
             justify-content: center;
             gap: 30px;
             margin-top: 20px;
         }
-        
+
         .profile-stat {
             text-align: center;
         }
-        
+
         .profile-stat .number {
             font-size: 24px;
             font-weight: bold;
             display: block;
         }
-        
+
         .profile-stat .label {
             font-size: 14px;
             opacity: 0.8;
         }
-        
+
         .info-card {
             background: white;
             border-radius: 10px;
@@ -129,100 +136,30 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
             margin-bottom: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-        
+
         .info-card h3 {
             color: #004E89;
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid #f0f0f0;
         }
-        
+
         .info-row {
             display: flex;
             margin-bottom: 15px;
         }
-        
+
         .info-label {
             flex: 0 0 200px;
             font-weight: 500;
             color: #555;
         }
-        
+
         .info-value {
             flex: 1;
             color: #333;
         }
-        
-        /* Specific override for profile page layout to fix conflicts with main CSS */
-        .dashboard-container .main-content {
-            flex: 1;
-            margin-left: var(--sidebar-width);
-            padding: 1rem;
-            min-height: 100vh;
-            overflow-x: hidden;
-            width: auto; /* Ensure it calculates width properly */
-        }
-        
-        /* Make sure profile section uses full available width */
-        .main-content .profile-header {
-            width: 100%;
-            box-sizing: border-box;
-        }
-        
-        .profile-content {
-            width: 100%;
-            max-width: 100%;
-            overflow-x: auto;
-        }
-        
-        /* Override Bootstrap grid if needed */
-        .info-row {
-            display: flex;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-        }
-        
-        .info-label {
-            min-width: 200px;
-            flex: 0 0 auto;
-            font-weight: 500;
-            color: #555;
-        }
-        
-        .info-value {
-            flex: 1;
-            min-width: 200px;
-            color: #333;
-        }
-        
-        /* Ensure proper width for profile cards */
-        .info-card {
-            width: 100%;
-            box-sizing: border-box;
-        }
-        
-        /* Fix Bootstrap grid in dashboard layout */
-        .profile-content .row {
-            margin: 0;
-            max-width: 100%;
-            width: 100%;
-        }
-        
-        .profile-content .col-md-6 {
-            max-width: 100%;
-            flex: 0 0 100%;
-            padding: 0 15px;
-            width: 50%; /* Force exact width */
-        }
-        
-        @media (min-width: 768px) {
-            .profile-content .col-md-6 {
-                flex: 0 0 50%;
-                max-width: 50%;
-                width: 50%;
-            }
-        }
-        
+
         @media (max-width: 768px) {
             .profile-stats {
                 flex-direction: column;
@@ -240,8 +177,8 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
     </style>
 </head>
 <body>
-    <?php include '../../includes/header.php'; ?>
-    
+
+?>
     <div class="dashboard-container">
         <?php include '../../includes/sidebar.php'; ?>
         
@@ -434,9 +371,20 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
     
-    <?php include '../../includes/footer.php'; ?>
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../js/main.js"></script>
+    <script>
+        // Mobile menu toggle
+        document.querySelector('.mobile-menu-toggle')?.addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
+    </script>
 </body>
 </html>

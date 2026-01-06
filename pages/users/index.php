@@ -1,11 +1,11 @@
 <?php
 // pages/users/index.php
-session_start();
-
-// Use absolute paths
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../includes/routes.php';
 require_once __DIR__ . '/../../includes/permissions.php';
+
+$page_title = 'User Management';
 
 if (!isLoggedIn()) {
     header("Location: ../../login.php");
@@ -166,490 +166,102 @@ function getRoleBadge($role) {
     
     return '<span class="badge ' . $class . '">' . $name . '</span>';
 }
-?>
 
+// Close PHP and start HTML
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management - MSP Application</title>
-    
-    <!-- Load CSS files with fallback -->
-    <link rel="stylesheet" href="/mit/assets/css/style.css">
+    <title><?php echo $page_title ?? 'MSP Application'; ?></title>
+    <link rel="stylesheet" href="/mit/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-<!-- Add this CSS after the Bootstrap CDN link -->
-<style>
-    /* Override Bootstrap and custom styles to match the image */
-    :root {
-        --primary-color: #004E89;
-        --secondary-color: #FF6B35;
-        --accent-color: #43BCCD;
-        --light-bg: #f8f9fa;
-        --border-color: #dee2e6;
-    }
-    
-    body {
-        background-color: #f0f2f5;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    
-    /* Navbar styling */
-    .navbar {
-        background: linear-gradient(135deg, var(--primary-color) 0%, #002D62 100%);
-        padding: 12px 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .navbar h4 {
-        color: white;
-        margin: 0;
-        font-weight: 600;
-    }
-    
-    /* Main layout */
-    .main-wrapper {
-        display: flex;
-        min-height: calc(100vh - 56px);
-    }
-    
-    /* Sidebar styling - exactly like image */
-    .sidebar {
-        width: 220px;
-        background: white;
-        border-right: 1px solid var(--border-color);
-        padding: 0;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
-    }
-    
-    .sidebar-content {
-        padding: 20px 0;
-    }
-    
-    .sidebar-menu {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    
-    .sidebar-menu li {
-        margin: 0;
-    }
-    
-    .sidebar-menu a {
-        display: flex;
-        align-items: center;
-        padding: 12px 20px;
-        color: #495057;
-        text-decoration: none;
-        border-left: 3px solid transparent;
-        transition: all 0.2s;
-    }
-    
-    .sidebar-menu a:hover {
-        background-color: var(--light-bg);
-        color: var(--primary-color);
-        border-left-color: var(--primary-color);
-    }
-    
-    .sidebar-menu a.active {
-        background-color: #e3f2fd;
-        color: var(--primary-color);
-        border-left-color: var(--primary-color);
-        font-weight: 500;
-    }
-    
-    .sidebar-menu i {
-        width: 24px;
-        margin-right: 12px;
-        font-size: 16px;
-        text-align: center;
-    }
-    
-    /* Main content area */
-    .main-content {
-        flex: 1;
-        padding: 25px;
-        background-color: #f0f2f5;
-        min-height: calc(100vh - 56px);
-    }
-    
-    /* Page header */
-    .main-content .h2 {
-        color: var(--primary-color);
-        font-weight: 600;
-        margin-bottom: 8px;
-    }
-    
-    .main-content .text-muted {
-        color: #6c757d !important;
-    }
-    
-    /* Card styling - match image */
-    .card {
-        border: none;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        margin-bottom: 24px;
-        overflow: hidden;
-    }
-    
-    .card-header {
-        background-color: var(--primary-color);
-        color: white;
-        border-bottom: none;
-        padding: 16px 20px;
-        font-weight: 600;
-    }
-    
-    .card-header h5 {
-        margin: 0;
-        font-weight: 600;
-    }
-    
-    .card-body {
-        padding: 25px;
-    }
-    
-    /* Form controls */
-    .form-control {
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        padding: 10px 12px;
-        transition: all 0.2s;
-    }
-    
-    .form-control:focus {
-        border-color: var(--accent-color);
-        box-shadow: 0 0 0 0.2rem rgba(67, 188, 205, 0.25);
-    }
-    
-    .input-group-text {
-        background-color: #f8f9fa;
-        border-color: #ced4da;
-    }
-    
-    /* Buttons */
-    .btn-primary {
-        background-color: var(--secondary-color);
-        border-color: var(--secondary-color);
-        padding: 10px 20px;
-        font-weight: 500;
-        border-radius: 6px;
-        transition: all 0.2s;
-    }
-    
-    .btn-primary:hover {
-        background-color: #e85c2a;
-        border-color: #e85c2a;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
-    }
-    
-    .btn-outline-secondary {
-        border-radius: 6px;
-        padding: 6px 12px;
-    }
-    
-    .btn-group-sm .btn {
-        padding: 5px 10px;
-        border-radius: 4px;
-    }
-    
-    /* Table styling - exactly like image */
-    .table {
-        background-color: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    
-    .table thead {
-        background-color: #f8f9fa;
-    }
-    
-    .table th {
-        font-weight: 600;
-        color: #495057;
-        text-transform: uppercase;
-        font-size: 13px;
-        letter-spacing: 0.5px;
-        border-bottom: 2px solid #dee2e6;
-        padding: 16px 20px;
-        white-space: nowrap;
-    }
-    
-    .table td {
-        padding: 16px 20px;
-        vertical-align: middle;
-        border-bottom: 1px solid #f1f1f1;
-    }
-    
-    .table tbody tr:hover {
-        background-color: rgba(0, 78, 137, 0.03);
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(0, 78, 137, 0.05);
-    }
-    
-    /* Badge styling */
-    .badge {
-        font-weight: 500;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-    }
-    
-    .bg-secondary {
-        background-color: #6c757d !important;
-    }
-    
-    /* Status badges */
-    .status-active {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    
-    .status-inactive {
-        background-color: #ffebee;
-        color: #c62828;
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    
-    /* Email verification badge */
-    .verified-badge {
-        background-color: #e3f2fd;
-        color: #1565c0;
-        padding: 3px 8px;
-        border-radius: 10px;
-        font-size: 11px;
-    }
-    
-    .unverified-badge {
-        background-color: #fff3e0;
-        color: #ef6c00;
-        padding: 3px 8px;
-        border-radius: 10px;
-        font-size: 11px;
-    }
-    
-    /* Alert styling */
-    .alert {
-        border: none;
-        border-radius: 8px;
-        padding: 15px 20px;
-        margin-bottom: 20px;
-    }
-    
-    .alert-success {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        border-left: 4px solid #4caf50;
-    }
-    
-    .alert-danger {
-        background-color: #ffebee;
-        color: #c62828;
-        border-left: 4px solid #f44336;
-    }
-    
-    /* Mobile responsive */
-    @media (max-width: 768px) {
-        .sidebar {
-            position: fixed;
-            top: 56px;
-            left: -250px;
-            height: calc(100vh - 56px);
-            z-index: 1000;
-            transition: left 0.3s;
-        }
-        
-        .sidebar.show {
-            left: 0;
-        }
-        
+    <style>
         .main-content {
-            padding: 15px;
+            padding: 1rem !important;
         }
-        
-        .card-body {
-            padding: 15px;
+
+        @media (min-width: 992px) {
+            .main-content {
+                padding: 1.5rem !important;
+            }
         }
-        
+
+        .header {
+            padding: 1.5rem !important;
+            margin-bottom: 1.5rem !important;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .role-info {
+            flex: 1;
+        }
+
         .table-responsive {
             overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
         }
-    }
-    
-    /* Search results info */
-    .text-muted {
-        font-size: 14px;
-    }
-    
-    /* Empty state */
-    .text-center.py-5 i {
-        font-size: 48px;
-        opacity: 0.3;
-        margin-bottom: 20px;
-    }
-    
-    /* ID badge */
-    .badge.bg-secondary {
-        font-family: 'Courier New', monospace;
-        font-size: 11px;
-        padding: 4px 8px;
-    }
-    
-    /* Force table display */
-    table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-    }
-    
-    th, td {
-        display: table-cell !important;
-        vertical-align: middle !important;
-    }
-    
-    /* User email styling */
-    .user-email {
-        color: #2c3e50;
-        font-weight: 500;
-        word-break: break-all;
-    }
-    
-    /* Action buttons */
-    .btn-info {
-        background-color: #17a2b8;
-        border-color: #17a2b8;
-    }
-    
-    .btn-warning {
-        background-color: #ffc107;
-        border-color: #ffc107;
-    }
-    
-    .btn-danger {
-        background-color: #dc3545;
-        border-color: #dc3545;
-    }
-    
-    /* Row hover effect */
-    .table tbody tr {
-        transition: background-color 0.2s;
-    }
-    
-    /* Ensure proper spacing */
-    .mb-4 {
-        margin-bottom: 1.5rem !important;
-    }
-    
-    .mt-2 {
-        margin-top: 0.5rem !important;
-    }
-    
-    /* User avatar */
-    .user-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        font-size: 16px;
-    }
-    
-    /* Two-factor badge */
-    .two-factor-badge {
-        background-color: #e1bee7;
-        color: #7b1fa2;
-        padding: 2px 6px;
-        border-radius: 8px;
-        font-size: 10px;
-        margin-left: 5px;
-    }
-    
-    /* Make sure everything is visible */
-    * {
-        box-sizing: border-box;
-    }
-    
-    /* Batch actions */
-    .batch-actions {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-    
-    /* Permission warning */
-    .permission-warning {
-        background-color: #fff3cd;
-        border-left: 4px solid #ffc107;
-        padding: 10px 15px;
-        margin-bottom: 15px;
-        border-radius: 4px;
-    }
-</style>
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-    <!-- Simple Header -->
-    <nav class="navbar">
-        <div class="container-fluid">
-            <h4><i class="fas fa-tools me-2"></i>MSP Portal</h4>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">
-                    <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
-                </span>
-                <a href="../../logout.php" class="btn btn-sm btn-outline-light">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </nav>
+?>
+
+<div class="dashboard-container">
+    <!-- Sidebar -->
+    <?php include '../../includes/sidebar.php'; ?>
     
-    <div class="main-wrapper">
-        <!-- Sidebar -->
-        <?php include '../../includes/sidebar.php'; ?>
-        
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Page Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h2 mb-1">
-                        <i class="fas fa-users text-primary"></i> User Management
-                    </h1>
-                    <p class="text-muted mb-0">Manage system users, roles, and permissions</p>
-                    <small class="text-muted">
-                        Your role: <strong><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $user_role))) ?></strong>
-                        <?php if (!$can_edit_all): ?>
-                        <span class="permission-warning d-inline-block ms-2">
-                            <i class="fas fa-info-circle text-warning"></i> Limited permissions
-                        </span>
-                        <?php endif; ?>
-                    </small>
+    <!-- Main Content -->
+    <main class="main-content">
+            <div class="header">
+                <h1><i class="fas fa-users"></i> User Management</h1>
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <?php echo strtoupper(substr($_SESSION['email'], 0, 1)); ?>
+                    </div>
+                    <div>
+                        <div style="font-weight: 500;"><?php echo htmlspecialchars($_SESSION['email']); ?></div>
+                        <div style="font-size: 0.9rem; color: #666;">User Management</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="role-info">
+                    Your role: <strong><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $user_role))) ?></strong>
+                    <?php if (!$can_edit_all): ?>
+                    <span class="permission-warning d-inline-block ms-2">
+                        <i class="fas fa-info-circle text-warning"></i> Limited permissions
+                    </span>
+                    <?php endif; ?>
                 </div>
                 <div class="btn-group">
                     <?php if ($can_create): ?>
-                    <a href="create.php" class="btn btn-primary">
+                    <a href="<?php echo route('users.create'); ?>" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Add User
                     </a>
-                    <a href="batch_create.php" class="btn btn-outline-primary">
+                    <a href="<?php echo route('users.batch_create'); ?>" class="btn btn-outline-primary">
                         <i class="fas fa-user-plus"></i> Batch Add
                     </a>
                     <?php endif; ?>
@@ -663,7 +275,7 @@ function getRoleBadge($role) {
                 </div>
                 <div class="card-body">
                     <form method="GET" class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-lg-5 col-md-6">
                             <label class="form-label">Search</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
@@ -672,7 +284,7 @@ function getRoleBadge($role) {
                                        value="<?= htmlspecialchars($search) ?>">
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-lg-2 col-md-6">
                             <label class="form-label">Role</label>
                             <select name="role" class="form-control">
                                 <option value="">All Roles</option>
@@ -683,7 +295,7 @@ function getRoleBadge($role) {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-lg-2 col-md-6">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-control">
                                 <option value="">All Status</option>
@@ -691,20 +303,22 @@ function getRoleBadge($role) {
                                 <option value="inactive" <?= $status_filter === 'inactive' ? 'selected' : '' ?>>Inactive</option>
                             </select>
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
+                        <div class="col-lg-2 col-md-6 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary w-100">
                                 <i class="fas fa-filter"></i> Filter
                             </button>
                         </div>
-                    </form>
-                    <div class="mt-3 d-flex justify-content-between align-items-center">
-                        <div class="text-muted">
-                            Showing <?= count($users) ?> user(s)
+                        <div class="col-12 mt-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-muted">
+                                    Showing <?= count($users) ?> user(s)
+                                </div>
+                                <a href="index.php" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-undo"></i> Clear
+                                </a>
+                            </div>
                         </div>
-                        <a href="index.php" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-undo"></i> Clear
-                        </a>
-                    </div>
+                    </form>
                 </div>
             </div>
             
@@ -746,7 +360,7 @@ function getRoleBadge($role) {
                         <h4>No users found</h4>
                         <p class="text-muted"><?= !empty($search) ? 'Try a different search term' : 'Add your first user to get started' ?></p>
                         <?php if ($can_create): ?>
-                        <a href="create.php" class="btn btn-primary mt-2">
+                        <a href="<?php echo route('users.create'); ?>" class="btn btn-primary mt-2">
                             <i class="fas fa-plus"></i> Add First User
                         </a>
                         <?php endif; ?>
@@ -813,11 +427,11 @@ function getRoleBadge($role) {
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="view.php?id=<?= $user['id'] ?>" class="btn btn-info" title="View">
+                                            <a href="<?php echo route('users.view'); ?>?id=<?= $user['id'] ?>" class="btn btn-info" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php if ($can_edit_user): ?>
-                                            <a href="edit.php?id=<?= $user['id'] ?>" class="btn btn-warning" title="Edit">
+                                            <a href="<?php echo route('users.edit'); ?>?id=<?= $user['id'] ?>" class="btn btn-warning" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <?php else: ?>
@@ -826,7 +440,7 @@ function getRoleBadge($role) {
                                             </button>
                                             <?php endif; ?>
                                             <?php if ($can_delete_user): ?>
-                                            <a href="delete.php?id=<?= $user['id'] ?>" class="btn btn-danger" title="Delete" onclick="return confirm('Delete this user? This action cannot be undone.')">
+                                            <a href="<?php echo route('users.delete'); ?>?id=<?= $user['id'] ?>" class="btn btn-danger" title="Delete" onclick="return confirm('Delete this user? This action cannot be undone.')">
                                                 <i class="fas fa-trash"></i>
                                             </a>
                                             <?php else: ?>
@@ -910,35 +524,34 @@ function getRoleBadge($role) {
     </div>
     
     <!-- Mobile Menu Toggle -->
-    <button class="btn btn-primary d-md-none fixed-bottom m-3" style="z-index: 1000;" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i> Menu
+    <button class="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
     </button>
     
+    <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../js/main.js"></script>
     <script>
-        // Simple mobile menu toggle
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            sidebar.classList.toggle('d-none');
-        }
+        // Mobile menu toggle
+        document.querySelector('.mobile-menu-toggle')?.addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
         
         // Auto-hide alerts
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                alert.style.display = 'none';
+        setTimeout(() => {
+            document.querySelectorAll('.alert:not(.flash-message)').forEach(alert => {
+                alert.remove();
             });
         }, 5000);
         
-        // Confirm before deleting users
-        function confirmDelete(userEmail, userRole) {
-            if (userRole === 'super_admin') {
-                alert('Super Admin users cannot be deleted.');
-                return false;
-            }
-            
-            return confirm(`Are you sure you want to delete user "${userEmail}"?\n\nThis action cannot be undone.`);
-        }
+        // Confirm delete actions
+        document.querySelectorAll('a[data-confirm]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                if (!confirm(this.dataset.confirm)) {
+                    e.preventDefault();
+                }
+            });
+        });
     </script>
 </body>
 </html>

@@ -780,7 +780,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </h1>
                     <p class="text-muted">Update client information</p>
                 </div>
-                <a href="view.php?id=<?= $client_id ?>" class="btn btn-outline-secondary">
+                <a href="<?= route('clients.view') . '?id=' . $client_id ?>" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Client
                 </a>
             </div>
@@ -1019,7 +1019,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="view.php?id=<?= $client_id ?>" class="btn btn-outline-secondary">
+                            <a href="<?= route('clients.view') . '?id=' . $client_id ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <div class="action-buttons">

@@ -512,521 +512,343 @@ function getOtherStaff($pdo, $current_user_id) {
     <title>Edit User - MSP Application</title>
     
     <!-- Load CSS files with fallback -->
-    <link rel="stylesheet" href="/mit/assets/css/style.css">
+    <link rel="stylesheet" href="/mit/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     
-<!-- Add this CSS after the Bootstrap CDN link -->
-<style>
-    /* Override Bootstrap and custom styles to match the image */
-    :root {
-        --primary-color: #004E89;
-        --secondary-color: #FF6B35;
-        --accent-color: #43BCCD;
-        --light-bg: #f8f9fa;
-        --border-color: #dee2e6;
-    }
-    
-    body {
-        background-color: #f0f2f5;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    
-    /* Navbar styling */
-    .navbar {
-        background: linear-gradient(135deg, var(--primary-color) 0%, #002D62 100%);
-        padding: 12px 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .navbar h4 {
-        color: white;
-        margin: 0;
-        font-weight: 600;
-    }
-    
-    /* Main layout */
-    .main-wrapper {
-        display: flex;
-        min-height: calc(100vh - 56px);
-    }
-    
-    /* Sidebar styling - exactly like image */
-    .sidebar {
-        width: 220px;
-        background: white;
-        border-right: 1px solid var(--border-color);
-        padding: 0;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
-    }
-    
-    .sidebar-content {
-        padding: 20px 0;
-    }
-    
-    .sidebar-menu {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    
-    .sidebar-menu li {
-        margin: 0;
-    }
-    
-    .sidebar-menu a {
-        display: flex;
-        align-items: center;
-        padding: 12px 20px;
-        color: #495057;
-        text-decoration: none;
-        border-left: 3px solid transparent;
-        transition: all 0.2s;
-    }
-    
-    .sidebar-menu a:hover {
-        background-color: var(--light-bg);
-        color: var(--primary-color);
-        border-left-color: var(--primary-color);
-    }
-    
-    .sidebar-menu a.active {
-        background-color: #e3f2fd;
-        color: var(--primary-color);
-        border-left-color: var(--primary-color);
-        font-weight: 500;
-    }
-    
-    .sidebar-menu i {
-        width: 24px;
-        margin-right: 12px;
-        font-size: 16px;
-        text-align: center;
-    }
-    
-    /* Main content area */
-    .main-content {
-        flex: 1;
-        padding: 25px;
-        background-color: #f0f2f5;
-        min-height: calc(100vh - 56px);
-    }
-    
-    /* Page header */
-    .main-content .h2 {
-        color: var(--primary-color);
-        font-weight: 600;
-        margin-bottom: 8px;
-    }
-    
-    .main-content .text-muted {
-        color: #6c757d !important;
-    }
-    
-    /* Card styling - match image */
-    .card {
-        border: none;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        margin-bottom: 24px;
-        overflow: hidden;
-    }
-    
-    .card-header {
-        background-color: var(--primary-color);
-        color: white;
-        border-bottom: none;
-        padding: 16px 20px;
-        font-weight: 600;
-    }
-    
-    .card-header h5 {
-        margin: 0;
-        font-weight: 600;
-    }
-    
-    .card-body {
-        padding: 25px;
-    }
-    
-    /* Form controls */
-    .form-control {
-        border: 1px solid #ced4da;
-        border-radius: 6px;
-        padding: 10px 12px;
-        transition: all 0.2s;
-    }
-    
-    .form-control:focus {
-        border-color: var(--accent-color);
-        box-shadow: 0 0 0 0.2rem rgba(67, 188, 205, 0.25);
-    }
-    
-    .input-group-text {
-        background-color: #f8f9fa;
-        border-color: #ced4da;
-    }
-    
-    /* Buttons */
-    .btn-primary {
-        background-color: var(--secondary-color);
-        border-color: var(--secondary-color);
-        padding: 10px 20px;
-        font-weight: 500;
-        border-radius: 6px;
-        transition: all 0.2s;
-    }
-    
-    .btn-primary:hover {
-        background-color: #e85c2a;
-        border-color: #e85c2a;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(255, 107, 53, 0.3);
-    }
-    
-    .btn-outline-secondary {
-        border-radius: 6px;
-        padding: 6px 12px;
-    }
-    
-    /* Form styling */
-    .form-label {
-        font-weight: 500;
-        margin-bottom: 8px;
-        color: #495057;
-    }
-    
-    .required:after {
-        content: " *";
-        color: #dc3545;
-    }
-    
-    /* Error styling */
-    .is-invalid {
-        border-color: #dc3545 !important;
-    }
-    
-    .invalid-feedback {
-        display: block;
-        color: #dc3545;
-        font-size: 14px;
-        margin-top: 5px;
-    }
-    
-    /* Alert styling */
-    .alert {
-        border: none;
-        border-radius: 8px;
-        padding: 15px 20px;
-        margin-bottom: 20px;
-    }
-    
-    .alert-danger {
-        background-color: #ffebee;
-        color: #c62828;
-        border-left: 4px solid #f44336;
-    }
-    
-    .alert-success {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        border-left: 4px solid #4caf50;
-    }
-    
-    .alert-info {
-        background-color: #e3f2fd;
-        color: #1565c0;
-        border-left: 4px solid #2196f3;
-    }
-    
-    .alert-warning {
-        background-color: #fff3cd;
-        color: #856404;
-        border-left: 4px solid #ffc107;
-    }
-    
-    /* Mobile responsive */
-    @media (max-width: 768px) {
-        .sidebar {
-            position: fixed;
-            top: 56px;
-            left: -250px;
-            height: calc(100vh - 56px);
-            z-index: 1000;
-            transition: left 0.3s;
-        }
-        
-        .sidebar.show {
-            left: 0;
-        }
-        
+    <style>
+        /* Additional styles specific to this page if needed */
         .main-content {
-            padding: 15px;
+            padding: 1.5rem !important;
         }
         
-        .card-body {
-            padding: 15px;
+        /* Enhanced stats cards */
+        .stats-card {
+            border-radius: 12px;
+            padding: 1.5rem;
+            color: white;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+            border: none;
         }
-    }
-    
-    /* Password strength indicator */
-    .password-strength {
-        height: 5px;
-        margin-top: 5px;
-        border-radius: 3px;
-        background-color: #e9ecef;
-        overflow: hidden;
-    }
-    
-    .strength-weak {
-        background-color: #dc3545;
-        width: 25%;
-    }
-    
-    .strength-medium {
-        background-color: #ffc107;
-        width: 50%;
-    }
-    
-    .strength-strong {
-        background-color: #28a745;
-        width: 75%;
-    }
-    
-    .strength-very-strong {
-        background-color: #20c997;
-        width: 100%;
-    }
-    
-    /* Form sections */
-    .form-section {
-        background-color: white;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-        border: 1px solid #e9ecef;
-    }
-    
-    .form-section h6 {
-        color: var(--primary-color);
-        border-bottom: 2px solid #e9ecef;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-        font-weight: 600;
-    }
-    
-    /* Make sure everything is visible */
-    * {
-        box-sizing: border-box;
-    }
-    
-    /* Back button */
-    .btn-back {
-        color: var(--primary-color);
-        text-decoration: none;
-        font-weight: 500;
-    }
-    
-    .btn-back:hover {
-        color: #002D62;
-    }
-    
-    /* Role description */
-    .role-description {
-        font-size: 13px;
-        color: #6c757d;
-        margin-top: 5px;
-        padding-left: 5px;
-    }
-    
-    /* Checkbox styling */
-    .form-check-input:checked {
-        background-color: var(--secondary-color);
-        border-color: var(--secondary-color);
-    }
-    
-    /* Permission indicators */
-    .permission-indicator {
-        display: inline-block;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: 500;
-        margin-left: 8px;
-    }
-    
-    .permission-full {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    
-    .permission-limited {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-    
-    .permission-restricted {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-    
-    /* Field groups */
-    .field-group {
-        margin-bottom: 20px;
-    }
-    
-    .field-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-    
-    /* Read-only fields */
-    .read-only-field {
-        background-color: #f8f9fa;
-        color: #6c757d;
-        cursor: not-allowed;
-        border-color: #dee2e6;
-    }
-    
-    /* Ticket/Site Visit management */
-    .management-section {
-        background-color: #f8f9fa;
-        border-left: 4px solid var(--accent-color);
-        padding: 15px;
-        margin-bottom: 20px;
-        border-radius: 4px;
-    }
-    
-    .item-list {
-        max-height: 200px;
-        overflow-y: auto;
-        margin-bottom: 15px;
-    }
-    
-    .list-item {
-        padding: 8px 12px;
-        background-color: white;
-        border-radius: 4px;
-        margin-bottom: 8px;
-        border-left: 3px solid var(--primary-color);
-    }
-    
-    /* Stats cards */
-    .stats-card {
-        text-align: center;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        color: white;
-    }
-    
-    .stats-number {
-        font-size: 24px;
-        font-weight: 600;
-        margin-bottom: 5px;
-    }
-    
-    .stats-label {
-        font-size: 12px;
-        opacity: 0.9;
-    }
-    
-    /* User header */
-    .user-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-    }
-    
-    .user-avatar {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: white;
-        color: #764ba2;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        font-weight: bold;
-        margin-right: 15px;
-    }
-    
-    /* Tab navigation */
-    .nav-tabs .nav-link {
-        color: #495057;
-        border: none;
-        border-bottom: 2px solid transparent;
-        padding: 10px 20px;
-        font-weight: 500;
-    }
-    
-    .nav-tabs .nav-link.active {
-        color: var(--primary-color);
-        border-bottom: 2px solid var(--primary-color);
-        background-color: transparent;
-    }
-    
-    /* Action buttons */
-    .action-buttons {
-        position: absolute;
-        top: 30px;
-        right: 30px;
-    }
-</style>
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+        }
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .stats-label {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+        
+        /* Enhanced form section */
+        .form-section {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #e9ecef;
+        }
+        
+        .field-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .field-header h6 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .permission-indicator {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .permission-full {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .permission-restricted {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        /* Enhanced tab navigation */
+        .nav-tabs {
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #6c757d;
+            font-weight: 500;
+            padding: 1rem 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            color: #495057;
+            border-color: transparent;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background-color: transparent;
+        }
+        
+        /* Enhanced form controls */
+        .form-control {
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        
+        .form-control:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        
+        .required:after {
+            content: " *";
+            color: #dc3545;
+        }
+        
+        /* Enhanced buttons */
+        .btn {
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+        
+        /* Enhanced header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+        }
+        
+        .role-info {
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Enhanced user info */
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        
+        /* Enhanced alerts */
+        .alert {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        /* Enhanced permission info */
+        .permission-info-card {
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid #e3f2fd;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        /* Password strength indicator */
+        .password-strength {
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        #strengthBar {
+            height: 100%;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .strength-weak {
+            background-color: #dc3545 !important;
+        }
+        
+        .strength-medium {
+            background-color: #ffc107 !important;
+        }
+        
+        .strength-strong {
+            background-color: #28a745 !important;
+        }
+        
+        .strength-very-strong {
+            background-color: #17a2b8 !important;
+        }
+        
+        /* List items for tickets/visits */
+        .item-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .list-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+        
+        .list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .list-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* Management section */
+        .management-section {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Form actions */
+        .form-actions {
+            background-color: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        /* Mobile menu toggle */
+        .mobile-menu-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            color: white;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .mobile-menu-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+    </style>    
 </head>
 <body>
-    <!-- Simple Header -->
-    <nav class="navbar">
-        <div class="container-fluid">
-            <h4><i class="fas fa-tools me-2"></i>MSP Portal</h4>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">
-                    <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
-                </span>
-                <a href="../../logout.php" class="btn btn-sm btn-outline-light">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+<?php include '../../includes/sidebar.php'; ?>
+
+<div class="main-content">
+    <div class="header">
+        <h1><i class="fas fa-user-edit"></i> Edit User</h1>
+        <div class="user-info">
+            <div class="user-avatar">
+                <?php echo strtoupper(substr($_SESSION['email'], 0, 1)); ?>
+            </div>
+            <div>
+                <div style="font-weight: 500;"><?php echo htmlspecialchars($_SESSION['email']); ?></div>
+                <div style="font-size: 0.9rem; color: #666;">Your role: <strong><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $current_user_role))) ?></strong></div>
+                <?php if ($is_self): ?>
+                <div style="font-size: 0.9rem; color: #666;"><span class="badge bg-info">Editing Your Own Profile</span></div>
+                <?php endif; ?>
             </div>
         </div>
-    </nav>
-    
-    <div class="main-wrapper">
-        <!-- Simple Sidebar -->
-        <!-- Sidebar -->
-        <?php include '../../includes/sidebar.php'; ?>
-        
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Page Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="h2 mb-1">
-                        <i class="fas fa-user-edit text-primary"></i> Edit User
-                    </h1>
-                    <p class="text-muted mb-0">
-                        <?php if ($is_self): ?>
-                        Edit your profile information
-                        <?php else: ?>
-                        Update user information and settings
-                        <?php endif; ?>
-                    </p>
-                    <small class="text-muted">
-                        Your role: <strong><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $current_user_role))) ?></strong>
-                        <?php if ($is_self): ?>
-                        <span class="badge bg-info ms-2">Editing Your Own Profile</span>
-                        <?php endif; ?>
-                    </small>
+    </div>
+            <div class="header-actions">
+                <div class="role-info">
                 </div>
-                <div>
-                    <a href="view.php?id=<?= $user_id ?>" class="btn btn-outline-secondary">
+                <div class="btn-group">
+                    <a href="<?= route('users.view', ['id' => $user_id]) ?>" class="btn btn-outline-secondary">
                         <i class="fas fa-eye"></i> View Profile
                     </a>
-                    <a href="index.php" class="btn btn-outline-secondary ms-2">
+                    <a href="<?= route('users.index') ?>" class="btn btn-outline-secondary ms-2">
                         <i class="fas fa-arrow-left"></i> Back to Users
                     </a>
                 </div>
@@ -1575,29 +1397,28 @@ function getOtherStaff($pdo, $current_user_id) {
                 </div>
                 
                 <!-- Form Actions -->
-                <div class="d-flex justify-content-between align-items-center mt-4">
-                    <div>
-                        <a href="view.php?id=<?= $user_id ?>" class="btn btn-outline-secondary">
-                            <i class="fas fa-times"></i> Cancel
-                        </a>
-                    </div>
-                    <div>
-                        <button type="reset" class="btn btn-outline-secondary me-2">
-                            <i class="fas fa-redo"></i> Reset
-                        </button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Update User
-                        </button>
+                <div class="form-actions">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="<?= route('users.view', ['id' => $user_id]) ?>" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                        <div>
+                            <button type="reset" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update User
+                            </button>
+                        </div>
                     </div>
                 </div>
             </form>
         </main>
     </div>
     
-    <!-- Mobile Menu Toggle -->
-    <button class="btn btn-primary d-md-none fixed-bottom m-3" style="z-index: 1000;" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i> Menu
-    </button>
+
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -1828,6 +1649,46 @@ function getOtherStaff($pdo, $current_user_id) {
                 }
             }
         }
+    
+    // Mobile menu toggle
+    document.querySelector('.mobile-menu-toggle')?.addEventListener('click', function() {
+        document.querySelector('.sidebar').classList.toggle('active');
+    });
+    
+    // Add animation to stats cards on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const statsCards = document.querySelectorAll('.stats-card');
+        statsCards.forEach((card, index) => {
+            // Add animation delay for each card
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 150 * index);
+        });
+        
+        // Add animation to form sections
+        const formSections = document.querySelectorAll('.form-section');
+        formSections.forEach((section, index) => {
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(20px)';
+            section.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            
+            setTimeout(() => {
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, 200 * (index + 1));
+        });
+    });
     </script>
+    
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+    
 </body>
 </html>
