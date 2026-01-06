@@ -367,20 +367,12 @@ function getRoleBadge($role) {
 <?php include '../../includes/sidebar.php'; ?>
 
 <div class="main-content">
-    <div class="header">
-        <h1><i class="fas fa-user"></i> View User</h1>
-        <div class="user-info">
-            <div class="user-avatar">
-                <?php echo strtoupper(substr($_SESSION['email'], 0, 1)); ?>
-            </div>
-            <div>
-                <div style="font-weight: 500;"><?php echo htmlspecialchars($_SESSION['email']); ?></div>
-                <div style="font-size: 0.9rem; color: #666;">Your role: <strong><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $current_user_role))) ?></strong></div>
-            </div>
-        </div>
-    </div>
-    <div class="header-actions">
-        <div class="role-info">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="page-title">
+                <i class="fas fa-user"></i> View User
+            </h1>
+            <p class="text-muted">View details for <?= htmlspecialchars($user['full_name'] ?? $user['email']) ?></p>
         </div>
         <div class="btn-group">
             <a href="<?= route('users.edit'); ?>?id=<?= $user_id ?>" class="btn btn-outline-secondary">
@@ -389,6 +381,29 @@ function getRoleBadge($role) {
             <a href="<?= route('users.index'); ?>" class="btn btn-outline-secondary ms-2">
                 <i class="fas fa-arrow-left"></i> Back to Users
             </a>
+        </div>
+    </div>
+    
+    <!-- User Information Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-user-circle"></i> Current User Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">Logged in as:</span>
+                        <span class="info-value"><?php echo htmlspecialchars($_SESSION['email']); ?></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">Your role:</span>
+                        <span class="info-value"><strong><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $current_user_role))) ?></strong></span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

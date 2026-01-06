@@ -64,7 +64,7 @@ $tickets_sql = "SELECT
     COUNT(CASE WHEN status = 'Closed' THEN 1 END) as closed_tickets,
     COUNT(CASE WHEN priority = 'Critical' THEN 1 END) as critical_tickets,
     COUNT(CASE WHEN priority = 'High' THEN 1 END) as high_priority_tickets,
-    AVG(DATEDIFF(COALESCE(resolved_at, NOW()), created_at)) as avg_resolution_days
+    NULL as avg_resolution_days
 FROM tickets t
 WHERE $where_sql";
 
@@ -76,6 +76,9 @@ $stmt->execute();
 $tickets_stats = $stmt->fetch();
 
 // Get ticket distribution by priority
+// We need to duplicate the parameters since they're used in both the main query and subquery
+$duplicated_params = array_merge($params, $params);
+$duplicated_types = array_merge($types, $types);
 $priority_distribution_sql = "SELECT 
     priority,
     COUNT(*) as count,
@@ -86,8 +89,8 @@ GROUP BY priority
 ORDER BY count DESC";
 
 $stmt = $pdo->prepare($priority_distribution_sql);
-for ($i = 0; $i < count($params); $i++) {
-    $stmt->bindValue($i + 1, $params[$i], $types[$i]);
+for ($i = 0; $i < count($duplicated_params); $i++) {
+    $stmt->bindValue($i + 1, $duplicated_params[$i], $duplicated_types[$i]);
 }
 $stmt->execute();
 $priority_distribution = $stmt->fetchAll();
@@ -103,8 +106,8 @@ GROUP BY status
 ORDER BY count DESC";
 
 $stmt = $pdo->prepare($status_distribution_sql);
-for ($i = 0; $i < count($params); $i++) {
-    $stmt->bindValue($i + 1, $params[$i], $types[$i]);
+for ($i = 0; $i < count($duplicated_params); $i++) {
+    $stmt->bindValue($i + 1, $duplicated_params[$i], $duplicated_types[$i]);
 }
 $stmt->execute();
 $status_distribution = $stmt->fetchAll();
@@ -116,14 +119,13 @@ $client_tickets_sql = "SELECT
     COUNT(CASE WHEN t.status = 'Open' THEN 1 END) as open_count,
     COUNT(CASE WHEN t.status = 'Resolved' OR t.status = 'Closed' THEN 1 END) as resolved_count
 FROM clients c
-LEFT JOIN tickets t ON c.id = t.client_id AND $where_sql
+LEFT JOIN tickets t ON c.id = t.client_id AND (t.created_at BETWEEN ? AND ?)
 GROUP BY c.id, c.company_name
 HAVING COUNT(t.id) > 0
 ORDER BY ticket_count DESC
 LIMIT 10";
 
-$client_tickets_sql = str_replace('t.', '', $where_sql); // Remove table alias for this query
-$stmt = $pdo->prepare(str_replace($where_sql, $client_tickets_sql, str_replace(['t.', ' AND t.created_at BETWEEN ? AND ?'], ['', ''], $client_tickets_sql)));
+$stmt = $pdo->prepare($client_tickets_sql);
 for ($i = 0; $i < count($params); $i++) {
     $stmt->bindValue($i + 1, $params[$i], $types[$i]);
 }
@@ -608,7 +610,7 @@ $report_title = 'Ticket Report';
                                 <tr>
                                     <td>#<?php echo $ticket['id']; ?></td>
                                     <td><?php echo htmlspecialchars($ticket['company_name'] ?? 'Internal'); ?></td>
-                                    <td><?php echo htmlspecialchars($ticket['subject']); ?></td>
+                                    <td><?php echo htmlspecialchars($ticket['subject'] ?? 'No Subject'); ?></td>
                                     <td>
                                         <span class="<?php echo getPriorityClass($ticket['priority']); ?>">
                                             <?php echo htmlspecialchars($ticket['priority']); ?>
@@ -771,7 +773,7 @@ $report_title = 'Ticket Report';
                 csvContent += "RECENT TICKETS\n";
                 csvContent += "Ticket #,Client,Subject,Priority,Status,Created,Assigned To\n";
                 <?php foreach ($recent_tickets as $ticket): ?>
-                csvContent += "<?php echo $ticket['id']; ?>,<?php echo $ticket['company_name'] ?? 'Internal'; ?>,<?php echo $ticket['subject']; ?>,<?php echo $ticket['priority']; ?>,<?php echo $ticket['status']; ?>,<?php echo date('Y-m-d', strtotime($ticket['created_at'])); ?>,<?php echo $ticket['assigned_to'] ?? 'Unassigned'; ?>\n";
+                csvContent += "<?php echo $ticket['id']; ?>,<?php echo $ticket['company_name'] ?? 'Internal'; ?>,<?php echo $ticket['subject'] ?? 'No Subject'; ?>,<?php echo $ticket['priority']; ?>,<?php echo $ticket['status']; ?>,<?php echo date('Y-m-d', strtotime($ticket['created_at'])); ?>,<?php echo $ticket['assigned_to'] ?? 'Unassigned'; ?>\n";
                 <?php endforeach; ?>
                 
                 // Create and download CSV

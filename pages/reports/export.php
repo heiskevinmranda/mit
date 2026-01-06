@@ -87,7 +87,7 @@ switch ($export_type) {
     case 'service':
         // Service contract report data
         $sql = "SELECT sc.*, c.company_name
-                FROM service_contracts sc
+                FROM contracts sc
                 LEFT JOIN clients c ON sc.client_id = c.id
                 WHERE sc.created_at BETWEEN ? AND ?";
         
@@ -113,7 +113,7 @@ switch ($export_type) {
         $sql = "SELECT 
                     (SELECT COUNT(*) FROM assets) as total_assets,
                     (SELECT COUNT(*) FROM tickets) as total_tickets,
-                    (SELECT COUNT(*) FROM service_contracts) as total_contracts,
+                    (SELECT COUNT(*) FROM contracts) as total_contracts,
                     (SELECT COUNT(*) FROM clients) as total_clients,
                     NOW() as report_date";
         

@@ -27,7 +27,7 @@ $status = $_GET['status'] ?? '';
 
 // Get filter options
 $clients = $pdo->query("SELECT id, company_name FROM clients ORDER BY company_name")->fetchAll();
-$service_types = $pdo->query("SELECT DISTINCT service_type FROM service_contracts WHERE service_type IS NOT NULL ORDER BY service_type")->fetchAll();
+$service_types = $pdo->query("SELECT DISTINCT service_scope FROM contracts WHERE service_scope IS NOT NULL ORDER BY service_scope")->fetchAll();
 $statuses = ['Active', 'Expiring Soon', 'Expired', 'Inactive'];
 
 // Build where clause for reports
@@ -42,7 +42,7 @@ if ($client_id) {
 }
 
 if ($service_type) {
-    $where_conditions[] = "sc.service_type = ?";
+    $where_conditions[] = "sc.service_scope = ?";
     $params[] = $service_type;
     $types[] = PDO::PARAM_STR;
 }
@@ -63,10 +63,10 @@ $contracts_sql = "SELECT
     COUNT(CASE WHEN status = 'Expired' THEN 1 END) as expired_contracts,
     COUNT(CASE WHEN status = 'Inactive' THEN 1 END) as inactive_contracts,
     SUM(CASE WHEN status = 'Active' THEN monthly_amount ELSE 0 END) as total_monthly_revenue,
-    SUM(CASE WHEN status = 'Active' THEN annual_amount ELSE 0 END) as total_annual_revenue,
+    SUM(CASE WHEN status = 'Active' THEN (monthly_amount * 12) ELSE 0 END) as total_annual_revenue,
     COUNT(DISTINCT client_id) as total_clients,
-    COUNT(DISTINCT service_type) as service_types_count
-FROM service_contracts sc
+    COUNT(DISTINCT service_scope) as service_types_count
+FROM contracts sc
 WHERE $where_sql";
 
 $stmt = $pdo->prepare($contracts_sql);
@@ -77,35 +77,41 @@ $stmt->execute();
 $contracts_stats = $stmt->fetch();
 
 // Get contract distribution by type
+// Create duplicated parameters for the subquery
+$type_duplicated_params = array_merge($params, $params);
+$type_duplicated_types = array_merge($types, $types);
 $type_distribution_sql = "SELECT 
-    service_type,
+    service_scope,
     COUNT(*) as count,
-    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM service_contracts sc WHERE $where_sql), 1) as percentage
-FROM service_contracts sc
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM contracts sc WHERE $where_sql), 1) as percentage
+FROM contracts sc
 WHERE $where_sql
-GROUP BY service_type
+GROUP BY service_scope
 ORDER BY count DESC";
 
 $stmt = $pdo->prepare($type_distribution_sql);
-for ($i = 0; $i < count($params); $i++) {
-    $stmt->bindValue($i + 1, $params[$i], $types[$i]);
+for ($i = 0; $i < count($type_duplicated_params); $i++) {
+    $stmt->bindValue($i + 1, $type_duplicated_params[$i], $type_duplicated_types[$i]);
 }
 $stmt->execute();
 $type_distribution = $stmt->fetchAll();
 
 // Get contract distribution by status
+// Create duplicated parameters for the subquery
+$status_duplicated_params = array_merge($params, $params);
+$status_duplicated_types = array_merge($types, $types);
 $status_distribution_sql = "SELECT 
     status,
     COUNT(*) as count,
-    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM service_contracts sc WHERE $where_sql), 1) as percentage
-FROM service_contracts sc
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM contracts sc WHERE $where_sql), 1) as percentage
+FROM contracts sc
 WHERE $where_sql
 GROUP BY status
 ORDER BY count DESC";
 
 $stmt = $pdo->prepare($status_distribution_sql);
-for ($i = 0; $i < count($params); $i++) {
-    $stmt->bindValue($i + 1, $params[$i], $types[$i]);
+for ($i = 0; $i < count($status_duplicated_params); $i++) {
+    $stmt->bindValue($i + 1, $status_duplicated_params[$i], $status_duplicated_types[$i]);
 }
 $stmt->execute();
 $status_distribution = $stmt->fetchAll();
@@ -117,16 +123,13 @@ $client_contracts_sql = "SELECT
     COUNT(CASE WHEN sc.status = 'Active' THEN 1 END) as active_count,
     SUM(CASE WHEN sc.status = 'Active' THEN sc.monthly_amount ELSE 0 END) as monthly_revenue
 FROM clients c
-LEFT JOIN service_contracts sc ON c.id = sc.client_id
-WHERE ($where_sql) OR sc.id IS NULL
+LEFT JOIN contracts sc ON c.id = sc.client_id AND (sc.created_at BETWEEN ? AND ?)
 GROUP BY c.id, c.company_name
 HAVING COUNT(sc.id) > 0
 ORDER BY contract_count DESC
 LIMIT 10";
 
-// Need to modify where_sql for this query since it references 'sc.' alias
-$client_where_sql = str_replace('sc.', '', $where_sql);
-$stmt = $pdo->prepare(str_replace($where_sql, $client_where_sql, $client_contracts_sql));
+$stmt = $pdo->prepare($client_contracts_sql);
 for ($i = 0; $i < count($params); $i++) {
     $stmt->bindValue($i + 1, $params[$i], $types[$i]);
 }
@@ -137,7 +140,7 @@ $client_contracts = $stmt->fetchAll();
 $recent_contracts_sql = "SELECT 
     sc.*,
     c.company_name
-FROM service_contracts sc
+FROM contracts sc
 LEFT JOIN clients c ON sc.client_id = c.id
 WHERE $where_sql
 ORDER BY sc.created_at DESC
@@ -150,28 +153,16 @@ for ($i = 0; $i < count($params); $i++) {
 $stmt->execute();
 $recent_contracts = $stmt->fetchAll();
 
-// Get expiring contracts
+// Get recent contracts instead of expiring contracts (since specific expiry columns don't exist)
 $expiring_contracts_sql = "SELECT 
     sc.*,
     c.company_name,
-    CASE 
-        WHEN sc.expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' THEN 'Contract'
-        WHEN sc.amc_expiry BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' THEN 'AMC'
-        WHEN sc.support_expiry BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days' THEN 'Support'
-    END as expiry_type,
-    LEAST(
-        COALESCE(sc.expiry_date, '9999-12-31'),
-        COALESCE(sc.amc_expiry, '9999-12-31'),
-        COALESCE(sc.support_expiry, '9999-12-31')
-    ) as next_expiry
-FROM service_contracts sc
+    'Active' as expiry_type,
+    sc.created_at as next_expiry
+FROM contracts sc
 LEFT JOIN clients c ON sc.client_id = c.id
-WHERE $where_sql AND (
-    (sc.expiry_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days') OR
-    (sc.amc_expiry BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days') OR
-    (sc.support_expiry BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days')
-)
-ORDER BY next_expiry ASC
+WHERE $where_sql
+ORDER BY sc.created_at DESC
 LIMIT 10";
 
 $stmt = $pdo->prepare($expiring_contracts_sql);
@@ -187,7 +178,31 @@ function formatNumber($number) {
 }
 
 function formatCurrency($amount) {
-    return '$' . number_format($amount, 2);
+    return '$' . number_format($amount ?? 0, 2);
+}
+
+// Helper function to extract clean service type
+function getCleanServiceType($service_type) {
+    if (empty($service_type)) {
+        return 'N/A';
+    }
+    
+    // If the service_type contains additional info, extract just the service type
+    if (strpos($service_type, 'Service type:') === 0) {
+        // Extract service type from "Service type: X" format
+        $parts = explode(' ', $service_type, 3);
+        if (isset($parts[2])) {
+            return trim($parts[2]);
+        }
+    }
+    
+    // If it contains "Service Type: X", extract X
+    if (preg_match('/Service Type:\s*([A-Za-z\-\s]+)/', $service_type, $matches)) {
+        return trim($matches[1]);
+    }
+    
+    // Return the original if no specific pattern is found
+    return $service_type;
 }
 
 // Get report title
@@ -618,17 +633,17 @@ $report_title = 'Service Contract Report';
                             <tbody>
                                 <?php foreach ($recent_contracts as $contract): ?>
                                 <tr>
-                                    <td><?php echo htmlspecialchars($contract['service_type']); ?></td>
+                                    <td><?php echo htmlspecialchars(getCleanServiceType($contract['service_scope'] ?? $contract['service_type'] ?? 'N/A')); ?></td>
                                     <td><?php echo htmlspecialchars($contract['company_name'] ?? 'Internal'); ?></td>
                                     <td><?php echo htmlspecialchars($contract['description'] ?? 'N/A'); ?></td>
-                                    <td><?php echo formatCurrency($contract['monthly_amount']); ?></td>
+                                    <td><?php echo formatCurrency($contract['monthly_amount'] ?? 0); ?></td>
                                     <td>
                                         <span class="status-badge status-<?php echo strtolower(str_replace(' ', '-', $contract['status'])); ?>">
                                             <?php echo htmlspecialchars($contract['status']); ?>
                                         </span>
                                     </td>
                                     <td><?php echo $contract['start_date'] ? date('M d, Y', strtotime($contract['start_date'])) : 'N/A'; ?></td>
-                                    <td><?php echo $contract['expiry_date'] ? date('M d, Y', strtotime($contract['expiry_date'])) : 'N/A'; ?></td>
+                                    <td><?php echo (isset($contract['expiry']) && $contract['expiry']) || (isset($contract['contract_expiry']) && $contract['contract_expiry']) || (isset($contract['expiry_date']) && $contract['expiry_date']) ? date('M d, Y', strtotime($contract['expiry'] ?? $contract['contract_expiry'] ?? $contract['expiry_date'])) : 'N/A'; ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -668,9 +683,9 @@ $report_title = 'Service Contract Report';
                                     $is_critical = $days_left <= 7;
                                 ?>
                                 <tr class="<?php echo $is_critical ? 'table-danger' : ''; ?>">
-                                    <td><?php echo htmlspecialchars($contract['service_type']); ?></td>
+                                    <td><?php echo htmlspecialchars(getCleanServiceType($contract['service_scope'] ?? $contract['service_type'] ?? 'N/A')); ?></td>
                                     <td><?php echo htmlspecialchars($contract['company_name'] ?? 'Internal'); ?></td>
-                                    <td><?php echo formatCurrency($contract['monthly_amount']); ?></td>
+                                    <td><?php echo formatCurrency($contract['monthly_amount'] ?? 0); ?></td>
                                     <td>
                                         <span class="expiry-badge">
                                             <?php echo htmlspecialchars($contract['expiry_type']); ?>
@@ -723,7 +738,25 @@ $report_title = 'Service Contract Report';
             function initializeCharts() {
                 // Service Type Distribution Chart
                 const typeCtx = document.getElementById('typeDistributionChart').getContext('2d');
-                const typeLabels = <?php echo json_encode(array_column($type_distribution, 'service_type')); ?>;
+                // Process service_scope values to extract clean service types
+                const rawTypeLabels = <?php echo json_encode(array_column($type_distribution, 'service_scope')); ?>;
+                const typeLabels = rawTypeLabels.map(label => {
+                    if (label && label.startsWith('Service type:')) {
+                        // Extract service type from "Service type: X" format
+                        const parts = label.split(' ', 3);
+                        if (parts[2]) {
+                            return parts[2].trim();
+                        }
+                    }
+                    
+                    // Check if it contains "Service Type: X" pattern
+                    const match = label.match(/Service Type:\s*([A-Za-z\-\s]+)/);
+                    if (match) {
+                        return match[1].trim();
+                    }
+                    
+                    return label;
+                });
                 const typeData = <?php echo json_encode(array_column($type_distribution, 'count')); ?>;
                 
                 new Chart(typeCtx, {

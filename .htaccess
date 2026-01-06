@@ -65,6 +65,9 @@ RewriteRule ^services/renewals$ pages/services/renewals.php [L]
 
 # Report routes
 RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^reports/asset_report$ pages/reports/asset_report.php [L]
+RewriteRule ^reports/ticket_report$ pages/reports/ticket_report.php [L]
+RewriteRule ^reports/service_report$ pages/reports/service_report.php [L]
 RewriteRule ^reports/$ pages/reports/index.php [L]
 RewriteRule ^reports$ pages/reports/index.php [L]
 
