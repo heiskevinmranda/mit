@@ -64,7 +64,7 @@ try {
 }
 
 // Check permissions
-if (!hasClientPermission('view', $client_id)) {
+if (!hasClientPermission('view')) {
     $_SESSION['error'] = "You don't have permission to view this client.";
     header("Location: " . route('clients.index'));
     exit();

@@ -153,6 +153,76 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
             color: #333;
         }
         
+        /* Specific override for profile page layout to fix conflicts with main CSS */
+        .dashboard-container .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 1rem;
+            min-height: 100vh;
+            overflow-x: hidden;
+            width: auto; /* Ensure it calculates width properly */
+        }
+        
+        /* Make sure profile section uses full available width */
+        .main-content .profile-header {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .profile-content {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        /* Override Bootstrap grid if needed */
+        .info-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .info-label {
+            min-width: 200px;
+            flex: 0 0 auto;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .info-value {
+            flex: 1;
+            min-width: 200px;
+            color: #333;
+        }
+        
+        /* Ensure proper width for profile cards */
+        .info-card {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* Fix Bootstrap grid in dashboard layout */
+        .profile-content .row {
+            margin: 0;
+            max-width: 100%;
+            width: 100%;
+        }
+        
+        .profile-content .col-md-6 {
+            max-width: 100%;
+            flex: 0 0 100%;
+            padding: 0 15px;
+            width: 50%; /* Force exact width */
+        }
+        
+        @media (min-width: 768px) {
+            .profile-content .col-md-6 {
+                flex: 0 0 50%;
+                max-width: 50%;
+                width: 50%;
+            }
+        }
+        
         @media (max-width: 768px) {
             .profile-stats {
                 flex-direction: column;
@@ -178,7 +248,7 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
         <main class="main-content">
             <div class="header">
                 <h1><i class="fas fa-user"></i> My Profile</h1>
-                <a href="edit.php?id=<?php echo $staff['id']; ?>" class="btn btn-primary">
+                <a href="../users/edit.php?id=<?php echo $current_user['id']; ?>" class="btn btn-primary">
                     <i class="fas fa-edit"></i> Edit Profile
                 </a>
             </div>
@@ -214,141 +284,151 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
                 </div>
             </div>
             
-            <div class="row">
-                <div class="col-md-6">
-                    <!-- Basic Information -->
-                    <div class="info-card">
-                        <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
-                        <div class="info-row">
-                            <div class="info-label">Staff ID:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['staff_id']); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Email:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['login_email']); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Phone:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['phone_number'] ?? 'N/A'); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Date of Joining:</div>
-                            <div class="info-value"><?php echo date('F d, Y', strtotime($staff['date_of_joining'])); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Employment Type:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['employment_type'] ?? 'N/A'); ?></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Job Information -->
-                    <div class="info-card">
-                        <h3><i class="fas fa-briefcase"></i> Job Information</h3>
-                        <div class="info-row">
-                            <div class="info-label">Role Category:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['role_category'] ?? 'N/A'); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Skills:</div>
-                            <div class="info-value">
-                                <?php 
-                                if (!empty($staff['skills'])) {
-                                    $skills = json_decode($staff['skills'], true);
-                                    if (is_array($skills)) {
-                                        echo implode(', ', array_map('htmlspecialchars', $skills));
+            <div class="profile-content">
+                <div class="row">
+                    <div class="col-md-6">
+                        <!-- Basic Information -->
+                        <div class="info-card">
+                            <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
+                            <div class="info-row">
+                                <div class="info-label">Staff ID:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['staff_id']); ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Email:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['login_email']); ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Phone:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['phone_number'] ?? 'N/A'); ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Date of Joining:</div>
+                                <div class="info-value">
+                                    <?php 
+                                    if (!empty($staff['date_of_joining'])) {
+                                        echo date('F d, Y', strtotime($staff['date_of_joining'])); 
                                     } else {
-                                        echo htmlspecialchars($staff['skills']);
+                                        echo 'N/A';
                                     }
-                                } else {
-                                    echo 'N/A';
-                                }
-                                ?>
+                                    ?>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Employment Type:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['employment_type'] ?? 'N/A'); ?></div>
                             </div>
                         </div>
-                        <div class="info-row">
-                            <div class="info-label">Certifications:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['certifications'] ?? 'N/A'); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Service Area:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['service_area'] ?? 'N/A'); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">On-call Support:</div>
-                            <div class="info-value"><?php echo $staff['on_call_support'] ? 'Yes' : 'No'; ?></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <!-- Contact Information -->
-                    <div class="info-card">
-                        <h3><i class="fas fa-address-card"></i> Contact Information</h3>
-                        <div class="info-row">
-                            <div class="info-label">Official Email:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['official_email'] ?? $staff['login_email']); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Personal Email:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['personal_email'] ?? 'N/A'); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Alternate Phone:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['alternate_phone'] ?? 'N/A'); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Emergency Contact:</div>
-                            <div class="info-value">
-                                <?php echo htmlspecialchars($staff['emergency_contact_name'] ?? 'N/A'); ?>
-                                <?php if (!empty($staff['emergency_contact_number'])): ?>
-                                    (<?php echo htmlspecialchars($staff['emergency_contact_number']); ?>)
-                                <?php endif; ?>
+                        
+                        <!-- Job Information -->
+                        <div class="info-card">
+                            <h3><i class="fas fa-briefcase"></i> Job Information</h3>
+                            <div class="info-row">
+                                <div class="info-label">Role Category:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['role_category'] ?? 'N/A'); ?></div>
                             </div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Current Address:</div>
-                            <div class="info-value"><?php echo nl2br(htmlspecialchars($staff['current_address'] ?? 'N/A')); ?></div>
+                            <div class="info-row">
+                                <div class="info-label">Skills:</div>
+                                <div class="info-value">
+                                    <?php 
+                                    if (!empty($staff['skills'])) {
+                                        $skills = json_decode($staff['skills'], true);
+                                        if (is_array($skills)) {
+                                            echo implode(', ', array_map('htmlspecialchars', $skills));
+                                        } else {
+                                            echo htmlspecialchars($staff['skills']);
+                                        }
+                                    } else {
+                                        echo 'N/A';
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Certifications:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['certifications'] ?? 'N/A'); ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Service Area:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['service_area'] ?? 'N/A'); ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">On-call Support:</div>
+                                <div class="info-value"><?php echo $staff['on_call_support'] ? 'Yes' : 'No'; ?></div>
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- System Access -->
-                    <div class="info-card">
-                        <h3><i class="fas fa-laptop"></i> System Access</h3>
-                        <div class="info-row">
-                            <div class="info-label">Username:</div>
-                            <div class="info-value"><?php echo htmlspecialchars($staff['username'] ?? $current_user['email']); ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">User Role:</div>
-                            <div class="info-value">
-                                <span class="badge bg-<?php 
-                                    echo $current_user['user_type'] == 'super_admin' ? 'danger' : 
-                                         ($current_user['user_type'] == 'admin' ? 'warning' : 
-                                         ($current_user['user_type'] == 'manager' ? 'info' : 'primary')); 
-                                ?>">
-                                    <?php echo ucfirst(str_replace('_', ' ', $current_user['user_type'])); ?>
-                                </span>
+                    <div class="col-md-6">
+                        <!-- Contact Information -->
+                        <div class="info-card">
+                            <h3><i class="fas fa-address-card"></i> Contact Information</h3>
+                            <div class="info-row">
+                                <div class="info-label">Official Email:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['official_email'] ?? $staff['login_email']); ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Personal Email:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['personal_email'] ?? 'N/A'); ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Alternate Phone:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['alternate_phone'] ?? 'N/A'); ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Emergency Contact:</div>
+                                <div class="info-value">
+                                    <?php echo htmlspecialchars($staff['emergency_contact_name'] ?? 'N/A'); ?>
+                                    <?php if (!empty($staff['emergency_contact_number'])): ?>
+                                        (<?php echo htmlspecialchars($staff['emergency_contact_number']); ?>)
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Current Address:</div>
+                                <div class="info-value"><?php echo nl2br(htmlspecialchars($staff['current_address'] ?? 'N/A')); ?></div>
                             </div>
                         </div>
-                        <div class="info-row">
-                            <div class="info-label">Company Laptop:</div>
-                            <div class="info-value"><?php echo $staff['company_laptop_issued'] ? 'Yes' : 'No'; ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">VPN Access:</div>
-                            <div class="info-value"><?php echo $staff['vpn_access'] ? 'Yes' : 'No'; ?></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Reporting Manager:</div>
-                            <div class="info-value">
-                                <?php if (!empty($staff['reporting_manager_name'])): ?>
-                                    <?php echo htmlspecialchars($staff['reporting_manager_name']); ?>
-                                    <?php if (!empty($staff['reporting_manager_designation'])): ?>
-                                        <br><small><?php echo htmlspecialchars($staff['reporting_manager_designation']); ?></small>
+                        
+                        <!-- System Access -->
+                        <div class="info-card">
+                            <h3><i class="fas fa-laptop"></i> System Access</h3>
+                            <div class="info-row">
+                                <div class="info-label">Username:</div>
+                                <div class="info-value"><?php echo htmlspecialchars($staff['username'] ?? $current_user['email']); ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">User Role:</div>
+                                <div class="info-value">
+                                    <span class="badge bg-<?php 
+                                        echo $current_user['user_type'] == 'super_admin' ? 'danger' : 
+                                             ($current_user['user_type'] == 'admin' ? 'warning' : 
+                                             ($current_user['user_type'] == 'manager' ? 'info' : 'primary')); 
+                                    ?>">
+                                        <?php echo ucfirst(str_replace('_', ' ', $current_user['user_type'])); ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Company Laptop:</div>
+                                <div class="info-value"><?php echo $staff['company_laptop_issued'] ? 'Yes' : 'No'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">VPN Access:</div>
+                                <div class="info-value"><?php echo $staff['vpn_access'] ? 'Yes' : 'No'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Reporting Manager:</div>
+                                <div class="info-value">
+                                    <?php if (!empty($staff['reporting_manager_name'])): ?>
+                                        <?php echo htmlspecialchars($staff['reporting_manager_name']); ?>
+                                        <?php if (!empty($staff['reporting_manager_designation'])): ?>
+                                            <br><small><?php echo htmlspecialchars($staff['reporting_manager_designation']); ?></small>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        Not assigned
                                     <?php endif; ?>
-                                <?php else: ?>
-                                    Not assigned
-                                <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     </div>

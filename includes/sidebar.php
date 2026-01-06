@@ -27,11 +27,11 @@ $user_type = $current_user['user_type'] ?? 'client';
                 <i class="fas fa-building"></i> Clients
             </a></li>
             
-            <li><a href="<?php echo route('contracts.index'); ?>" <?php echo strpos($_SERVER['PHP_SELF'], 'services/') !== false ? 'class="active"' : ''; ?>>
-                <i class="fas fa-file-contract"></i> Services
+            <li><a href="<?php echo route('services.index'); ?>" <?php echo strpos($_SERVER['PHP_SELF'], 'services/') !== false ? 'class="active"' : ''; ?>>
+                <i class="fas fa-concierge-bell"></i> Services
             </a></li>
             
-            <li><a href="<?php echo route('contracts.renewals'); ?>" <?php echo strpos($_SERVER['PHP_SELF'], 'services/renewals') !== false ? 'class="active"' : ''; ?>>
+            <li><a href="<?php echo route('services.renewals'); ?>" <?php echo strpos($_SERVER['PHP_SELF'], 'services/renewals') !== false ? 'class="active"' : ''; ?>>
                 <i class="fas fa-calendar-check"></i> Contract Renewals
             </a></li>
             <?php endif; ?>
@@ -45,7 +45,7 @@ $user_type = $current_user['user_type'] ?? 'client';
             </a></li>
             
             <?php if (hasManagerLevel()): ?>
-            <li><a href="<?php echo route('reports.index'); ?>" <?php echo strpos($_SERVER['PHP_SELF'], 'reports/') !== false ? 'class="active"' : ''; ?>>
+            <li><a href="<?php echo route('reports.index'); ?>" <?php echo (strpos($_SERVER['PHP_SELF'], 'reports/') !== false || strpos($_SERVER['REQUEST_URI'], 'reports') !== false) ? 'class="active"' : ''; ?>>
                 <i class="fas fa-chart-bar"></i> Reports
             </a></li>
             <?php endif; ?>

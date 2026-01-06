@@ -58,15 +58,28 @@ class RouteManager
         'assets.reports' => '/inventory/reports',
         'assets.preview' => '/inventory/preview',
         
+        // Service management routes
+        'services.index' => '/services',
+        'services.create' => '/services/create',
+        'services.edit' => '/services/edit',
+        'services.view' => '/services/view',
+        'services.renewals' => '/services/renewals',
+        'services.export' => '/services/export',
+        'services.catalog' => '/services/catalog',
+        
         // Contract management routes
-        'contracts.index' => '/services',
-        'contracts.create' => '/services/create',
-        'contracts.edit' => '/services/edit',
-        'contracts.view' => '/services/view',
-        'contracts.renewals' => '/services/renewals',
+        'contracts.index' => '/contracts',
+        'contracts.create' => '/contracts/create',
+        'contracts.edit' => '/contracts/edit',
+        'contracts.view' => '/contracts/view',
+        'contracts.renewals' => '/contracts/renewals',
         
         // Report routes
         'reports.index' => '/reports',
+        'reports.dashboard' => '/reports/dashboard',
+        'reports.ticket' => '/reports/ticket',
+        'reports.asset' => '/reports/asset',
+        'reports.service' => '/reports/service',
         
         // Staff routes
         'staff.profile' => '/staff/profile',

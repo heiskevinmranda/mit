@@ -27,20 +27,20 @@ if (!empty($_GET['service_id'])) {
 
 // Date range filter
 if (!empty($_GET['date_from'])) {
-    $where .= " AND DATE(sr.renewed_at) >= ?";
+    $where .= " AND DATE(sr.created_at) >= ?";
     $params[] = $_GET['date_from'];
     $filters['date_from'] = $_GET['date_from'];
 }
 
 if (!empty($_GET['date_to'])) {
-    $where .= " AND DATE(sr.renewed_at) <= ?";
+    $where .= " AND DATE(sr.created_at) <= ?";
     $params[] = $_GET['date_to'];
     $filters['date_to'] = $_GET['date_to'];
 }
 
 // Status filter
 if (!empty($_GET['status'])) {
-    $where .= " AND sr.status = ?";
+    $where .= " AND sr.payment_status = ?";
     $params[] = $_GET['status'];
     $filters['status'] = $_GET['status'];
 }
@@ -96,7 +96,7 @@ $sql = "SELECT sr.*,
         LEFT JOIN users u ON sr.renewed_by = u.id
         LEFT JOIN staff_profiles sp ON u.id = sp.user_id
         $where
-        ORDER BY sr.renewed_at DESC
+        ORDER BY sr.created_at DESC
         LIMIT ? OFFSET ?";
 
 $params_with_pagination = array_merge($params, [$limit, $offset]);
@@ -105,21 +105,28 @@ $stmt->execute($params_with_pagination);
 $renewals = $stmt->fetchAll();
 
 // Get statistics
-$stats_sql = "SELECT 
-    COUNT(*) as total,
-    SUM(sr.amount) as total_amount,
-    COUNT(CASE WHEN sr.status = 'Completed' THEN 1 END) as completed,
-    COUNT(CASE WHEN sr.status = 'Pending' THEN 1 END) as pending,
-    COUNT(CASE WHEN sr.status = 'Failed' THEN 1 END) as failed,
-    COUNT(CASE WHEN sr.renewed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as last_30_days
-    FROM service_renewals sr";
-    
 if (!$can_manage && !hasPermission('super_admin') && isset($staff_id) && !empty($assigned_client_ids)) {
     $placeholders = implode(',', array_fill(0, count($assigned_client_ids), '?'));
-    $stats_sql .= " LEFT JOIN client_services cs ON sr.client_service_id = cs.id
-                    WHERE cs.client_id IN ($placeholders)";
+    $stats_sql = "SELECT 
+        COUNT(*) as total,
+        SUM(sr.amount) as total_amount,
+        COUNT(CASE WHEN sr.payment_status = 'Completed' THEN 1 END) as completed,
+        COUNT(CASE WHEN sr.payment_status = 'Pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN sr.payment_status = 'Failed' THEN 1 END) as failed,
+        COUNT(CASE WHEN sr.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as last_30_days
+        FROM service_renewals sr
+        LEFT JOIN client_services cs ON sr.client_service_id = cs.id
+        WHERE cs.client_id IN ($placeholders)";
     $stats_params = $assigned_client_ids;
 } else {
+    $stats_sql = "SELECT 
+        COUNT(*) as total,
+        SUM(sr.amount) as total_amount,
+        COUNT(CASE WHEN sr.payment_status = 'Completed' THEN 1 END) as completed,
+        COUNT(CASE WHEN sr.payment_status = 'Pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN sr.payment_status = 'Failed' THEN 1 END) as failed,
+        COUNT(CASE WHEN sr.created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as last_30_days
+        FROM service_renewals sr";
     $stats_params = [];
 }
 
@@ -398,7 +405,7 @@ $services = $pdo->query($services_sql)->fetchAll();
                         <tbody>
                             <?php foreach ($renewals as $renewal): 
                                 $status_class = '';
-                                switch ($renewal['status']) {
+                                switch ($renewal['payment_status']) {
                                     case 'Completed': $status_class = 'badge-completed'; break;
                                     case 'Pending': $status_class = 'badge-pending'; break;
                                     case 'Failed': $status_class = 'badge-failed'; break;
@@ -431,8 +438,8 @@ $services = $pdo->query($services_sql)->fetchAll();
                                     <?php echo $renewal['renewal_period'] ?? 1; ?> Year(s)
                                 </td>
                                 <td>
-                                    <?php echo $renewal['renewed_at'] ? date('M d, Y', strtotime($renewal['renewed_at'])) : 'N/A'; ?>
-                                    <div><small class="text-muted"><?php echo $renewal['renewed_at'] ? date('h:i A', strtotime($renewal['renewed_at'])) : ''; ?></small></div>
+                                    <?php echo $renewal['created_at'] ? date('M d, Y', strtotime($renewal['created_at'])) : 'N/A'; ?>
+                                    <div><small class="text-muted"><?php echo $renewal['created_at'] ? date('h:i A', strtotime($renewal['created_at'])) : ''; ?></small></div>
                                 </td>
                                 <td>
                                     <?php 
@@ -452,7 +459,7 @@ $services = $pdo->query($services_sql)->fetchAll();
                                 </td>
                                 <td>
                                     <span class="badge-status <?php echo $status_class; ?>">
-                                        <?php echo htmlspecialchars($renewal['status']); ?>
+                                        <?php echo htmlspecialchars($renewal['payment_status']); ?>
                                     </span>
                                 </td>
                                 <td>
@@ -466,7 +473,7 @@ $services = $pdo->query($services_sql)->fetchAll();
                                                     title="View Details">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <?php if ($can_manage && $renewal['status'] == 'Pending'): ?>
+                                            <?php if ($can_manage && $renewal['payment_status'] == 'Pending'): ?>
                                             <button type="button" class="btn btn-outline-success complete-renewal-btn" 
                                                     data-id="<?php echo htmlspecialchars($renewal['id']); ?>"
                                                     title="Mark Complete">

@@ -43,7 +43,7 @@ try {
 }
 
 // Check permissions
-if (!hasClientPermission('edit', $client_id)) {
+if (!hasClientPermission('edit')) {
     $_SESSION['error'] = "You don't have permission to edit this client.";
     header("Location: " . route('clients.view') . "?id=$client_id");
     exit();

@@ -1,5 +1,6 @@
 <?php
 require_once '../../includes/auth.php';
+require_once '../../includes/routes.php';
 requireLogin();
 
 $current_user = getCurrentUser();
@@ -517,20 +518,20 @@ $expired_alerts = $pdo->query("
                 <div class="row">
                     <div class="col">
                         <div class="d-flex flex-wrap gap-2">
-                            <a href="create.php" class="btn btn-primary">
+                            <a href="<?php echo route('services.create'); ?>" class="btn btn-primary">
                                 <i class="fas fa-plus-circle"></i> Add New Service
                             </a>
-                            <a href="renewals.php" class="btn btn-warning">
+                            <a href="<?php echo route('services.renewals'); ?>" class="btn btn-warning">
                                 <i class="fas fa-sync"></i> Manage Renewals
                             </a>
-                            <a href="export.php" class="btn btn-success">
+                            <a href="<?php echo route('services.export'); ?>" class="btn btn-success">
                                 <i class="fas fa-file-export"></i> Export Services
                             </a>
                             <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#bulkActionsModal">
                                 <i class="fas fa-tasks"></i> Bulk Actions
                             </button>
                             <?php if ($can_manage): ?>
-                            <a href="catalog.php" class="btn btn-secondary">
+                            <a href="<?php echo route('services.catalog'); ?>" class="btn btn-secondary">
                                 <i class="fas fa-list-alt"></i> Service Catalog
                             </a>
                             <?php endif; ?>
@@ -765,11 +766,11 @@ $expired_alerts = $pdo->query("
                                 <td>
                                     <div class="action-buttons">
                                         <div class="btn-group btn-group-sm">
-                                            <a href="view.php?id=<?php echo urlencode($service['id']); ?>" class="btn btn-outline-primary" title="View">
+                                            <a href="<?php echo route('services.view', ['id' => $service['id']]); ?>" class="btn btn-outline-primary" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php if ($can_manage): ?>
-                                            <a href="edit.php?id=<?php echo urlencode($service['id']); ?>" class="btn btn-outline-warning" title="Edit">
+                                            <a href="<?php echo route('services.edit', ['id' => $service['id']]); ?>" class="btn btn-outline-warning" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <button type="button" class="btn btn-outline-success renew-btn" 
@@ -786,13 +787,13 @@ $expired_alerts = $pdo->query("
                                                 </button>
                                                 <ul class="dropdown-menu">
                                                     <li>
-                                                        <a class="dropdown-item" href="view.php?id=<?php echo urlencode($service['id']); ?>">
+                                                        <a class="dropdown-item" href="<?php echo route('services.view', ['id' => $service['id']]); ?>">
                                                             <i class="fas fa-eye"></i> View Details
                                                         </a>
                                                     </li>
                                                     <?php if ($can_manage): ?>
                                                     <li>
-                                                        <a class="dropdown-item" href="edit.php?id=<?php echo urlencode($service['id']); ?>">
+                                                        <a class="dropdown-item" href="<?php echo route('services.edit', ['id' => $service['id']]); ?>">
                                                             <i class="fas fa-edit"></i> Edit Service
                                                         </a>
                                                     </li>
@@ -831,7 +832,7 @@ $expired_alerts = $pdo->query("
                                                     <?php endif; ?>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
-                                                        <a class="dropdown-item" href="renewals.php?service_id=<?php echo urlencode($service['id']); ?>">
+                                                        <a class="dropdown-item" href="<?php echo route('services.renewals', ['service_id' => $service['id']]); ?>">
                                                             <i class="fas fa-history"></i> Renewal History
                                                         </a>
                                                     </li>
@@ -854,7 +855,7 @@ $expired_alerts = $pdo->query("
                                         <i class="fas fa-inbox fa-3x mb-3"></i>
                                         <h5>No services found</h5>
                                         <p>Try changing your filters or add a new service.</p>
-                                        <a href="create.php" class="btn btn-primary">
+                                        <a href="<?php echo route('services.create'); ?>" class="btn btn-primary">
                                             <i class="fas fa-plus-circle"></i> Add New Service
                                         </a>
                                     </div>
@@ -988,11 +989,11 @@ $expired_alerts = $pdo->query("
                                 </div>
                                 <div class="card-footer bg-transparent border-top-0">
                                     <div class="action-buttons d-flex justify-content-between">
-                                        <a href="view.php?id=<?php echo urlencode($service['id']); ?>" class="btn btn-sm btn-outline-primary">
+                                        <a href="<?php echo route('services.view', ['id' => $service['id']]); ?>" class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye"></i> View
                                         </a>
                                         <?php if ($can_manage): ?>
-                                        <a href="edit.php?id=<?php echo urlencode($service['id']); ?>" class="btn btn-sm btn-outline-warning">
+                                        <a href="<?php echo route('services.edit', ['id' => $service['id']]); ?>" class="btn btn-sm btn-outline-warning">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
                                         <button type="button" class="btn btn-sm btn-outline-success renew-btn" 
@@ -1008,13 +1009,13 @@ $expired_alerts = $pdo->query("
                                             </button>
                                             <ul class="dropdown-menu">
                                                 <li>
-                                                    <a class="dropdown-item" href="view.php?id=<?php echo urlencode($service['id']); ?>">
+                                                    <a class="dropdown-item" href="<?php echo route('services.view', ['id' => $service['id']]); ?>">
                                                         <i class="fas fa-eye"></i> View Details
                                                     </a>
                                                 </li>
                                                 <?php if ($can_manage): ?>
                                                 <li>
-                                                    <a class="dropdown-item" href="edit.php?id=<?php echo urlencode($service['id']); ?>">
+                                                    <a class="dropdown-item" href="<?php echo route('services.edit', ['id' => $service['id']]); ?>">
                                                         <i class="fas fa-edit"></i> Edit Service
                                                     </a>
                                                 </li>
@@ -1053,7 +1054,7 @@ $expired_alerts = $pdo->query("
                                                 <?php endif; ?>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
-                                                    <a class="dropdown-item" href="renewals.php?service_id=<?php echo urlencode($service['id']); ?>">
+                                                    <a class="dropdown-item" href="<?php echo route('services.renewals', ['service_id' => $service['id']]); ?>">
                                                         <i class="fas fa-history"></i> Renewal History
                                                     </a>
                                                 </li>
@@ -1077,7 +1078,7 @@ $expired_alerts = $pdo->query("
                                     <i class="fas fa-inbox fa-3x mb-3"></i>
                                     <h5>No services found</h5>
                                     <p>Try changing your filters or add a new service.</p>
-                                    <a href="create.php" class="btn btn-primary">
+                                    <a href="<?php echo route('services.create'); ?>" class="btn btn-primary">
                                         <i class="fas fa-plus-circle"></i> Add New Service
                                     </a>
                                 </div>

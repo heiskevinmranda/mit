@@ -5,6 +5,6 @@ require_once 'includes/auth.php';
 session_destroy();
 
 // Redirect to login
-header('Location: /mit/login');
+header('Location: login.php');
 exit;
 ?>

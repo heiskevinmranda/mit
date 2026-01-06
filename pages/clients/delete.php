@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if ($confirmation !== 'DELETE') {
         $_SESSION['error'] = "Please type 'DELETE' in the confirmation box.";
-        header("Location: delete.php?id=$client_id");
+        header("Location: " . route('clients.delete') . "?id=$client_id");
         exit();
     }
     
@@ -131,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $total_related = $locations_count + $contracts_count + $tickets_count + $assets_count;
                 if ($total_related > 0) {
                     $_SESSION['error'] = "Cannot delete client. There are $total_related related records. Please delete related records first or select 'Delete all related records' option.";
-                    header("Location: delete.php?id=$client_id");
+                    header("Location: " . route('clients.delete') . "?id=$client_id");
                     exit();
                 }
             }
@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (PDOException $e) {
         $pdo->rollBack();
         $_SESSION['error'] = "Database error: " . $e->getMessage();
-        header("Location: delete.php?id=$client_id");
+        header("Location: " . route('clients.delete') . "?id=$client_id");
         exit();
     }
 }
@@ -759,9 +759,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php">Clients</a></li>
-                    <li class="breadcrumb-item"><a href="view.php?id=<?= $client_id ?>"><?= htmlspecialchars($client['company_name']) ?></a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('clients.index'); ?>">Clients</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>"><?php echo htmlspecialchars($client['company_name']); ?></a></li>
                     <li class="breadcrumb-item active" aria-current="page">Delete Client</li>
                 </ol>
             </nav>
@@ -784,7 +784,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </h1>
                     <p class="text-muted">This action cannot be undone and is restricted to super administrators only</p>
                 </div>
-                <a href="view.php?id=<?= $client_id ?>" class="btn btn-outline-secondary">
+                <a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Client
                 </a>
             </div>
@@ -962,7 +962,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="view.php?id=<?= $client_id ?>" class="btn btn-outline-secondary">
+                            <a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <div class="action-buttons">
