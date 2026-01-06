@@ -18,7 +18,7 @@ $success = '';
 // Get ticket ID from URL
 $ticket_id = $_GET['id'] ?? null;
 if (!$ticket_id) {
-    header('Location: ' . route('tickets.index'));
+    header('Location: index.php');
     exit;
 }
 

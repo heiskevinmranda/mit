@@ -1,5 +1,6 @@
 <?php
 require_once '../../includes/auth.php';
+require_once '../../includes/routes.php';
 requireLogin();
 
 if (!hasPermission('manager') && !hasPermission('admin')) {
@@ -298,8 +299,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php"><i class="fas fa-concierge-bell"></i> Services</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('services.index'); ?>"><i class="fas fa-concierge-bell"></i> Services</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Add New Service</li>
                 </ol>
             </nav>
@@ -897,7 +898,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-actions bg-white p-3 border-top sticky-bottom">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <a href="index.php" class="btn btn-outline-secondary">
+                            <a href="<?php echo route('services.index'); ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <button type="button" class="btn btn-outline-warning" id="save-draft">

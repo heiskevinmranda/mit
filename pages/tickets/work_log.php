@@ -13,7 +13,7 @@ $error = '';
 $success = '';
 
 if (!$ticket_id) {
-    header('Location: ' . route('tickets.index'));
+    header('Location: index.php');
     exit;
 }
 

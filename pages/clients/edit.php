@@ -5,6 +5,7 @@ session_start();
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/permissions.php';
+require_once __DIR__ . '/../../includes/routes.php';
 require_once __DIR__ . '/includes/client_functions.php';
 
 if (!isLoggedIn()) {
@@ -14,7 +15,7 @@ if (!isLoggedIn()) {
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     $_SESSION['error'] = "Client ID is required.";
-    header("Location: index.php");
+    header("Location: " . route('clients.index'));
     exit();
 }
 
@@ -34,7 +35,7 @@ try {
     
     if (!$client) {
         $_SESSION['error'] = "Client not found.";
-        header("Location: index.php");
+        header("Location: " . route('clients.index'));
         exit();
     }
 } catch (PDOException $e) {
@@ -44,7 +45,7 @@ try {
 // Check permissions
 if (!hasClientPermission('edit', $client_id)) {
     $_SESSION['error'] = "You don't have permission to edit this client.";
-    header("Location: view.php?id=$client_id");
+    header("Location: " . route('clients.view') . "?id=$client_id");
     exit();
 }
 

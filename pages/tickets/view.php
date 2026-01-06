@@ -18,7 +18,7 @@ $success = '';
 // Get ticket ID from URL
 $ticket_id = $_GET['id'] ?? null;
 if (!$ticket_id) {
-    header('Location: ' . route('tickets.index'));
+    header('Location: index.php');
     exit;
 }
 
@@ -1029,7 +1029,7 @@ function formatDuration($minutes) {
                                         </div>
                                     </div>
                                     <div>
-                                        <a href="../../download_attachment.php?id=<?php echo urlencode($attachment['id']); ?>" 
+                                        <a href="<?php echo route('attachments.download'); ?>?id=<?php echo urlencode($attachment['id']); ?>" 
                                            class="btn btn-sm btn-outline-primary" target="_blank" download>
                                             <i class="fas fa-download"></i>
                                         </a>

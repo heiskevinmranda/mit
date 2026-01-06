@@ -42,7 +42,7 @@ try {
     // Check if user has permission to download this attachment
     // User must have permission to view the ticket that contains this attachment
     $ticket_id = $attachment['ticket_id'];
-    $is_creator = ($current_user['id'] == $attachment['created_by'] ?? $attachment['uploaded_by']);
+    $is_creator = ($current_user['id'] == $attachment['uploaded_by']);
     $is_admin_or_manager = (isAdmin() || isManager());
 
     // Check if user is assigned to the ticket

@@ -5,17 +5,18 @@ session_start();
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/permissions.php';
+require_once __DIR__ . '/../../includes/routes.php';
 require_once __DIR__ . '/includes/client_functions.php';
 
 if (!isLoggedIn()) {
-    header("Location: ../../login.php");
+    header("Location: " . route('login'));
     exit();
 }
 
 $user_role = $_SESSION['user_type'] ?? null;
 if (!hasClientPermission('create')) {
     $_SESSION['error'] = "You don't have permission to create clients.";
-    header("Location: index.php");
+    header("Location: " . route('clients.index'));
     exit();
 }
 
@@ -172,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->commit();
             
             $_SESSION['success'] = "Client '{$form_data['company_name']}' created successfully!";
-            header("Location: view.php?id=$client_id");
+            header("Location: " . route('clients.view') . "?id=$client_id");
             exit();
             
         } catch (PDOException $e) {
@@ -220,8 +221,7 @@ $service_types = [
     'SLA' => 'Service Level Agreement',
     'Pay-per-use' => 'Pay-per-use',
     'General' => 'General Support'
-];
-?>
+];?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -230,434 +230,24 @@ $service_types = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create New Client - MSP Application</title>
     
-    <!-- Main CSS -->
+    <!-- Main CSS - Using the same as dashboard for consistency -->
     <link rel="stylesheet" href="/mit/css/style.css">
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Custom Styles -->
-    <style>
-        :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --accent-color: #e74c3c;
-            --success-color: #27ae60;
-            --light-bg: #f8f9fa;
-            --dark-text: #2c3e50;
-            --light-text: #7f8c8d;
-            --border-color: #e0e6ed;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: var(--dark-text);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-        
-        /* Header/Navbar */
-        .navbar {
-            background-color: var(--secondary-color);
-            color: white;
-            padding: 0.75rem 1rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1030;
-        }
-        
-        .navbar h4 {
-            margin: 0;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-        
-        .navbar h4 i {
-            margin-right: 10px;
-        }
-        
-        /* Main Layout */
-        .main-wrapper {
-            display: flex;
-            min-height: calc(100vh - 56px);
-        }
-        
-
-        
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            padding: 25px;
-            background-color: #f5f7fa;
-            overflow-y: auto;
-            width: 100%;
-        }
-        
-        @media (max-width: 992px) {
-            .main-content {
-                padding: 15px;
-            }
-        }
-        
-        /* Page Header */
-        .page-title {
-            color: var(--secondary-color);
-            font-weight: 700;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 3px solid var(--primary-color);
-        }
-        
-        .page-title i {
-            color: var(--success-color);
-        }
-        
-        /* Cards */
-        .card {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 25px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .card-header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 18px 25px;
-            font-weight: 600;
-            border-radius: 10px 10px 0 0 !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .card-header h5 {
-            margin: 0;
-            display: flex;
-            align-items: center;
-        }
-        
-        .card-header h5 i {
-            margin-right: 10px;
-        }
-        
-        .card-body {
-            padding: 25px;
-        }
-        
-        /* Form Elements */
-        .form-label {
-            font-weight: 500;
-            color: var(--secondary-color);
-            margin-bottom: 8px;
-            display: block;
-        }
-        
-        .form-label.required::after {
-            content: " *";
-            color: var(--accent-color);
-        }
-        
-        .form-control, .form-select {
-            width: 100%;
-            padding: 10px 15px;
-            border: 2px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 15px;
-            transition: all 0.3s;
-            background-color: white;
-        }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-        }
-        
-        .form-control[readonly] {
-            background-color: #f8f9fa;
-            cursor: not-allowed;
-        }
-        
-        /* Form Sections */
-        .form-section {
-            background-color: var(--light-bg);
-            border-radius: 8px;
-            padding: 25px;
-            margin-bottom: 25px;
-            border-left: 4px solid var(--primary-color);
-        }
-        
-        .section-title {
-            color: var(--secondary-color);
-            font-weight: 600;
-            margin: 0 0 20px 0;
-            padding-bottom: 12px;
-            border-bottom: 2px solid var(--border-color);
-            display: flex;
-            align-items: center;
-        }
-        
-        .section-title i {
-            margin-right: 10px;
-            color: var(--primary-color);
-        }
-        
-        /* Buttons */
-        .btn {
-            padding: 10px 24px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 15px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .btn i {
-            margin-right: 8px;
-        }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
-        }
-        
-        .btn-success {
-            background-color: var(--success-color);
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background-color: #219653;
-            transform: translateY(-2px);
-        }
-        
-        .btn-outline-secondary {
-            background-color: transparent;
-            border: 2px solid #95a5a6;
-            color: #7f8c8d;
-        }
-        
-        .btn-outline-secondary:hover {
-            background-color: #95a5a6;
-            color: white;
-            border-color: #95a5a6;
-        }
-        
-        /* Alerts */
-        .alert {
-            padding: 18px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: none;
-            border-left: 4px solid;
-        }
-        
-        .alert-danger {
-            background-color: #fde8e8;
-            color: #c0392b;
-            border-left-color: var(--accent-color);
-        }
-        
-        .alert-success {
-            background-color: #d4efdf;
-            color: #27ae60;
-            border-left-color: var(--success-color);
-        }
-        
-        /* Input Group */
-        .input-group {
-            display: flex;
-        }
-        
-        .input-group .form-control {
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
-        }
-        
-        .input-group .btn {
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-        }
-        
-        /* Helper Text */
-        .text-muted {
-            color: var(--light-text) !important;
-            font-size: 13px;
-            margin-top: 5px;
-            display: block;
-        }
-        
-        .phone-format {
-            font-size: 12px;
-            color: var(--light-text);
-            margin-top: 3px;
-            display: block;
-        }
-        
-        /* Breadcrumb */
-        .breadcrumb {
-            background-color: transparent;
-            padding: 0;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        
-        .breadcrumb-item a {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-        
-        .breadcrumb-item.active {
-            color: var(--light-text);
-        }
-        
-        /* Mobile Menu Button */
-        .mobile-menu-btn {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            font-size: 22px;
-            cursor: pointer;
-            z-index: 1030;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-        
-        .mobile-menu-btn:hover {
-            background-color: #2980b9;
-            transform: scale(1.05);
-        }
-        
-        @media (max-width: 992px) {
-            .mobile-menu-btn {
-                display: flex;
-            }
-        }
-        
-        /* Form Check */
-        .form-check {
-            margin-bottom: 10px;
-        }
-        
-        .form-check-input {
-            margin-right: 10px;
-            cursor: pointer;
-        }
-        
-        .form-check-label {
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        /* Error Messages */
-        .error-message {
-            color: var(--accent-color);
-            font-size: 13px;
-            margin-top: 5px;
-            display: block;
-        }
-        
-        /* Responsive Grid */
-        @media (max-width: 768px) {
-            .row > div {
-                width: 100% !important;
-                margin-bottom: 15px;
-            }
-        }
-        
-        /* Backdrop for mobile sidebar */
-        .sidebar-backdrop {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1039;
-        }
-        
-        @media (max-width: 992px) {
-            .sidebar-backdrop.active {
-                display: block;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Header -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <h4><i class="fas fa-tools"></i> MSP Portal</h4>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3 d-none d-md-inline">
-                    <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
-                </span>
-                <a href="../../logout.php" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </nav>
-    
-    <!-- Sidebar Backdrop (mobile) -->
-    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
-    
-    <div class="main-wrapper">
+    <div class="dashboard-container">
         <!-- Sidebar -->
         <?php include '../../includes/sidebar.php'; ?>
         
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Breadcrumb -->
-            <nav aria-label="breadcrumb" class="mb-4">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php">Clients</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Create New Client</li>
-                </ol>
-            </nav>
-            
-            <!-- Page Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="header">
                 <div>
-                    <h1 class="page-title">
-                        <i class="fas fa-plus-circle"></i> Create New Client
-                    </h1>
+                    <h1><i class="fas fa-plus-circle"></i> Create New Client</h1>
                     <p class="text-muted">Add a new client company to the system</p>
                 </div>
-                <a href="index.php" class="btn btn-outline-secondary">
+                <a href="<?php echo route('clients.index'); ?>" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Clients
                 </a>
             </div>
@@ -689,218 +279,241 @@ $service_types = [
                 </div>
                 <div class="card-body">
                     <form method="POST" id="clientForm" novalidate>
-                        
-                        <!-- Company Information Section -->
-                        <div class="form-section">
-                            <h5 class="section-title">
-                                <i class="fas fa-info-circle"></i> Company Information
-                            </h5>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="company_name" class="form-label required">Company Name</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="company_name" 
-                                           name="company_name" 
-                                           value="<?= htmlspecialchars($form_data['company_name'] ?? '') ?>" 
-                                           required
-                                           placeholder="Enter company name">
-                                    <div class="error-message" id="company_name_error"></div>
+                    
+                    <!-- First Row: Company Information, Primary Contact, Company Address -->
+                    <div class="row mb-4">
+                        <div class="col-lg-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-info-circle text-primary"></i> Company Information
+                                    </h5>
                                 </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label for="industry" class="form-label">Industry</label>
-                                    <select class="form-select" id="industry" name="industry">
-                                        <option value="">Select Industry</option>
-                                        <option value="IT" <?= ($form_data['industry'] ?? '') === 'IT' ? 'selected' : '' ?>>IT Services</option>
-                                        <option value="Healthcare" <?= ($form_data['industry'] ?? '') === 'Healthcare' ? 'selected' : '' ?>>Healthcare</option>
-                                        <option value="Finance" <?= ($form_data['industry'] ?? '') === 'Finance' ? 'selected' : '' ?>>Finance</option>
-                                        <option value="Retail" <?= ($form_data['industry'] ?? '') === 'Retail' ? 'selected' : '' ?>>Retail</option>
-                                        <option value="Education" <?= ($form_data['industry'] ?? '') === 'Education' ? 'selected' : '' ?>>Education</option>
-                                        <option value="Manufacturing" <?= ($form_data['industry'] ?? '') === 'Manufacturing' ? 'selected' : '' ?>>Manufacturing</option>
-                                        <option value="Government" <?= ($form_data['industry'] ?? '') === 'Government' ? 'selected' : '' ?>>Government</option>
-                                        <option value="Other" <?= ($form_data['industry'] ?? '') === 'Other' ? 'selected' : '' ?>>Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="website" class="form-label">Website</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="website" 
-                                           name="website" 
-                                           value="<?= htmlspecialchars($form_data['website'] ?? '') ?>"
-                                           placeholder="https://example.com">
-                                    <small class="text-muted">Optional</small>
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label for="client_region" class="form-label">Client Region (Tanzania)</label>
-                                    <select class="form-select" id="client_region" name="client_region">
-                                        <option value="">Select Region in Tanzania</option>
-                                        <?php foreach ($tanzania_regions as $region): ?>
-                                        <option value="<?= htmlspecialchars($region) ?>" 
-                                            <?= ($form_data['client_region'] ?? '') === $region ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($region) ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <small class="text-muted">Optional</small>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="service_type" class="form-label">Service Type</label>
-                                    <select class="form-select" id="service_type" name="service_type">
-                                        <option value="">Select Service Type</option>
-                                        <?php foreach ($service_types as $key => $label): ?>
-                                        <option value="<?= htmlspecialchars($key) ?>" 
-                                            <?= ($form_data['service_type'] ?? '') === $key ? 'selected' : '' ?>>
-                                            <?= htmlspecialchars($label) ?>
-                                        </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <small class="text-muted">Optional - Will be stored in contract</small>
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label for="notes" class="form-label">Notes</label>
-                                    <textarea class="form-control" 
-                                              id="notes" 
-                                              name="notes" 
-                                              rows="2"
-                                              placeholder="Any additional information about this client..."><?= htmlspecialchars($form_data['notes'] ?? '') ?></textarea>
-                                    <small class="text-muted">Will be stored in contract service scope</small>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Contact Information Section -->
-                        <div class="form-section">
-                            <h5 class="section-title">
-                                <i class="fas fa-user"></i> Primary Contact Information
-                            </h5>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="contact_person" class="form-label required">Contact Person</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="contact_person" 
-                                           name="contact_person" 
-                                           value="<?= htmlspecialchars($form_data['contact_person'] ?? '') ?>" 
-                                           required
-                                           placeholder="Full name of contact person">
-                                    <div class="error-message" id="contact_person_error"></div>
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label for="email" class="form-label">Email Address</label>
-                                    <input type="email" 
-                                           class="form-control" 
-                                           id="email" 
-                                           name="email" 
-                                           value="<?= htmlspecialchars($form_data['email'] ?? '') ?>"
-                                           placeholder="contact@example.com">
-                                    <small class="text-muted">Optional</small>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="phone" class="form-label">Phone Number</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="phone" 
-                                           name="phone" 
-                                           value="<?= htmlspecialchars($form_data['phone'] ?? '') ?>"
-                                           placeholder="+255712345678">
-                                    <small class="phone-format">Format: +255712345678 or 255712345678</small>
-                                    <small class="text-muted">Any country code with + prefix is accepted</small>
-                                    <div class="error-message" id="phone_error"></div>
-                                </div>
-                                
-                                <div class="col-md-6 mb-3">
-                                    <label for="whatsapp_number" class="form-label">WhatsApp Number</label>
-                                    <div class="input-group">
-                                        <input type="text" 
-                                               class="form-control" 
-                                               id="whatsapp_number" 
-                                               name="whatsapp_number" 
-                                               value="<?= htmlspecialchars($form_data['whatsapp_number'] ?? '') ?>"
-                                               placeholder="+255712345678">
-                                        <button type="button" class="btn btn-success" id="test_whatsapp" disabled>
-                                            <i class="fab fa-whatsapp"></i> Test
-                                        </button>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label for="company_name" class="form-label required">Company Name</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="company_name" 
+                                                   name="company_name" 
+                                                   value="<?= htmlspecialchars($form_data['company_name'] ?? '') ?>" 
+                                                   required
+                                                   placeholder="Enter company name">
+                                            <div class="error-message" id="company_name_error"></div>
+                                        </div>
                                     </div>
-                                    <small class="phone-format">Format: +255712345678 or 255712345678</small>
-                                    <small class="text-muted">Optional - Will be stored in contract service scope</small>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="industry" class="form-label">Industry</label>
+                                            <select class="form-select" id="industry" name="industry">
+                                                <option value="">Select Industry</option>
+                                                <option value="IT" <?= ($form_data['industry'] ?? '') === 'IT' ? 'selected' : '' ?>>IT Services</option>
+                                                <option value="Healthcare" <?= ($form_data['industry'] ?? '') === 'Healthcare' ? 'selected' : '' ?>>Healthcare</option>
+                                                <option value="Finance" <?= ($form_data['industry'] ?? '') === 'Finance' ? 'selected' : '' ?>>Finance</option>
+                                                <option value="Retail" <?= ($form_data['industry'] ?? '') === 'Retail' ? 'selected' : '' ?>>Retail</option>
+                                                <option value="Education" <?= ($form_data['industry'] ?? '') === 'Education' ? 'selected' : '' ?>>Education</option>
+                                                <option value="Manufacturing" <?= ($form_data['industry'] ?? '') === 'Manufacturing' ? 'selected' : '' ?>>Manufacturing</option>
+                                                <option value="Government" <?= ($form_data['industry'] ?? '') === 'Government' ? 'selected' : '' ?>>Government</option>
+                                                <option value="Other" <?= ($form_data['industry'] ?? '') === 'Other' ? 'selected' : '' ?>>Other</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="website" class="form-label">Website</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="website" 
+                                                   name="website" 
+                                                   value="<?= htmlspecialchars($form_data['website'] ?? '') ?>"
+                                                   placeholder="https://example.com">
+                                            <small class="text-muted">Optional</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="client_region" class="form-label">Client Region (Tanzania)</label>
+                                            <select class="form-select" id="client_region" name="client_region">
+                                                <option value="">Select Region in Tanzania</option>
+                                                <?php foreach ($tanzania_regions as $region): ?>
+                                                <option value="<?= htmlspecialchars($region) ?>" 
+                                                    <?= ($form_data['client_region'] ?? '') === $region ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($region) ?>
+                                                </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <small class="text-muted">Optional</small>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="service_type" class="form-label">Service Type</label>
+                                            <select class="form-select" id="service_type" name="service_type">
+                                                <option value="">Select Service Type</option>
+                                                <?php foreach ($service_types as $key => $label): ?>
+                                                <option value="<?= htmlspecialchars($key) ?>" 
+                                                    <?= ($form_data['service_type'] ?? '') === $key ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($label) ?>
+                                                </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <small class="text-muted">Optional - Will be stored in contract</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label for="notes" class="form-label">Notes</label>
+                                            <textarea class="form-control" 
+                                                      id="notes" 
+                                                      name="notes" 
+                                                      rows="2"
+                                                      placeholder="Any additional information about this client..."><?= htmlspecialchars($form_data['notes'] ?? '') ?></textarea>
+                                            <small class="text-muted">Will be stored in contract service scope</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Company Address Section -->
-                        <div class="form-section">
-                            <h5 class="section-title">
-                                <i class="fas fa-map-marker-alt"></i> Company Address
-                            </h5>
-                            
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label for="address" class="form-label">Street Address</label>
-                                    <textarea class="form-control" 
-                                              id="address" 
-                                              name="address" 
-                                              rows="2"
-                                              placeholder="123 Main Street, Kinondoni"><?= htmlspecialchars($form_data['address'] ?? '') ?></textarea>
+                        <div class="col-lg-4">
+                            <!-- Contact Information Section -->
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-user text-primary"></i> Primary Contact Information
+                                    </h5>
                                 </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label for="city" class="form-label">City/District</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="city" 
-                                           name="city" 
-                                           value="<?= htmlspecialchars($form_data['city'] ?? '') ?>"
-                                           placeholder="Dar es Salaam">
-                                </div>
-                                
-                                <div class="col-md-4 mb-3">
-                                    <label for="state" class="form-label">Ward/Area</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="state" 
-                                           name="state" 
-                                           value="<?= htmlspecialchars($form_data['state'] ?? '') ?>"
-                                           placeholder="Kinondoni">
-                                </div>
-                                
-                                <div class="col-md-4 mb-3">
-                                    <label for="country" class="form-label">Country</label>
-                                    <input type="text" 
-                                           class="form-control" 
-                                           id="country" 
-                                           name="country" 
-                                           value="Tanzania"
-                                           readonly
-                                           style="background-color: #f8f9fa;">
-                                    <small class="text-muted">All clients are in Tanzania</small>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label for="contact_person" class="form-label required">Contact Person</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="contact_person" 
+                                                   name="contact_person" 
+                                                   value="<?= htmlspecialchars($form_data['contact_person'] ?? '') ?>" 
+                                                   required
+                                                   placeholder="Full name of contact person">
+                                            <div class="error-message" id="contact_person_error"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label for="email" class="form-label">Email Address</label>
+                                            <input type="email" 
+                                                   class="form-control" 
+                                                   id="email" 
+                                                   name="email" 
+                                                   value="<?= htmlspecialchars($form_data['email'] ?? '') ?>"
+                                                   placeholder="contact@example.com">
+                                            <small class="text-muted">Optional</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="phone" class="form-label">Phone Number</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="phone" 
+                                                   name="phone" 
+                                                   value="<?= htmlspecialchars($form_data['phone'] ?? '') ?>"
+                                                   placeholder="+255712345678">
+                                            <small class="phone-format">Format: +255712345678 or 255712345678</small>
+                                            <small class="text-muted">Any country code with + prefix is accepted</small>
+                                            <div class="error-message" id="phone_error"></div>
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label for="whatsapp_number" class="form-label">WhatsApp Number</label>
+                                            <div class="input-group">
+                                                <input type="text" 
+                                                       class="form-control" 
+                                                       id="whatsapp_number" 
+                                                       name="whatsapp_number" 
+                                                       value="<?= htmlspecialchars($form_data['whatsapp_number'] ?? '') ?>"
+                                                       placeholder="+255712345678">
+                                                <button type="button" class="btn btn-success" id="test_whatsapp" disabled>
+                                                    <i class="fab fa-whatsapp"></i> Test
+                                                </button>
+                                            </div>
+                                            <small class="phone-format">Format: +255712345678 or 255712345678</small>
+                                            <small class="text-muted">Optional - Will be stored in contract service scope</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Primary Service Location Section -->
-                        <div class="form-section">
-                            <h5 class="section-title">
-                                <i class="fas fa-home"></i> Primary Service Location
+                        <div class="col-lg-4">
+                            <!-- Company Address Section -->
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-header bg-light">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-map-marker-alt text-primary"></i> Company Address
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label for="address" class="form-label">Street Address</label>
+                                            <textarea class="form-control" 
+                                                      id="address" 
+                                                      name="address" 
+                                                      rows="2"
+                                                      placeholder="123 Main Street, Kinondoni"><?= htmlspecialchars($form_data['address'] ?? '') ?></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label for="city" class="form-label">City/District</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="city" 
+                                                   name="city" 
+                                                   value="<?= htmlspecialchars($form_data['city'] ?? '') ?>"
+                                                   placeholder="Dar es Salaam">
+                                        </div>
+                                        
+                                        <div class="col-md-4 mb-3">
+                                            <label for="state" class="form-label">Ward/Area</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="state" 
+                                                   name="state" 
+                                                   value="<?= htmlspecialchars($form_data['state'] ?? '') ?>"
+                                                   placeholder="Kinondoni">
+                                        </div>
+                                        
+                                        <div class="col-md-4 mb-3">
+                                            <label for="country" class="form-label">Country</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="country" 
+                                                   name="country" 
+                                                   value="Tanzania"
+                                                   readonly
+                                                   style="background-color: #f8f9fa;">
+                                            <small class="text-muted">All clients are in Tanzania</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Primary Service Location Section -->
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-home text-primary"></i> Primary Service Location
                             </h5>
-                            
+                        </div>
+                        <div class="card-body">
                             <div class="mb-3">
                                 <div class="form-check">
                                     <input class="form-check-input" 
@@ -1024,54 +637,27 @@ $service_types = [
                                 </div>
                             </div>
                         </div>
-                        
+                    </div>
+                    
                         <!-- Form Actions -->
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="index.php" class="btn btn-outline-secondary">
-                                <i class="fas fa-times"></i> Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> Create Client
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="<?php echo route('clients.index'); ?>" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Create Client
+                        </button>
+                    </div>
+                </form>
             </div>
-        </main>
-    </div>
-    
-    <!-- Mobile Menu Button -->
-    <button class="mobile-menu-btn" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i>
-    </button>
+        </div>
+    </main>
+</div>
     
     <!-- Bootstrap JS Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../js/main.js"></script>
     <script>
-        // Mobile sidebar toggle
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const backdrop = document.getElementById('sidebarBackdrop');
-            
-            if (sidebar.classList.contains('active')) {
-                sidebar.classList.remove('active');
-                backdrop.classList.remove('active');
-            } else {
-                sidebar.classList.add('active');
-                backdrop.classList.add('active');
-            }
-        }
-        
-        // Close sidebar when clicking on a link (mobile)
-        document.querySelectorAll('.sidebar-menu a').forEach(link => {
-            link.addEventListener('click', () => {
-                if (window.innerWidth < 992) {
-                    toggleSidebar();
-                }
-            });
-        });
-        
         // Same as company address toggle
         document.getElementById('same_as_company').addEventListener('change', function() {
             const customLocation = document.getElementById('custom_location');
@@ -1209,7 +795,7 @@ $service_types = [
             whatsappField.addEventListener('input', function() {
                 const value = this.value.replace(/\s+/g, '');
                 // Enable button if we have at least 7 digits after +
-                const cleanValue = value.replace(/[^\d]/g, '');
+                const cleanValue = value.replace(/[\D]/g, '');
                 testWhatsappBtn.disabled = cleanValue.length < 7;
             });
             
@@ -1242,37 +828,6 @@ MSP Support Team`
                 alert.style.display = 'none';
             });
         }, 5000);
-        
-        // Format phone numbers on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Format existing phone numbers to show + if they have enough digits
-            ['phone', 'whatsapp_number', 'location_phone', 'location_whatsapp'].forEach(fieldId => {
-                const field = document.getElementById(fieldId);
-                if (field && field.value) {
-                    let value = field.value.replace(/\D/g, '');
-                    if (value.length >= 7 && !field.value.startsWith('+')) {
-                        // Add + for Tanzania numbers (starting with 255)
-                        if (value.startsWith('255') && value.length >= 12) {
-                            field.value = '+' + value;
-                        }
-                    }
-                }
-            });
-        });
-        
-        // Close sidebar when clicking outside (mobile)
-        document.addEventListener('click', function(event) {
-            const sidebar = document.getElementById('sidebar');
-            const backdrop = document.getElementById('sidebarBackdrop');
-            const mobileBtn = document.querySelector('.mobile-menu-btn');
-            
-            if (window.innerWidth < 992 && 
-                sidebar.classList.contains('active') && 
-                !sidebar.contains(event.target) && 
-                !mobileBtn.contains(event.target)) {
-                toggleSidebar();
-            }
-        });
     </script>
 </body>
 </html>

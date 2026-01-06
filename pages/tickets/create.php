@@ -3,6 +3,7 @@
 
 // Include authentication
 require_once '../../includes/auth.php';
+require_once '../../includes/routes.php';
 
 // Check if user is logged in
 requireLogin();
@@ -1304,7 +1305,7 @@ function calculateHours($start_time, $end_time) {
                                 </button>
                                 
                                 <div>
-                                    <a href="index.php" class="btn btn-outline-secondary me-2">
+                                    <a href="<?php echo route('tickets.index'); ?>" class="btn btn-outline-secondary me-2">
                                         <i class="fas fa-times"></i> Cancel
                                     </a>
                                     <button type="submit" class="btn btn-primary" id="submitBtn">

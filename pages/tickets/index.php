@@ -366,12 +366,19 @@ function formatTimeDiff($date1, $date2 = null) {
             <div class="header">
                 <h1><i class="fas fa-ticket-alt"></i> Ticket Management</h1>
                 <div class="btn-group">
-                    <a href="create.php" class="btn btn-primary">
+                    <a href="<?php echo route('tickets.create'); ?>" class="btn btn-primary">
                         <i class="fas fa-plus"></i> New Ticket
                     </a>
-                    <a href="export.php" class="btn btn-outline-secondary">
-                        <i class="fas fa-download"></i> Export
-                    </a>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="<?php echo route('tickets.export_bulk'); ?>?type=excel"><i class="fas fa-file-excel text-success"></i> Export as Excel</a></li>
+                            <li><a class="dropdown-item" href="<?php echo route('tickets.export_bulk'); ?>?type=csv"><i class="fas fa-file-csv text-primary"></i> Export as CSV</a></li>
+                            <li><a class="dropdown-item" href="<?php echo route('tickets.export_bulk'); ?>?type=pdf"><i class="fas fa-file-pdf text-danger"></i> Export as PDF</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             
@@ -549,7 +556,7 @@ function formatTimeDiff($date1, $date2 = null) {
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-filter"></i> Apply Filters
                         </button>
-                        <a href="index.php" class="btn btn-secondary">
+                        <a href="<?php echo route('tickets.index'); ?>" class="btn btn-secondary">
                             <i class="fas fa-redo"></i> Reset
                         </a>
                         <span class="text-muted ms-3">
@@ -567,7 +574,7 @@ function formatTimeDiff($date1, $date2 = null) {
                         <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                         <h4>No tickets found</h4>
                         <p class="text-muted"><?php echo $search ? 'Try different search terms' : 'Create your first ticket'; ?></p>
-                        <a href="create.php" class="btn btn-primary">
+                        <a href="<?php echo route('tickets.create'); ?>" class="btn btn-primary">
                             <i class="fas fa-plus"></i> Create New Ticket
                         </a>
                     </div>
@@ -603,7 +610,7 @@ function formatTimeDiff($date1, $date2 = null) {
                                         $due_date = $created->format('Y-m-d H:i:s');
                                     }
                                 ?>
-                                <tr class="ticket-row" onclick="window.location='view.php?id=<?php echo $ticket['id']; ?>'">
+                                <tr class="ticket-row" onclick="window.location='<?php echo route('tickets.view', ['id' => $ticket['id']]); ?>'">
                                     <td>
                                         <strong class="d-block"><?php echo htmlspecialchars($ticket['ticket_number']); ?></strong>
                                         <div class="time-info">
@@ -703,11 +710,11 @@ function formatTimeDiff($date1, $date2 = null) {
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm" onclick="event.stopPropagation();">
-                                            <a href="view.php?id=<?php echo $ticket['id']; ?>" class="btn btn-info" title="View">
+                                            <a href="<?php echo route('tickets.view', ['id' => $ticket['id']]); ?>" class="btn btn-info" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php if (isManager() || isAdmin() || $ticket['created_by'] == $current_user['id']): ?>
-                                            <a href="edit.php?id=<?php echo $ticket['id']; ?>" class="btn btn-warning" title="Edit">
+                                            <a href="<?php echo route('tickets.edit', ['id' => $ticket['id']]); ?>" class="btn btn-warning" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <?php endif; ?>

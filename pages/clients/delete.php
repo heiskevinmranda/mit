@@ -5,6 +5,7 @@ session_start();
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/permissions.php';
+require_once __DIR__ . '/../../includes/routes.php';
 require_once __DIR__ . '/includes/client_functions.php';
 
 if (!isLoggedIn()) {
@@ -19,13 +20,13 @@ $user_type = $_SESSION['user_type'] ?? null;
 // Only super admins can access this page
 if ($user_type !== 'super_admin') {
     $_SESSION['error'] = "You don't have permission to delete clients. Only super administrators can perform this action.";
-    header("Location: index.php");
+    header("Location: " . route('clients.index'));
     exit();
 }
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     $_SESSION['error'] = "Client ID is required.";
-    header("Location: index.php");
+    header("Location: " . route('clients.index'));
     exit();
 }
 
@@ -45,7 +46,7 @@ try {
     
     if (!$client) {
         $_SESSION['error'] = "Client not found.";
-        header("Location: index.php");
+        header("Location: " . route('clients.index'));
         exit();
     }
     
@@ -68,7 +69,7 @@ try {
     
 } catch (PDOException $e) {
     $_SESSION['error'] = "Database error: " . $e->getMessage();
-    header("Location: view.php?id=$client_id");
+    header("Location: " . route('clients.view') . "?id=$client_id");
     exit();
 }
 
@@ -77,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Additional security check - verify user is still super admin
     if ($_SESSION['user_type'] !== 'super_admin') {
         $_SESSION['error'] = "Permission denied. Your session may have changed.";
-        header("Location: index.php");
+        header("Location: " . route('clients.index'));
         exit();
     }
     
@@ -157,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         $pdo->commit();
-        header("Location: index.php");
+        header("Location: " . route('clients.index'));
         exit();
         
     } catch (PDOException $e) {

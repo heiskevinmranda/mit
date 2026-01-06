@@ -3,7 +3,7 @@ require_once 'includes/auth.php';
 
 // Check if already logged in
 if (checkAuth()) {
-    header('Location: dashboard.php');
+    header('Location: /mit/dashboard');
     exit;
 }
 
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = attemptLogin($email, $password);
         
         if ($result['success']) {
-            header('Location: dashboard.php');
+            header('Location: /mit/dashboard');
             exit;
         } else {
             $error = $result['error'];

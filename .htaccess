@@ -1,0 +1,86 @@
+RewriteEngine On
+RewriteBase /mit/
+
+# Remove .php extension and route to actual PHP files
+RewriteRule ^login$ login.php [L]
+RewriteRule ^logout$ logout.php [L]
+RewriteRule ^dashboard$ dashboard.php [L]
+RewriteRule ^setup$ setup.php [L]
+
+# User management routes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^users/$ pages/users/index.php [L]
+RewriteRule ^users$ pages/users/index.php [L]
+RewriteRule ^users/create$ pages/users/create.php [L]
+RewriteRule ^users/edit$ pages/users/edit.php [L]
+RewriteRule ^users/view$ pages/users/view.php [L]
+RewriteRule ^users/delete$ pages/users/delete.php [L]
+RewriteRule ^users/batch-create$ pages/users/batch_create.php [L]
+
+# Client management routes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^clients/$ pages/clients/index.php [L]
+RewriteRule ^clients$ pages/clients/index.php [L]
+RewriteRule ^clients/create$ pages/clients/create.php [L]
+RewriteRule ^clients/edit$ pages/clients/edit.php [L]
+RewriteRule ^clients/view$ pages/clients/view.php [L]
+RewriteRule ^clients/delete$ pages/clients/delete.php [L]
+RewriteRule ^clients/add-location$ pages/clients/add_location.php [L]
+RewriteRule ^clients/locations$ pages/clients/locations.php [L]
+RewriteRule ^clients/add-asset$ pages/clients/add_asset.php [L]
+RewriteRule ^clients/add-contract$ pages/clients/add_contract.php [L]
+RewriteRule ^clients/add-ticket$ pages/clients/add_ticket.php [L]
+
+# Ticket management routes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^tickets/$ pages/tickets/index.php [L]
+RewriteRule ^tickets$ pages/tickets/index.php [L]
+RewriteRule ^tickets/create$ pages/tickets/create.php [L]
+RewriteRule ^tickets/edit$ pages/tickets/edit.php [L]
+RewriteRule ^tickets/view$ pages/tickets/view.php [L]
+RewriteRule ^tickets/export$ pages/tickets/export.php [L]
+RewriteRule ^tickets/work-log$ pages/tickets/work_log.php [L]
+RewriteRule ^tickets/simple$ pages/tickets/simple.php [L]
+
+# Inventory management routes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^inventory/$ pages/assets/index.php [L]
+RewriteRule ^inventory$ pages/assets/index.php [L]
+RewriteRule ^inventory/create$ pages/assets/create.php [L]
+RewriteRule ^inventory/edit$ pages/assets/edit.php [L]
+RewriteRule ^inventory/view$ pages/assets/view.php [L]
+RewriteRule ^inventory/delete$ pages/assets/delete.php [L]
+RewriteRule ^inventory/import$ pages/assets/import.php [L]
+RewriteRule ^inventory/reports$ pages/assets/reports.php [L]
+RewriteRule ^inventory/preview$ pages/assets/preview.php [L]
+
+# Service/Contract management routes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^services/$ pages/services/index.php [L]
+RewriteRule ^services$ pages/services/index.php [L]
+RewriteRule ^services/create$ pages/services/create.php [L]
+RewriteRule ^services/edit$ pages/services/edit.php [L]
+RewriteRule ^services/view$ pages/services/view.php [L]
+RewriteRule ^services/renewals$ pages/services/renewals.php [L]
+
+# Report routes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^reports/$ pages/reports/index.php [L]
+RewriteRule ^reports$ pages/reports/index.php [L]
+
+# Staff routes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^staff/profile/$ pages/staff/profile.php [L]
+RewriteRule ^staff/profile$ pages/staff/profile.php [L]
+
+# API routes
+RewriteRule ^api/get-locations$ api/get_locations.php [L]
+RewriteRule ^api/get-next-asset-number$ api/get_next_asset_number.php [L]
+
+# File download routes
+RewriteRule ^attachments/download$ download_attachment.php [L]
+
+# Catch-all for other routes (to handle 404s or custom routing)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)$ index.php?route=$1 [L,QSA]

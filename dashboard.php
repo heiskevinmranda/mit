@@ -159,7 +159,7 @@ $pdo = getDBConnection();
             <div class="table-container">
                 <div class="table-header">
                     <h3><i class="fas fa-ticket-alt"></i> Recent Tickets</h3>
-                    <a href="pages/tickets/index.php" class="btn btn-secondary">
+                    <a href="<?php echo route('tickets.index'); ?>" class="btn btn-secondary">
                         View All Tickets
                     </a>
                 </div>
@@ -188,7 +188,7 @@ $pdo = getDBConnection();
                                     echo '<tr><td colspan="6" class="text-center py-4">
                                             <i class="fas fa-inbox fa-2x text-muted mb-3"></i>
                                             <p>No tickets found</p>
-                                            <a href="pages/tickets/create.php" class="btn btn-primary">Create First Ticket</a>
+                                            <a href="' . route('tickets.create') . '" class="btn btn-primary">Create First Ticket</a>
                                           </td></tr>';
                                 } else {
                                     foreach ($tickets as $ticket) {
@@ -219,7 +219,7 @@ $pdo = getDBConnection();
             <div class="quick-actions">
                 <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
                 <div class="actions-grid">
-                    <a href="pages/tickets/create.php" class="action-card">
+                    <a href="<?php echo route('tickets.create'); ?>" class="action-card">
                         <div class="action-icon" style="background: #FF6B35;">
                             <i class="fas fa-plus-circle"></i>
                         </div>
@@ -229,7 +229,7 @@ $pdo = getDBConnection();
                         </div>
                     </a>
                     
-                    <a href="pages/clients/create.php" class="action-card">
+                    <a href="<?php echo route('clients.create'); ?>" class="action-card">
                         <div class="action-icon" style="background: #004E89;">
                             <i class="fas fa-user-plus"></i>
                         </div>
@@ -239,7 +239,7 @@ $pdo = getDBConnection();
                         </div>
                     </a>
                     
-                    <a href="pages/assets/create.php" class="action-card">
+                    <a href="<?php echo route('assets.create'); ?>" class="action-card">
                         <div class="action-icon" style="background: #28a745;">
                             <i class="fas fa-server"></i>
                         </div>
@@ -249,7 +249,7 @@ $pdo = getDBConnection();
                         </div>
                     </a>
                     
-                    <a href="pages/reports/index.php" class="action-card">
+                    <a href="<?php echo route('reports.index'); ?>" class="action-card">
                         <div class="action-icon" style="background: #17a2b8;">
                             <i class="fas fa-chart-bar"></i>
                         </div>

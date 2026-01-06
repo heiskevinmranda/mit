@@ -24,7 +24,7 @@ function getDBConnection() {
 
 // Check if already logged in
 if (isset($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
+    header('Location: /mit/dashboard');
     exit;
 }
 
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         echo "<!-- Debug: Session set for user ID: " . $user['id'] . " -->";
                         
                         // Redirect based on user type
-                        header('Location: dashboard.php');
+                        header('Location: /mit/dashboard');
                         exit;
                     } else {
                         $error = 'Your account is deactivated. Please contact administrator.';

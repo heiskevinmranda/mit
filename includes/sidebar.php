@@ -41,7 +41,7 @@ $user_type = $current_user['user_type'] ?? 'client';
             </a></li>
             
             <li><a href="<?php echo route('assets.index'); ?>" <?php echo strpos($_SERVER['PHP_SELF'], 'assets/') !== false ? 'class="active"' : ''; ?>>
-                <i class="fas fa-server"></i> Assets
+                <i class="fas fa-server"></i> Inventory
             </a></li>
             
             <?php if (hasManagerLevel()): ?>

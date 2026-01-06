@@ -303,15 +303,15 @@ $stats = $pdo->query($stats_sql)->fetch();
             <!-- Action Bar -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <a href="create.php" class="btn btn-primary">
+                    <a href="<?php echo route('assets.create'); ?>" class="btn btn-primary">
                         <i class="fas fa-plus-circle"></i> Add New Asset
                     </a>
                     <?php if (hasPermission('admin')): ?>
-                    <a href="import.php" class="btn btn-outline-secondary">
+                    <a href="<?php echo route('assets.import'); ?>" class="btn btn-outline-secondary">
                         <i class="fas fa-file-import"></i> Import Assets
                     </a>
                     <?php endif; ?>
-                    <a href="reports.php" class="btn btn-outline-info">
+                    <a href="<?php echo route('assets.reports'); ?>" class="btn btn-outline-info">
                         <i class="fas fa-chart-bar"></i> Asset Reports
                     </a>
                 </div>
@@ -418,7 +418,7 @@ $stats = $pdo->query($stats_sql)->fetch();
                     <i class="fas fa-server fa-4x text-muted mb-3"></i>
                     <h3>No assets found</h3>
                     <p class="text-muted mb-4"><?php echo $total_items > 0 ? 'Try adjusting your filters' : 'Get started by adding your first asset'; ?></p>
-                    <a href="create.php" class="btn btn-primary btn-lg">
+                    <a href="<?php echo route('assets.create'); ?>" class="btn btn-primary btn-lg">
                         <i class="fas fa-plus-circle"></i> Add Your First Asset
                     </a>
                 </div>
@@ -523,16 +523,16 @@ $stats = $pdo->query($stats_sql)->fetch();
                                     Added: <?php echo date('M d, Y', strtotime($asset['created_at'])); ?>
                                 </small>
                                 <div class="btn-group">
-                                    <a href="view.php?id=<?php echo urlencode($asset['id']); ?>" 
+                                    <a href="<?php echo route('assets.view'); ?>&id=<?php echo urlencode($asset['id']); ?>" 
                                        class="btn btn-sm btn-outline-primary" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="edit.php?id=<?php echo urlencode($asset['id']); ?>" 
+                                    <a href="<?php echo route('assets.edit'); ?>&id=<?php echo urlencode($asset['id']); ?>" 
                                        class="btn btn-sm btn-outline-warning" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <?php if (hasPermission('admin')): ?>
-                                    <a href="delete.php?id=<?php echo urlencode($asset['id']); ?>" 
+                                    <a href="<?php echo route('assets.delete'); ?>&id=<?php echo urlencode($asset['id']); ?>" 
                                        class="btn btn-sm btn-outline-danger" 
                                        onclick="return confirm('Are you sure you want to delete this asset?')" 
                                        title="Delete">
@@ -614,16 +614,16 @@ $stats = $pdo->query($stats_sql)->fetch();
                                 </td>
                                 <td>
                                     <div class="btn-group">
-                                        <a href="view.php?id=<?php echo urlencode($asset['id']); ?>" 
+                                        <a href="<?php echo route('assets.view'); ?>&id=<?php echo urlencode($asset['id']); ?>" 
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="edit.php?id=<?php echo urlencode($asset['id']); ?>" 
+                                        <a href="<?php echo route('assets.edit'); ?>&id=<?php echo urlencode($asset['id']); ?>" 
                                            class="btn btn-sm btn-outline-warning">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <?php if (hasPermission('admin')): ?>
-                                        <a href="delete.php?id=<?php echo urlencode($asset['id']); ?>" 
+                                        <a href="<?php echo route('assets.delete'); ?>&id=<?php echo urlencode($asset['id']); ?>" 
                                            class="btn btn-sm btn-outline-danger" 
                                            onclick="return confirm('Are you sure you want to delete this asset?')">
                                             <i class="fas fa-trash"></i>

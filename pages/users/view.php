@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/permissions.php';
 
 if (!isLoggedIn()) {
-    header("Location: ../../login.php");
+    header("Location: " . route('login'));
     exit();
 }
 
@@ -69,7 +69,7 @@ $user_id = $_GET['id'] ?? null;
 
 if (!$user_id) {
     $_SESSION['error'] = "User ID is required.";
-    header("Location: index.php");
+    header("Location: " . route('users.index'));
     exit();
 }
 
@@ -91,7 +91,7 @@ $user = $userStmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user) {
     $_SESSION['error'] = "User not found.";
-    header("Location: index.php");
+    header("Location: " . route('users.index'));
     exit();
 }
 
@@ -102,7 +102,7 @@ $is_self = ($current_user_id == $user_id);
 // Allow users to view their own profile
 if (!$can_view && !$is_self) {
     $_SESSION['error'] = "You don't have permission to view this user.";
-    header("Location: index.php");
+    header("Location: " . route('users.index'));
     exit();
 }
 
@@ -630,7 +630,7 @@ function getRoleBadge($role) {
                 <span class="text-white me-3">
                     <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
                 </span>
-                <a href="../../logout.php" class="btn btn-sm btn-outline-light">
+                <a href="<?php echo route('logout'); ?>" class="btn btn-sm btn-outline-light">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>
@@ -697,15 +697,15 @@ function getRoleBadge($role) {
                 <div class="action-buttons">
                     <div class="btn-group">
                         <?php if ($is_self): ?>
-                        <a href="edit.php?id=<?= $user_id ?>" class="btn btn-primary">
+                        <a href="<?php echo route('users.edit'); ?>?id=<?= $user_id ?>" class="btn btn-primary">
                             <i class="fas fa-edit"></i> Edit Profile
                         </a>
                         <?php elseif ($can_edit): ?>
-                        <a href="edit.php?id=<?= $user_id ?>" class="btn btn-primary">
+                        <a href="<?php echo route('users.edit'); ?>?id=<?= $user_id ?>" class="btn btn-primary">
                             <i class="fas fa-edit"></i> Edit User
                         </a>
                         <?php endif; ?>
-                        <a href="index.php" class="btn btn-outline-light">
+                        <a href="<?php echo route('users.index'); ?>" class="btn btn-outline-light">
                             <i class="fas fa-arrow-left"></i> Back
                         </a>
                     </div>
@@ -926,7 +926,7 @@ function getRoleBadge($role) {
                             <?php foreach ($assigned_tickets as $ticket): ?>
                             <div class="ticket-item">
                                 <div class="ticket-title">
-                                    <a href="../tickets/view.php?id=<?= $ticket['id'] ?>">
+                                    <a href="<?php echo route('tickets.view'); ?>?id=<?= $ticket['id'] ?>">
                                         <?= htmlspecialchars($ticket['title']) ?>
                                     </a>
                                 </div>
@@ -946,7 +946,7 @@ function getRoleBadge($role) {
                             
                             <?php if (count($assigned_tickets) == 5): ?>
                             <div class="text-center mt-3">
-                                <a href="../tickets/index.php?assigned_to=<?= $user_id ?>" class="btn btn-sm btn-outline-primary">
+                                <a href="<?php echo route('tickets.index'); ?>?assigned_to=<?= $user_id ?>" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-list"></i> View All Tickets
                                 </a>
                             </div>
@@ -1053,13 +1053,13 @@ function getRoleBadge($role) {
                                 <?php endif; ?>
                                 <?php if ($can_edit): ?>
                                 <div class="col-md-3">
-                                    <a href="edit.php?id=<?= $user_id ?>" class="btn btn-outline-warning w-100 mb-2">
+                                    <a href="<?php echo route('users.edit'); ?>?id=<?= $user_id ?>" class="btn btn-outline-warning w-100 mb-2">
                                         <i class="fas fa-edit"></i> Edit Profile
                                     </a>
                                 </div>
                                 <?php endif; ?>
                                 <div class="col-md-3">
-                                    <a href="index.php" class="btn btn-outline-secondary w-100 mb-2">
+                                    <a href="<?php echo route('users.index'); ?>" class="btn btn-outline-secondary w-100 mb-2">
                                         <i class="fas fa-users"></i> Back to Users
                                     </a>
                                 </div>

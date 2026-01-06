@@ -5,6 +5,7 @@ session_start();
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/permissions.php';
+require_once __DIR__ . '/../../includes/routes.php';
 require_once __DIR__ . '/includes/client_functions.php';
 
 if (!isLoggedIn()) {
@@ -14,7 +15,7 @@ if (!isLoggedIn()) {
 
 if (!isset($_GET['client_id']) || empty($_GET['client_id'])) {
     $_SESSION['error'] = "Client ID is required.";
-    header("Location: index.php");
+    header("Location: " . route('clients.index'));
     exit();
 }
 
@@ -33,7 +34,7 @@ try {
     
     if (!$client) {
         $_SESSION['error'] = "Client not found.";
-        header("Location: index.php");
+        header("Location: " . route('clients.index'));
         exit();
     }
 } catch (PDOException $e) {
@@ -43,7 +44,7 @@ try {
 // Check permissions
 if (!hasClientPermission('edit', $client_id)) {
     $_SESSION['error'] = "You don't have permission to add contracts for this client.";
-    header("Location: view.php?id=$client_id");
+    header("Location: " . route('clients.view') . "?id=$client_id");
     exit();
 }
 
@@ -177,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->commit();
             
             $_SESSION['success'] = "Contract '$contract_number' created successfully!";
-            header("Location: view_contract.php?id=$contract_id");
+            header("Location: " . route('contracts.view') . "?id=$contract_id");
             exit();
             
         } catch (PDOException $e) {
@@ -680,9 +681,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php">Clients</a></li>
-                    <li class="breadcrumb-item"><a href="view.php?id=<?= $client_id ?>"><?= htmlspecialchars($client['company_name']) ?></a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('clients.index'); ?>">Clients</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>"><?php echo htmlspecialchars($client['company_name']); ?></a></li>
                     <li class="breadcrumb-item active" aria-current="page">Add Contract</li>
                 </ol>
             </nav>
@@ -695,7 +696,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </h1>
                     <p class="text-muted">Create a new contract for <?= htmlspecialchars($client['company_name']) ?></p>
                 </div>
-                <a href="view.php?id=<?= $client_id ?>" class="btn btn-outline-secondary">
+                <a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Client
                 </a>
             </div>
@@ -919,7 +920,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="view.php?id=<?= $client_id ?>" class="btn btn-outline-secondary">
+                            <a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-primary">

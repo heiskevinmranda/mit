@@ -1,5 +1,6 @@
 <?php
 require_once '../../includes/auth.php';
+require_once '../../includes/routes.php';
 requireLogin();
 
 // Check permission
@@ -289,8 +290,8 @@ $models = $pdo->query("SELECT DISTINCT model FROM assets WHERE model IS NOT NULL
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php"><i class="fas fa-server"></i> Assets</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('assets.index'); ?>"><i class="fas fa-server"></i> Assets</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Add New Asset</li>
                 </ol>
             </nav>
@@ -696,7 +697,7 @@ $models = $pdo->query("SELECT DISTINCT model FROM assets WHERE model IS NOT NULL
                 <div class="form-actions">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <a href="index.php" class="btn btn-outline-secondary">
+                            <a href="<?php echo route('assets.index'); ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <button type="button" class="btn btn-outline-warning" id="save-draft">

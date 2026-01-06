@@ -58,10 +58,29 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(updateCurrentTime, 60000);
     
     // Add active class to current page in sidebar
-    const currentPage = window.location.pathname.split('/').pop();
+    const currentPath = window.location.pathname;
+    const currentPage = currentPath.split('/').pop();
+    
     document.querySelectorAll('.sidebar-nav a').forEach(link => {
         const linkPage = link.getAttribute('href');
+        
+        // Check for exact match
         if (linkPage === currentPage || (currentPage === '' && linkPage === 'dashboard.php')) {
+            link.classList.add('active');
+        }
+        
+        // Check for directory-based matches (like PHP logic)
+        if (currentPath.includes('/clients/') && linkPage.includes('clients')) {
+            link.classList.add('active');
+        } else if (currentPath.includes('/tickets/') && linkPage.includes('tickets')) {
+            link.classList.add('active');
+        } else if (currentPath.includes('/assets/') && linkPage.includes('inventory')) {
+            link.classList.add('active');
+        } else if (currentPath.includes('/services/') && linkPage.includes('services')) {
+            link.classList.add('active');
+        } else if (currentPath.includes('/users/') && linkPage.includes('users')) {
+            link.classList.add('active');
+        } else if (currentPath.includes('/reports/') && linkPage.includes('reports')) {
             link.classList.add('active');
         }
     });

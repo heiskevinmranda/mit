@@ -23,7 +23,7 @@ function isLoggedIn() {
  */
 function requireLogin() {
     if (!isLoggedIn()) {
-        header('Location: ../login.php');
+        header('Location: /mit/login');
         exit;
     }
 }
@@ -57,7 +57,7 @@ function checkPermission($required_role) {
  */
 function requirePermission($required_role) {
     if (!checkPermission($required_role)) {
-        header('Location: ../../dashboard.php');
+        header('Location: /mit/dashboard');
         exit;
     }
 }
@@ -245,7 +245,7 @@ function attemptLogin($email, $password) {
  */
 function logout() {
     session_destroy();
-    header('Location: login.php');
+    header('Location: /mit/login');
     exit;
 }
 

@@ -5,6 +5,7 @@ session_start();
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/permissions.php';
+require_once __DIR__ . '/../../includes/routes.php';
 require_once __DIR__ . '/includes/client_functions.php';
 
 if (!isLoggedIn()) {
@@ -14,7 +15,7 @@ if (!isLoggedIn()) {
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     $_SESSION['error'] = "Client ID is required.";
-    header("Location: index.php");
+    header("Location: " . route('clients.index'));
     exit();
 }
 
@@ -36,7 +37,7 @@ try {
     
     if (!$client) {
         $_SESSION['error'] = "Client not found.";
-        header("Location: index.php");
+        header("Location: " . route('clients.index'));
         exit();
     }
     
@@ -65,7 +66,7 @@ try {
 // Check permissions
 if (!hasClientPermission('view', $client_id)) {
     $_SESSION['error'] = "You don't have permission to view this client.";
-    header("Location: index.php");
+    header("Location: " . route('clients.index'));
     exit();
 }
 ?>
@@ -585,8 +586,8 @@ if (!hasClientPermission('view', $client_id)) {
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php">Clients</a></li>
+                    <li class="breadcrumb-item"><a href="<?= route('dashboard') ?>">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?= route('clients.index') ?>">Clients</a></li>
                     <li class="breadcrumb-item active" aria-current="page"><?= htmlspecialchars($client['company_name']) ?></li>
                 </ol>
             </nav>
@@ -605,10 +606,10 @@ if (!hasClientPermission('view', $client_id)) {
                     <p class="text-muted">Client ID: <?= htmlspecialchars($client_id) ?></p>
                 </div>
                 <div class="action-buttons">
-                    <a href="index.php" class="btn btn-outline-secondary">
+                    <a href="<?= route('clients.index') ?>" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Back to Clients
                     </a>
-                    <a href="edit.php?id=<?= $client_id ?>" class="btn btn-warning">
+                    <a href="<?= route('clients.edit') . '?id=' . $client_id ?>" class="btn btn-warning">
                         <i class="fas fa-edit"></i> Edit Client
                     </a>
                     <?php if ($client['phone']): 
@@ -775,7 +776,7 @@ if (!hasClientPermission('view', $client_id)) {
                     <div class="card">
                         <div class="card-header">
                             <h5><i class="fas fa-map-marker-alt"></i> Client Locations</h5>
-                            <a href="add_location.php?client_id=<?= $client_id ?>" class="btn btn-primary btn-sm">
+                            <a href="<?= route('clients.add_location') . '?client_id=' . $client_id ?>" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plus"></i> Add Location
                             </a>
                         </div>
@@ -785,7 +786,7 @@ if (!hasClientPermission('view', $client_id)) {
                                 <i class="fas fa-map-marker-alt"></i>
                                 <h5>No Locations Found</h5>
                                 <p>This client doesn't have any locations yet.</p>
-                                <a href="add_location.php?client_id=<?= $client_id ?>" class="btn btn-primary">
+                                <a href="<?= route('clients.add_location') . '?client_id=' . $client_id ?>" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Add First Location
                                 </a>
                             </div>
@@ -867,7 +868,7 @@ if (!hasClientPermission('view', $client_id)) {
                     <div class="card">
                         <div class="card-header">
                             <h5><i class="fas fa-file-contract"></i> Client Contracts</h5>
-                            <a href="add_contract.php?client_id=<?= $client_id ?>" class="btn btn-primary btn-sm">
+                            <a href="<?= route('clients.add_contract') . '?client_id=' . $client_id ?>" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plus"></i> Add Contract
                             </a>
                         </div>
@@ -877,7 +878,7 @@ if (!hasClientPermission('view', $client_id)) {
                                 <i class="fas fa-file-contract"></i>
                                 <h5>No Contracts Found</h5>
                                 <p>This client doesn't have any contracts yet.</p>
-                                <a href="add_contract.php?client_id=<?= $client_id ?>" class="btn btn-primary">
+                                <a href="<?= route('clients.add_contract') . '?client_id=' . $client_id ?>" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Add First Contract
                                 </a>
                             </div>
@@ -925,16 +926,16 @@ if (!hasClientPermission('view', $client_id)) {
                                             </td>
                                             <td>
                                                 <div class="action-buttons">
-                                                    <a href="view_contract.php?id=<?= $contract['id'] ?>" 
+                                                    <a href="<?= route('contracts.view') . '?id=' . $contract['id'] ?>" 
                                                        class="btn btn-primary btn-sm">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <a href="edit_contract.php?id=<?= $contract['id'] ?>" 
+                                                    <a href="<?= route('contracts.edit') . '?id=' . $contract['id'] ?>" 
                                                        class="btn btn-warning btn-sm">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     <?php if ($is_expired && $is_active): ?>
-                                                    <a href="renew_contract.php?id=<?= $contract['id'] ?>" 
+                                                    <a href="<?= route('contracts.edit') . '?id=' . $contract['id'] ?>" 
                                                        class="btn btn-success btn-sm">
                                                         <i class="fas fa-redo"></i> Renew
                                                     </a>
@@ -960,22 +961,22 @@ if (!hasClientPermission('view', $client_id)) {
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3 mb-3">
-                            <a href="add_ticket.php?client_id=<?= $client_id ?>" class="btn btn-primary w-100">
+                            <a href="<?= route('clients.add_ticket') . '?client_id=' . $client_id ?>" class="btn btn-primary w-100">
                                 <i class="fas fa-ticket-alt"></i> Create Ticket
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="add_asset.php?client_id=<?= $client_id ?>" class="btn btn-success w-100">
+                            <a href="<?= route('clients.add_asset') . '?client_id=' . $client_id ?>" class="btn btn-success w-100">
                                 <i class="fas fa-server"></i> Add Asset
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="add_contract.php?client_id=<?= $client_id ?>" class="btn btn-warning w-100">
+                            <a href="<?= route('clients.add_contract') . '?client_id=' . $client_id ?>" class="btn btn-warning w-100">
                                 <i class="fas fa-file-contract"></i> New Contract
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="send_email.php?client_id=<?= $client_id ?>" class="btn btn-info w-100">
+                            <a href="#" class="btn btn-info w-100 disabled" onclick="alert('Email functionality not implemented yet'); return false;">
                                 <i class="fas fa-envelope"></i> Send Email
                             </a>
                         </div>

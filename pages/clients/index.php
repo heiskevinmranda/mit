@@ -6,6 +6,7 @@ session_start();
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/permissions.php';
+require_once __DIR__ . '/../../includes/routes.php';
 require_once __DIR__ . '/includes/client_functions.php';
 
 if (!isLoggedIn()) {
@@ -80,7 +81,7 @@ $industries = getAllIndustries($pdo);
                 <h1><i class="fas fa-building"></i> Client Management</h1>
                 <div class="btn-group">
                     <?php if ($can_create): ?>
-                    <a href="create.php" class="btn btn-primary">
+                    <a href="<?php echo route('clients.create'); ?>" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Add New Client
                     </a>
                     <?php endif; ?>
@@ -173,7 +174,7 @@ $industries = getAllIndustries($pdo);
                         <h4>No clients found</h4>
                         <p class="text-muted"><?= !empty($search) ? 'Try a different search term' : 'Add your first client to get started' ?></p>
                         <?php if ($can_create): ?>
-                        <a href="create.php" class="btn btn-primary mt-2">
+                        <a href="<?php echo route('clients.create'); ?>" class="btn btn-primary mt-2">
                             <i class="fas fa-plus"></i> Add First Client
                         </a>
                         <?php endif; ?>

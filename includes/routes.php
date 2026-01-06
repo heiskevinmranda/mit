@@ -8,74 +8,75 @@
 
 class RouteManager 
 {
-    private static $base_path = '/mit/'; // Base path for the application
+    private static $base_path = '/mit'; // Base path for the application
 
     private static $routes = [
         // Core routes
         'home' => '/',
-        'login' => '/login.php',
-        'logout' => '/logout.php',
-        'dashboard' => '/dashboard.php',
-        'setup' => '/setup.php',
+        'login' => '/login',
+        'logout' => '/logout',
+        'dashboard' => '/dashboard',
+        'setup' => '/setup',
         
         // User management routes
-        'users.index' => '/pages/users/index.php',
-        'users.create' => '/pages/users/create.php',
-        'users.edit' => '/pages/users/edit.php',
-        'users.view' => '/pages/users/view.php',
-        'users.delete' => '/pages/users/delete.php',
-        'users.batch_create' => '/pages/users/batch_create.php',
+        'users.index' => '/users',
+        'users.create' => '/users/create',
+        'users.edit' => '/users/edit',
+        'users.view' => '/users/view',
+        'users.delete' => '/users/delete',
+        'users.batch_create' => '/users/batch-create',
         
         // Client management routes
-        'clients.index' => '/pages/clients/index.php',
-        'clients.create' => '/pages/clients/create.php',
-        'clients.edit' => '/pages/clients/edit.php',
-        'clients.view' => '/pages/clients/view.php',
-        'clients.delete' => '/pages/clients/delete.php',
-        'clients.add_location' => '/pages/clients/add_location.php',
-        'clients.locations' => '/pages/clients/locations.php',
-        'clients.add_asset' => '/pages/clients/add_asset.php',
-        'clients.add_contract' => '/pages/clients/add_contract.php',
-        'clients.add_ticket' => '/pages/clients/add_ticket.php',
+        'clients.index' => '/clients',
+        'clients.create' => '/clients/create',
+        'clients.edit' => '/clients/edit',
+        'clients.view' => '/clients/view',
+        'clients.delete' => '/clients/delete',
+        'clients.add_location' => '/clients/add-location',
+        'clients.locations' => '/clients/locations',
+        'clients.add_asset' => '/clients/add-asset',
+        'clients.add_contract' => '/clients/add-contract',
+        'clients.add_ticket' => '/clients/add-ticket',
         
         // Ticket management routes
-        'tickets.index' => '/pages/tickets/index.php',
-        'tickets.create' => '/pages/tickets/create.php',
-        'tickets.edit' => '/pages/tickets/edit.php',
-        'tickets.view' => '/pages/tickets/view.php',
-        'tickets.export' => '/pages/tickets/export.php',
-        'tickets.work_log' => '/pages/tickets/work_log.php',
-        'tickets.simple' => '/pages/tickets/simple.php',
+        'tickets.index' => '/tickets',
+        'tickets.create' => '/tickets/create',
+        'tickets.edit' => '/tickets/edit',
+        'tickets.view' => '/tickets/view',
+        'tickets.export' => '/tickets/export',
+        'tickets.export_bulk' => '/tickets/export-bulk',
+        'tickets.work_log' => '/tickets/work-log',
+        'tickets.simple' => '/tickets/simple',
         
-        // Asset management routes
-        'assets.index' => '/pages/assets/index.php',
-        'assets.create' => '/pages/assets/create.php',
-        'assets.edit' => '/pages/assets/edit.php',
-        'assets.view' => '/pages/assets/view.php',
-        'assets.delete' => '/pages/assets/delete.php',
-        'assets.import' => '/pages/assets/import.php',
-        'assets.reports' => '/pages/assets/reports.php',
-        'assets.preview' => '/pages/assets/preview.php',
+        // Inventory management routes
+        'assets.index' => '/inventory',
+        'assets.create' => '/inventory/create',
+        'assets.edit' => '/inventory/edit',
+        'assets.view' => '/inventory/view',
+        'assets.delete' => '/inventory/delete',
+        'assets.import' => '/inventory/import',
+        'assets.reports' => '/inventory/reports',
+        'assets.preview' => '/inventory/preview',
         
         // Contract management routes
-        'contracts.index' => '/pages/services/index.php',
-        'contracts.create' => '/pages/services/create.php',
-        'contracts.edit' => '/pages/services/edit.php',
-        'contracts.view' => '/pages/services/view.php',
-        'contracts.renewals' => '/pages/services/renewals.php',
+        'contracts.index' => '/services',
+        'contracts.create' => '/services/create',
+        'contracts.edit' => '/services/edit',
+        'contracts.view' => '/services/view',
+        'contracts.renewals' => '/services/renewals',
         
         // Report routes
-        'reports.index' => '/pages/reports/index.php',
+        'reports.index' => '/reports',
         
         // Staff routes
-        'staff.profile' => '/pages/staff/profile.php',
+        'staff.profile' => '/staff/profile',
         
         // API routes
-        'api.get_locations' => '/api/get_locations.php',
-        'api.get_next_asset_number' => '/api/get_next_asset_number.php',
+        'api.get_locations' => '/api/get-locations',
+        'api.get_next_asset_number' => '/api/get-next-asset-number',
         
         // File download routes
-        'attachments.download' => '/download_attachment.php',
+        'attachments.download' => '/attachments/download',
     ];
     
     /**
@@ -112,7 +113,11 @@ class RouteManager
         if ($url !== '/' && !str_starts_with($url, 'http') && !str_starts_with($url, self::$base_path)) {
             // Remove leading slash from route path before adding base path
             $route_path = ltrim($url, '/');
-            $url = self::$base_path . $route_path;
+            if (!empty($route_path)) {
+                $url = self::$base_path . '/' . $route_path;
+            } else {
+                $url = self::$base_path . '/';
+            }
         }
         
         return $url;
