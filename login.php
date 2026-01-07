@@ -3,11 +3,17 @@
 session_start();
 
 // Database configuration
-define('DB_HOST', 'localhost');
-define('DB_PORT', '5432');
-define('DB_NAME', 'MSP_Application');
-define('DB_USER', 'MSPAppUser');
-define('DB_PASS', '2q+w7wQMH8xd');
+$DB_HOST = $_ENV['DB_HOST'] ?? $_SERVER['DB_HOST'] ?? 'localhost';
+$DB_PORT = $_ENV['DB_PORT'] ?? $_SERVER['DB_PORT'] ?? '5432';
+$DB_NAME = $_ENV['DB_NAME'] ?? $_SERVER['DB_NAME'] ?? 'MSP_Application';
+$DB_USER = $_ENV['DB_USER'] ?? $_SERVER['DB_USER'] ?? 'MSPAppUser';
+$DB_PASS = $_ENV['DB_PASS'] ?? $_SERVER['DB_PASS'] ?? '2q+w7wQMH8xd';
+
+define('DB_HOST', $DB_HOST);
+define('DB_PORT', $DB_PORT);
+define('DB_NAME', $DB_NAME);
+define('DB_USER', $DB_USER);
+define('DB_PASS', $DB_PASS);
 
 // Create connection
 function getDBConnection() {
@@ -35,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
     
-    echo "<!-- Debug: Email = $email, Password provided = " . (!empty($password) ? 'Yes' : 'No') . " -->";
+
     
     if (!empty($email) && !empty($password)) {
         try {
@@ -44,11 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$email]);
             $user = $stmt->fetch();
             
-            echo "<!-- Debug: User found = " . ($user ? 'Yes' : 'No') . " -->";
+
             
             if ($user) {
-                echo "<!-- Debug: Password hash in DB: " . substr($user['password'], 0, 20) . "... -->";
-                echo "<!-- Debug: Password verify result: " . (password_verify($password, $user['password']) ? 'true' : 'false') . " -->";
+
                 
                 if (password_verify($password, $user['password'])) {
                     if ($user['is_active']) {
@@ -64,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $staff_profile = $stmt->fetch();
                         }
                         
-                        echo "<!-- Debug: Staff profile found = " . ($staff_profile ? 'Yes' : 'No') . " -->";
+
                         
                         // Set session variables
                         $_SESSION['user_id'] = $user['id'];
@@ -72,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['user_type'] = $user['user_type'];
                         $_SESSION['staff_profile'] = $staff_profile;
                         
-                        echo "<!-- Debug: Session set for user ID: " . $user['id'] . " -->";
+
                         
                         // Redirect based on user type
                         header('Location: /mit/dashboard');
@@ -233,13 +238,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input type="email" id="email" name="email" required 
-                           placeholder="Enter your email" value="admin@msp.com">
+                           placeholder="Enter your email">
                 </div>
                 
                 <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password" required 
-                           placeholder="Enter your password" value="Admin@123">
+                           placeholder="Enter your password">
                 </div>
                 
                 <button type="submit" class="btn">
@@ -247,18 +252,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </form>
             
-            <div class="demo-credentials">
-                <h4><i class="fas fa-key"></i> Test Credentials</h4>
-                <ul>
-                    <li><strong>Super Admin:</strong> admin@msp.com / Admin@123</li>
-                    <li><strong>Engineer:</strong> engineer@msp.com / Engineer@123</li>
-                    <li><strong>Manager:</strong> manager@msp.com / Manager@123</li>
-                </ul>
-            </div>
+
             
-            <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
-                <i class="fas fa-info-circle"></i> View page source for debug info
-            </div>
+
         </div>
     </div>
     

@@ -119,17 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
                 
-                <div class="demo-credentials">
-                    <h4><i class="fas fa-key"></i> Demo Credentials</h4>
-                    <ul>
-                        <li><strong>Super Admin:</strong> admin@msp.com / Admin@123</li>
-                        <li><strong>Manager:</strong> manager@msp.com / Manager@123</li>
-                        <li><strong>Engineer:</strong> engineer@msp.com / Engineer@123</li>
-                    </ul>
-                    <p style="text-align: center; margin-top: 15px; font-size: 12px; opacity: 0.8;">
-                        <i class="fas fa-exclamation-triangle"></i> Change passwords after first login
-                    </p>
-                </div>
+
             </div>
         </div>
         
@@ -149,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <i class="fas fa-envelope" style="color: #FF6B35;"></i> Email Address
                         </label>
                         <input type="email" id="email" name="email" required 
-                               placeholder="Enter your email" value="admin@msp.com">
+                               placeholder="Enter your email">
                     </div>
                     
                     <div class="form-group">
@@ -157,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <i class="fas fa-lock" style="color: #FF6B35;"></i> Password
                         </label>
                         <input type="password" id="password" name="password" required 
-                               placeholder="Enter your password" value="Admin@123">
+                               placeholder="Enter your password">
                         <div style="text-align: right; margin-top: 8px;">
                             <button type="button" id="togglePassword" 
                                     style="background: none; border: none; color: #666; cursor: pointer; font-size: 14px;">

@@ -2,11 +2,17 @@
 // config/database.php
 
 // Database configuration
-define('DB_HOST', 'localhost');
-define('DB_PORT', '5432');
-define('DB_NAME', 'MSP_Application');
-define('DB_USER', 'MSPAppUser');
-define('DB_PASS', '2q+w7wQMH8xd'); // for postgres user - qwert12345?
+$DB_HOST = $_ENV['DB_HOST'] ?? $_SERVER['DB_HOST'] ?? 'localhost';
+$DB_PORT = $_ENV['DB_PORT'] ?? $_SERVER['DB_PORT'] ?? '5432';
+$DB_NAME = $_ENV['DB_NAME'] ?? $_SERVER['DB_NAME'] ?? 'MSP_Application';
+$DB_USER = $_ENV['DB_USER'] ?? $_SERVER['DB_USER'] ?? 'MSPAppUser';
+$DB_PASS = $_ENV['DB_PASS'] ?? $_SERVER['DB_PASS'] ?? '2q+w7wQMH8xd';
+
+define('DB_HOST', $DB_HOST);
+define('DB_PORT', $DB_PORT);
+define('DB_NAME', $DB_NAME);
+define('DB_USER', $DB_USER);
+define('DB_PASS', $DB_PASS);
 
 // Create connection
 function getDBConnection() {

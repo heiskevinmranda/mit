@@ -173,20 +173,23 @@ $stmt->execute();
 $expiring_contracts = $stmt->fetchAll();
 
 // Helper function to format numbers
-function formatNumber($number) {
+function formatNumber($number)
+{
     return number_format($number);
 }
 
-function formatCurrency($amount) {
+function formatCurrency($amount)
+{
     return '$' . number_format($amount ?? 0, 2);
 }
 
 // Helper function to extract clean service type
-function getCleanServiceType($service_type) {
+function getCleanServiceType($service_type)
+{
     if (empty($service_type)) {
         return 'N/A';
     }
-    
+
     // If the service_type contains additional info, extract just the service type
     if (strpos($service_type, 'Service type:') === 0) {
         // Extract service type from "Service type: X" format
@@ -195,12 +198,12 @@ function getCleanServiceType($service_type) {
             return trim($parts[2]);
         }
     }
-    
+
     // If it contains "Service Type: X", extract X
     if (preg_match('/Service Type:\s*([A-Za-z\-\s]+)/', $service_type, $matches)) {
         return trim($matches[1]);
     }
-    
+
     // Return the original if no specific pattern is found
     return $service_type;
 }
@@ -211,6 +214,7 @@ $report_title = 'Service Contract Report';
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -227,19 +231,22 @@ $report_title = 'Service Contract Report';
             margin: 0 auto;
             padding: 20px;
         }
+
         .report-card {
             background: white;
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 25px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
             border: 1px solid #eaeaea;
             transition: transform 0.2s;
         }
+
         .report-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
+
         .report-card h3 {
             color: #004E89;
             border-bottom: 2px solid #f0f0f0;
@@ -247,6 +254,7 @@ $report_title = 'Service Contract Report';
             margin-bottom: 20px;
             font-size: 1.3rem;
         }
+
         .stat-card {
             text-align: center;
             padding: 20px;
@@ -254,6 +262,7 @@ $report_title = 'Service Contract Report';
             margin-bottom: 15px;
             background: linear-gradient(135deg, #f8f9fa, #e9ecef);
         }
+
         .stat-icon {
             width: 60px;
             height: 60px;
@@ -264,27 +273,32 @@ $report_title = 'Service Contract Report';
             margin: 0 auto 15px;
             font-size: 1.5rem;
         }
+
         .stat-number {
             font-size: 2.5rem;
             font-weight: bold;
             margin: 10px 0;
             color: #333;
         }
+
         .stat-label {
             font-size: 0.9rem;
             color: #666;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
+
         .chart-container {
             position: relative;
             height: 300px;
             margin: 20px 0;
         }
+
         .progress-ring {
             width: 120px;
             height: 120px;
         }
+
         .distribution-item {
             display: flex;
             justify-content: space-between;
@@ -292,34 +306,41 @@ $report_title = 'Service Contract Report';
             padding: 10px 0;
             border-bottom: 1px solid #f0f0f0;
         }
+
         .distribution-item:last-child {
             border-bottom: none;
         }
+
         .distribution-label {
             display: flex;
             align-items: center;
             gap: 10px;
         }
+
         .distribution-percentage {
             font-weight: bold;
             color: #004E89;
         }
+
         .distribution-count {
             color: #666;
             font-size: 0.9rem;
         }
+
         .filter-section {
             background: #f8f9fa;
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 30px;
         }
+
         .export-buttons {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
             margin-top: 20px;
         }
+
         .insight-card {
             background: linear-gradient(135deg, #004E89, #1a6cb0);
             color: white;
@@ -327,10 +348,11 @@ $report_title = 'Service Contract Report';
             padding: 20px;
             margin-bottom: 20px;
         }
+
         .insight-icon {
             width: 50px;
             height: 50px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             display: flex;
             align-items: center;
@@ -338,24 +360,37 @@ $report_title = 'Service Contract Report';
             font-size: 1.5rem;
             margin-bottom: 15px;
         }
-        .trend-up { color: #28a745; }
-        .trend-down { color: #dc3545; }
-        .trend-neutral { color: #6c757d; }
+
+        .trend-up {
+            color: #28a745;
+        }
+
+        .trend-down {
+            color: #dc3545;
+        }
+
+        .trend-neutral {
+            color: #6c757d;
+        }
+
         .metric-change {
             font-size: 0.9rem;
             margin-left: 10px;
         }
+
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
         }
+
         .table-responsive {
             max-height: 400px;
             overflow-y: auto;
             border: 1px solid #dee2e6;
             border-radius: 8px;
         }
+
         .data-table th {
             position: sticky;
             top: 0;
@@ -363,16 +398,34 @@ $report_title = 'Service Contract Report';
             color: white;
             z-index: 10;
         }
+
         .status-badge {
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 500;
         }
-        .status-active { background: #d4edda; color: #155724; }
-        .status-inactive { background: #f8d7da; color: #721c24; }
-        .status-maintenance { background: #fff3cd; color: #856404; }
-        .status-retired { background: #e2e3e5; color: #383d41; }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-maintenance {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-retired {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
         .expiry-badge {
             background: #dc3545;
             color: white;
@@ -380,21 +433,24 @@ $report_title = 'Service Contract Report';
             border-radius: 4px;
             font-size: 0.75rem;
         }
+
         @media (max-width: 768px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
+
             .stat-number {
                 font-size: 2rem;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="dashboard-container">
         <!-- Sidebar -->
         <?php include '../../includes/sidebar.php'; ?>
-        
+
         <!-- Main Content -->
         <main class="main-content">
             <!-- Header -->
@@ -413,7 +469,7 @@ $report_title = 'Service Contract Report';
                     </div>
                 </div>
             </div>
-            
+
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
@@ -422,30 +478,30 @@ $report_title = 'Service Contract Report';
                     <li class="breadcrumb-item active" aria-current="page">Service Contract Report</li>
                 </ol>
             </nav>
-            
+
             <!-- Filters -->
             <div class="filter-section">
                 <form method="GET" class="row g-3">
                     <input type="hidden" name="type" value="service">
                     <div class="col-md-3">
                         <label class="form-label">Start Date</label>
-                        <input type="text" class="form-control datepicker" name="start_date" 
-                               value="<?php echo htmlspecialchars($start_date); ?>">
+                        <input type="text" class="form-control datepicker" name="start_date"
+                            value="<?php echo htmlspecialchars($start_date); ?>">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">End Date</label>
-                        <input type="text" class="form-control datepicker" name="end_date" 
-                               value="<?php echo htmlspecialchars($end_date); ?>">
+                        <input type="text" class="form-control datepicker" name="end_date"
+                            value="<?php echo htmlspecialchars($end_date); ?>">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Client</label>
                         <select class="form-select select2" name="client_id">
                             <option value="">All Clients</option>
                             <?php foreach ($clients as $client): ?>
-                            <option value="<?php echo htmlspecialchars($client['id']); ?>"
-                                <?php echo $client_id == $client['id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($client['company_name']); ?>
-                            </option>
+                                <option value="<?php echo htmlspecialchars($client['id']); ?>"
+                                    <?php echo $client_id == $client['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($client['company_name']); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -454,10 +510,10 @@ $report_title = 'Service Contract Report';
                         <select class="form-select select2" name="service_type">
                             <option value="">All Types</option>
                             <?php foreach ($service_types as $type): ?>
-                            <option value="<?php echo htmlspecialchars($type['service_type']); ?>"
-                                <?php echo $service_type == $type['service_type'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($type['service_type']); ?>
-                            </option>
+                                <option value="<?php echo htmlspecialchars($type['service_type']); ?>"
+                                    <?php echo $service_type == $type['service_type'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($type['service_type']); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -466,10 +522,10 @@ $report_title = 'Service Contract Report';
                         <select class="form-select select2" name="status">
                             <option value="">All Status</option>
                             <?php foreach ($statuses as $status_opt): ?>
-                            <option value="<?php echo htmlspecialchars($status_opt); ?>"
-                                <?php echo $status == $status_opt ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($status_opt); ?>
-                            </option>
+                                <option value="<?php echo htmlspecialchars($status_opt); ?>"
+                                    <?php echo $status == $status_opt ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($status_opt); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -498,7 +554,7 @@ $report_title = 'Service Contract Report';
                     </div>
                 </form>
             </div>
-            
+
             <!-- Service Contract Report -->
             <div class="report-section active" id="service-report">
                 <!-- Key Insights -->
@@ -508,13 +564,13 @@ $report_title = 'Service Contract Report';
                             <h3 class="text-white"><i class="fas fa-lightbulb"></i> Key Insights</h3>
                             <p class="text-white-50 mb-0">
                                 <?php if ($contracts_stats['expiring_contracts'] > 0): ?>
-                                • <?php echo $contracts_stats['expiring_contracts']; ?> contracts expiring soon<br>
+                                    • <?php echo $contracts_stats['expiring_contracts']; ?> contracts expiring soon<br>
                                 <?php endif; ?>
                                 <?php if ($contracts_stats['active_contracts'] > 0): ?>
-                                • <?php echo formatCurrency($contracts_stats['total_monthly_revenue']); ?> monthly recurring revenue<br>
+                                    • <?php echo formatCurrency($contracts_stats['total_monthly_revenue']); ?> monthly recurring revenue<br>
                                 <?php endif; ?>
                                 <?php if ($contracts_stats['total_clients'] > 0): ?>
-                                • Contracts distributed across <?php echo $contracts_stats['total_clients']; ?> clients<br>
+                                    • Contracts distributed across <?php echo $contracts_stats['total_clients']; ?> clients<br>
                                 <?php endif; ?>
                                 • <?php echo $contracts_stats['service_types_count']; ?> different service types
                             </p>
@@ -525,13 +581,13 @@ $report_title = 'Service Contract Report';
                             </div>
                             <h4 class="mb-0">Contract Health Score</h4>
                             <div class="display-4">
-                                <?php 
+                                <?php
                                 $health_score = 100;
                                 if ($contracts_stats['total_contracts'] > 0) {
                                     $active_rate = $contracts_stats['active_contracts'] / $contracts_stats['total_contracts'];
                                     $expiring_rate = $contracts_stats['expiring_contracts'] / $contracts_stats['total_contracts'];
                                     $expired_rate = $contracts_stats['expired_contracts'] / $contracts_stats['total_contracts'];
-                                    
+
                                     $health_score = round((($active_rate * 100) - ($expiring_rate * 30) - ($expired_rate * 50)) * 2, 0);
                                     $health_score = max(0, min(100, $health_score));
                                 }
@@ -542,7 +598,7 @@ $report_title = 'Service Contract Report';
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Statistics Cards -->
                 <div class="dashboard-grid">
                     <div class="report-card">
@@ -551,49 +607,49 @@ $report_title = 'Service Contract Report';
                         <div class="stat-label">Service Contracts</div>
                         <div class="mt-3">
                             <small class="text-muted">
-                                <i class="fas fa-calendar"></i> 
+                                <i class="fas fa-calendar"></i>
                                 <?php echo date('M d, Y', strtotime($start_date)); ?> to <?php echo date('M d, Y', strtotime($end_date)); ?>
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="report-card">
                         <h3><i class="fas fa-check-circle"></i> Active Contracts</h3>
                         <div class="stat-number"><?php echo formatNumber($contracts_stats['active_contracts']); ?></div>
                         <div class="stat-label">Generating Revenue</div>
                         <div class="mt-3">
                             <small class="text-muted">
-                                <i class="fas fa-percentage"></i> 
+                                <i class="fas fa-percentage"></i>
                                 <?php echo $contracts_stats['total_contracts'] > 0 ? round(($contracts_stats['active_contracts'] / $contracts_stats['total_contracts']) * 100, 1) : 0; ?>% of total
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="report-card">
                         <h3><i class="fas fa-dollar-sign"></i> Monthly Revenue</h3>
                         <div class="stat-number"><?php echo formatCurrency($contracts_stats['total_monthly_revenue']); ?></div>
                         <div class="stat-label">Recurring Income</div>
                         <div class="mt-3">
                             <small class="text-muted">
-                                <i class="fas fa-arrow-up trend-up"></i> 
+                                <i class="fas fa-arrow-up trend-up"></i>
                                 From active contracts
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="report-card">
                         <h3><i class="fas fa-clock"></i> Expiring Soon</h3>
                         <div class="stat-number"><?php echo formatNumber($contracts_stats['expiring_contracts']); ?></div>
                         <div class="stat-label">Within 30 Days</div>
                         <div class="mt-3">
                             <small class="text-muted">
-                                <i class="fas fa-exclamation-triangle text-warning"></i> 
+                                <i class="fas fa-exclamation-triangle text-warning"></i>
                                 Requires attention
                             </small>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Charts -->
                 <div class="row">
                     <div class="col-md-6">
@@ -613,7 +669,7 @@ $report_title = 'Service Contract Report';
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Recent Contracts -->
                 <div class="report-card">
                     <h3><i class="fas fa-history"></i> Recent Service Contracts</h3>
@@ -632,87 +688,87 @@ $report_title = 'Service Contract Report';
                             </thead>
                             <tbody>
                                 <?php foreach ($recent_contracts as $contract): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars(getCleanServiceType($contract['service_scope'] ?? $contract['service_type'] ?? 'N/A')); ?></td>
-                                    <td><?php echo htmlspecialchars($contract['company_name'] ?? 'Internal'); ?></td>
-                                    <td><?php echo htmlspecialchars($contract['description'] ?? 'N/A'); ?></td>
-                                    <td><?php echo formatCurrency($contract['monthly_amount'] ?? 0); ?></td>
-                                    <td>
-                                        <span class="status-badge status-<?php echo strtolower(str_replace(' ', '-', $contract['status'])); ?>">
-                                            <?php echo htmlspecialchars($contract['status']); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo $contract['start_date'] ? date('M d, Y', strtotime($contract['start_date'])) : 'N/A'; ?></td>
-                                    <td><?php echo (isset($contract['expiry']) && $contract['expiry']) || (isset($contract['contract_expiry']) && $contract['contract_expiry']) || (isset($contract['expiry_date']) && $contract['expiry_date']) ? date('M d, Y', strtotime($contract['expiry'] ?? $contract['contract_expiry'] ?? $contract['expiry_date'])) : 'N/A'; ?></td>
-                                </tr>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars(getCleanServiceType($contract['service_scope'] ?? $contract['service_type'] ?? 'N/A')); ?></td>
+                                        <td><?php echo htmlspecialchars($contract['company_name'] ?? 'Internal'); ?></td>
+                                        <td><?php echo htmlspecialchars($contract['description'] ?? 'N/A'); ?></td>
+                                        <td><?php echo formatCurrency($contract['monthly_amount'] ?? 0); ?></td>
+                                        <td>
+                                            <span class="status-badge status-<?php echo strtolower(str_replace(' ', '-', $contract['status'])); ?>">
+                                                <?php echo htmlspecialchars($contract['status']); ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo $contract['start_date'] ? date('M d, Y', strtotime($contract['start_date'])) : 'N/A'; ?></td>
+                                        <td><?php echo (isset($contract['expiry']) && $contract['expiry']) || (isset($contract['contract_expiry']) && $contract['contract_expiry']) || (isset($contract['expiry_date']) && $contract['expiry_date']) ? date('M d, Y', strtotime($contract['expiry'] ?? $contract['contract_expiry'] ?? $contract['expiry_date'])) : 'N/A'; ?></td>
+                                    </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
                 </div>
-                
+
                 <!-- Expiring Contracts -->
                 <div class="report-card">
                     <h3><i class="fas fa-exclamation-triangle"></i> Contracts Expiring Soon (Next 30 Days)</h3>
-                    
+
                     <?php if (empty($expiring_contracts)): ?>
-                    <div class="text-center py-5">
-                        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
-                        <h4>No Expiring Contracts</h4>
-                        <p class="text-muted">Great! No contracts are expiring in the next 30 days.</p>
-                    </div>
+                        <div class="text-center py-5">
+                            <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                            <h4>No Expiring Contracts</h4>
+                            <p class="text-muted">Great! No contracts are expiring in the next 30 days.</p>
+                        </div>
                     <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table data-table">
-                            <thead>
-                                <tr>
-                                    <th>Service Type</th>
-                                    <th>Client</th>
-                                    <th>Monthly Amount</th>
-                                    <th>Expiry Type</th>
-                                    <th>Expiry Date</th>
-                                    <th>Days Left</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($expiring_contracts as $contract): 
-                                    $expiry_date = new DateTime($contract['next_expiry']);
-                                    $today = new DateTime();
-                                    $days_left = $today->diff($expiry_date)->days;
-                                    $is_critical = $days_left <= 7;
-                                ?>
-                                <tr class="<?php echo $is_critical ? 'table-danger' : ''; ?>">
-                                    <td><?php echo htmlspecialchars(getCleanServiceType($contract['service_scope'] ?? $contract['service_type'] ?? 'N/A')); ?></td>
-                                    <td><?php echo htmlspecialchars($contract['company_name'] ?? 'Internal'); ?></td>
-                                    <td><?php echo formatCurrency($contract['monthly_amount'] ?? 0); ?></td>
-                                    <td>
-                                        <span class="expiry-badge">
-                                            <?php echo htmlspecialchars($contract['expiry_type']); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo date('M d, Y', strtotime($contract['next_expiry'])); ?></td>
-                                    <td>
-                                        <span class="badge bg-<?php echo $days_left <= 7 ? 'danger' : ($days_left <= 14 ? 'warning' : 'info'); ?>">
-                                            <?php echo $days_left; ?> days
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="status-badge status-<?php echo strtolower(str_replace(' ', '-', $contract['status'])); ?>">
-                                            <?php echo htmlspecialchars($contract['status']); ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                        <div class="table-responsive">
+                            <table class="table data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Service Type</th>
+                                        <th>Client</th>
+                                        <th>Monthly Amount</th>
+                                        <th>Expiry Type</th>
+                                        <th>Expiry Date</th>
+                                        <th>Days Left</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($expiring_contracts as $contract):
+                                        $expiry_date = new DateTime($contract['next_expiry']);
+                                        $today = new DateTime();
+                                        $days_left = $today->diff($expiry_date)->days;
+                                        $is_critical = $days_left <= 7;
+                                    ?>
+                                        <tr class="<?php echo $is_critical ? 'table-danger' : ''; ?>">
+                                            <td><?php echo htmlspecialchars(getCleanServiceType($contract['service_scope'] ?? $contract['service_type'] ?? 'N/A')); ?></td>
+                                            <td><?php echo htmlspecialchars($contract['company_name'] ?? 'Internal'); ?></td>
+                                            <td><?php echo formatCurrency($contract['monthly_amount'] ?? 0); ?></td>
+                                            <td>
+                                                <span class="expiry-badge">
+                                                    <?php echo htmlspecialchars($contract['expiry_type']); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo date('M d, Y', strtotime($contract['next_expiry'])); ?></td>
+                                            <td>
+                                                <span class="badge bg-<?php echo $days_left <= 7 ? 'danger' : ($days_left <= 14 ? 'warning' : 'info'); ?>">
+                                                    <?php echo $days_left; ?> days
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="status-badge status-<?php echo strtolower(str_replace(' ', '-', $contract['status'])); ?>">
+                                                    <?php echo htmlspecialchars($contract['status']); ?>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
         </main>
     </div>
-    
+
     <!-- JavaScript Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -725,16 +781,16 @@ $report_title = 'Service Contract Report';
                 width: '100%',
                 placeholder: 'Select...'
             });
-            
+
             // Initialize date pickers
             flatpickr('.datepicker', {
                 dateFormat: 'Y-m-d',
                 allowInput: true
             });
-            
+
             // Initialize charts
             initializeCharts();
-            
+
             function initializeCharts() {
                 // Service Type Distribution Chart
                 const typeCtx = document.getElementById('typeDistributionChart').getContext('2d');
@@ -748,17 +804,17 @@ $report_title = 'Service Contract Report';
                             return parts[2].trim();
                         }
                     }
-                    
+
                     // Check if it contains "Service Type: X" pattern
                     const match = label.match(/Service Type:\s*([A-Za-z\-\s]+)/);
                     if (match) {
                         return match[1].trim();
                     }
-                    
+
                     return label;
                 });
                 const typeData = <?php echo json_encode(array_column($type_distribution, 'count')); ?>;
-                
+
                 new Chart(typeCtx, {
                     type: 'doughnut',
                     data: {
@@ -782,12 +838,12 @@ $report_title = 'Service Contract Report';
                         }
                     }
                 });
-                
+
                 // Contract Status Distribution Chart
                 const statusCtx = document.getElementById('statusDistributionChart').getContext('2d');
                 const statusLabels = <?php echo json_encode(array_column($status_distribution, 'status')); ?>;
                 const statusData = <?php echo json_encode(array_column($status_distribution, 'count')); ?>;
-                
+
                 new Chart(statusCtx, {
                     type: 'bar',
                     data: {
@@ -827,7 +883,7 @@ $report_title = 'Service Contract Report';
                     }
                 });
             }
-            
+
             // Export functionality
             $('#export-pdf').on('click', function() {
                 const toast = $(`
@@ -847,36 +903,38 @@ $report_title = 'Service Contract Report';
                 $('body').append(toast);
                 setTimeout(() => toast.remove(), 3000);
             });
-            
+
             $('#export-excel').on('click', function() {
                 // Generate CSV data
                 let csvContent = "Service Contract Report - " + new Date().toLocaleDateString() + "\n";
                 csvContent += "Date Range," + "<?php echo date('M d, Y', strtotime($start_date)); ?> to <?php echo date('M d, Y', strtotime($end_date)); ?>" + "\n\n";
-                
+
                 // Add summary data
                 csvContent += "SUMMARY\n";
                 csvContent += "Total Contracts," + <?php echo $contracts_stats['total_contracts']; ?> + "\n";
                 csvContent += "Active Contracts," + <?php echo $contracts_stats['active_contracts']; ?> + "\n";
                 csvContent += "Monthly Revenue," + <?php echo $contracts_stats['total_monthly_revenue']; ?> + "\n";
                 csvContent += "Expiring Soon," + <?php echo $contracts_stats['expiring_contracts']; ?> + "\n\n";
-                
+
                 // Add type distribution
                 csvContent += "SERVICE TYPE DISTRIBUTION\n";
                 csvContent += "Service Type,Count,Percentage\n";
                 <?php foreach ($type_distribution as $item): ?>
-                csvContent += "<?php echo $item['service_type']; ?>,<?php echo $item['count']; ?>,<?php echo $item['percentage']; ?>%\n";
+                    csvContent += "<?php echo $item['service_type']; ?>,<?php echo $item['count']; ?>,<?php echo $item['percentage']; ?>%\n";
                 <?php endforeach; ?>
                 csvContent += "\n";
-                
+
                 // Add recent contracts
                 csvContent += "RECENT SERVICE CONTRACTS\n";
                 csvContent += "Service Type,Client,Description,Monthly Amount,Status,Start Date,Expiry Date\n";
                 <?php foreach ($recent_contracts as $contract): ?>
-                csvContent += "<?php echo $contract['service_type']; ?>,<?php echo $contract['company_name'] ?? 'Internal'; ?>,<?php echo $contract['description'] ?? 'N/A'; ?>,<?php echo $contract['monthly_amount']; ?>,<?php echo $contract['status']; ?>,<?php echo $contract['start_date'] ? date('Y-m-d', strtotime($contract['start_date'])) : 'N/A'; ?>,<?php echo $contract['expiry_date'] ? date('Y-m-d', strtotime($contract['expiry_date'])) : 'N/A'; ?>\n";
+                    csvContent += "<?php echo $contract['service_type']; ?>,<?php echo $contract['company_name'] ?? 'Internal'; ?>,<?php echo $contract['description'] ?? 'N/A'; ?>,<?php echo $contract['monthly_amount']; ?>,<?php echo $contract['status']; ?>,<?php echo $contract['start_date'] ? date('Y-m-d', strtotime($contract['start_date'])) : 'N/A'; ?>,<?php echo $contract['expiry_date'] ? date('Y-m-d', strtotime($contract['expiry_date'])) : 'N/A'; ?>\n";
                 <?php endforeach; ?>
-                
+
                 // Create and download CSV
-                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const blob = new Blob([csvContent], {
+                    type: 'text/csv'
+                });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -886,11 +944,12 @@ $report_title = 'Service Contract Report';
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
             });
-            
+
             $('#print-report').on('click', function() {
                 window.print();
             });
         });
     </script>
 </body>
+
 </html>

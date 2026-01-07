@@ -126,9 +126,8 @@ ORDER BY ticket_count DESC
 LIMIT 10";
 
 $stmt = $pdo->prepare($client_tickets_sql);
-for ($i = 0; $i < count($params); $i++) {
-    $stmt->bindValue($i + 1, $params[$i], $types[$i]);
-}
+$stmt->bindValue(1, $start_date, PDO::PARAM_STR);
+$stmt->bindValue(2, $end_date, PDO::PARAM_STR);
 $stmt->execute();
 $client_tickets = $stmt->fetchAll();
 
@@ -152,29 +151,42 @@ $stmt->execute();
 $recent_tickets = $stmt->fetchAll();
 
 // Helper function to format numbers
-function formatNumber($number) {
+function formatNumber($number)
+{
     return number_format($number);
 }
 
 // Helper function to get priority class
-function getPriorityClass($priority) {
+function getPriorityClass($priority)
+{
     switch ($priority) {
-        case 'Critical': return 'badge bg-danger';
-        case 'High': return 'badge bg-warning text-dark';
-        case 'Medium': return 'badge bg-info';
-        case 'Low': return 'badge bg-success';
-        default: return 'badge bg-secondary';
+        case 'Critical':
+            return 'badge bg-danger';
+        case 'High':
+            return 'badge bg-warning text-dark';
+        case 'Medium':
+            return 'badge bg-info';
+        case 'Low':
+            return 'badge bg-success';
+        default:
+            return 'badge bg-secondary';
     }
 }
 
 // Helper function to get status class
-function getStatusClass($status) {
+function getStatusClass($status)
+{
     switch ($status) {
-        case 'Open': return 'status-badge status-active';
-        case 'In Progress': return 'status-badge status-maintenance';
-        case 'Resolved': return 'status-badge status-retired';
-        case 'Closed': return 'status-badge status-inactive';
-        default: return 'status-badge';
+        case 'Open':
+            return 'status-badge status-active';
+        case 'In Progress':
+            return 'status-badge status-maintenance';
+        case 'Resolved':
+            return 'status-badge status-retired';
+        case 'Closed':
+            return 'status-badge status-inactive';
+        default:
+            return 'status-badge';
     }
 }
 
@@ -184,6 +196,7 @@ $report_title = 'Ticket Report';
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -200,19 +213,22 @@ $report_title = 'Ticket Report';
             margin: 0 auto;
             padding: 20px;
         }
+
         .report-card {
             background: white;
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 25px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
             border: 1px solid #eaeaea;
             transition: transform 0.2s;
         }
+
         .report-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
+
         .report-card h3 {
             color: #004E89;
             border-bottom: 2px solid #f0f0f0;
@@ -220,6 +236,7 @@ $report_title = 'Ticket Report';
             margin-bottom: 20px;
             font-size: 1.3rem;
         }
+
         .stat-card {
             text-align: center;
             padding: 20px;
@@ -227,6 +244,7 @@ $report_title = 'Ticket Report';
             margin-bottom: 15px;
             background: linear-gradient(135deg, #f8f9fa, #e9ecef);
         }
+
         .stat-icon {
             width: 60px;
             height: 60px;
@@ -237,27 +255,32 @@ $report_title = 'Ticket Report';
             margin: 0 auto 15px;
             font-size: 1.5rem;
         }
+
         .stat-number {
             font-size: 2.5rem;
             font-weight: bold;
             margin: 10px 0;
             color: #333;
         }
+
         .stat-label {
             font-size: 0.9rem;
             color: #666;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
+
         .chart-container {
             position: relative;
             height: 300px;
             margin: 20px 0;
         }
+
         .progress-ring {
             width: 120px;
             height: 120px;
         }
+
         .distribution-item {
             display: flex;
             justify-content: space-between;
@@ -265,34 +288,41 @@ $report_title = 'Ticket Report';
             padding: 10px 0;
             border-bottom: 1px solid #f0f0f0;
         }
+
         .distribution-item:last-child {
             border-bottom: none;
         }
+
         .distribution-label {
             display: flex;
             align-items: center;
             gap: 10px;
         }
+
         .distribution-percentage {
             font-weight: bold;
             color: #004E89;
         }
+
         .distribution-count {
             color: #666;
             font-size: 0.9rem;
         }
+
         .filter-section {
             background: #f8f9fa;
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 30px;
         }
+
         .export-buttons {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
             margin-top: 20px;
         }
+
         .insight-card {
             background: linear-gradient(135deg, #004E89, #1a6cb0);
             color: white;
@@ -300,10 +330,11 @@ $report_title = 'Ticket Report';
             padding: 20px;
             margin-bottom: 20px;
         }
+
         .insight-icon {
             width: 50px;
             height: 50px;
-            background: rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 10px;
             display: flex;
             align-items: center;
@@ -311,24 +342,37 @@ $report_title = 'Ticket Report';
             font-size: 1.5rem;
             margin-bottom: 15px;
         }
-        .trend-up { color: #28a745; }
-        .trend-down { color: #dc3545; }
-        .trend-neutral { color: #6c757d; }
+
+        .trend-up {
+            color: #28a745;
+        }
+
+        .trend-down {
+            color: #dc3545;
+        }
+
+        .trend-neutral {
+            color: #6c757d;
+        }
+
         .metric-change {
             font-size: 0.9rem;
             margin-left: 10px;
         }
+
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
         }
+
         .table-responsive {
             max-height: 400px;
             overflow-y: auto;
             border: 1px solid #dee2e6;
             border-radius: 8px;
         }
+
         .data-table th {
             position: sticky;
             top: 0;
@@ -336,16 +380,34 @@ $report_title = 'Ticket Report';
             color: white;
             z-index: 10;
         }
+
         .status-badge {
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.8rem;
             font-weight: 500;
         }
-        .status-active { background: #d4edda; color: #155724; }
-        .status-inactive { background: #f8d7da; color: #721c24; }
-        .status-maintenance { background: #fff3cd; color: #856404; }
-        .status-retired { background: #e2e3e5; color: #383d41; }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-maintenance {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-retired {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
         .expiry-badge {
             background: #dc3545;
             color: white;
@@ -353,21 +415,24 @@ $report_title = 'Ticket Report';
             border-radius: 4px;
             font-size: 0.75rem;
         }
+
         @media (max-width: 768px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
+
             .stat-number {
                 font-size: 2rem;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="dashboard-container">
         <!-- Sidebar -->
         <?php include '../../includes/sidebar.php'; ?>
-        
+
         <!-- Main Content -->
         <main class="main-content">
             <!-- Header -->
@@ -386,7 +451,7 @@ $report_title = 'Ticket Report';
                     </div>
                 </div>
             </div>
-            
+
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
@@ -395,30 +460,30 @@ $report_title = 'Ticket Report';
                     <li class="breadcrumb-item active" aria-current="page">Ticket Report</li>
                 </ol>
             </nav>
-            
+
             <!-- Filters -->
             <div class="filter-section">
                 <form method="GET" class="row g-3">
                     <input type="hidden" name="type" value="ticket">
                     <div class="col-md-3">
                         <label class="form-label">Start Date</label>
-                        <input type="text" class="form-control datepicker" name="start_date" 
-                               value="<?php echo htmlspecialchars($start_date); ?>">
+                        <input type="text" class="form-control datepicker" name="start_date"
+                            value="<?php echo htmlspecialchars($start_date); ?>">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">End Date</label>
-                        <input type="text" class="form-control datepicker" name="end_date" 
-                               value="<?php echo htmlspecialchars($end_date); ?>">
+                        <input type="text" class="form-control datepicker" name="end_date"
+                            value="<?php echo htmlspecialchars($end_date); ?>">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Client</label>
                         <select class="form-select select2" name="client_id">
                             <option value="">All Clients</option>
                             <?php foreach ($clients as $client): ?>
-                            <option value="<?php echo htmlspecialchars($client['id']); ?>"
-                                <?php echo $client_id == $client['id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($client['company_name']); ?>
-                            </option>
+                                <option value="<?php echo htmlspecialchars($client['id']); ?>"
+                                    <?php echo $client_id == $client['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($client['company_name']); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -427,10 +492,10 @@ $report_title = 'Ticket Report';
                         <select class="form-select select2" name="priority">
                             <option value="">All Priorities</option>
                             <?php foreach ($priorities as $priority_opt): ?>
-                            <option value="<?php echo htmlspecialchars($priority_opt); ?>"
-                                <?php echo $priority == $priority_opt ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($priority_opt); ?>
-                            </option>
+                                <option value="<?php echo htmlspecialchars($priority_opt); ?>"
+                                    <?php echo $priority == $priority_opt ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($priority_opt); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -439,10 +504,10 @@ $report_title = 'Ticket Report';
                         <select class="form-select select2" name="status">
                             <option value="">All Status</option>
                             <?php foreach ($statuses as $status_opt): ?>
-                            <option value="<?php echo htmlspecialchars($status_opt); ?>"
-                                <?php echo $status == $status_opt ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($status_opt); ?>
-                            </option>
+                                <option value="<?php echo htmlspecialchars($status_opt); ?>"
+                                    <?php echo $status == $status_opt ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($status_opt); ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -471,7 +536,7 @@ $report_title = 'Ticket Report';
                     </div>
                 </form>
             </div>
-            
+
             <!-- Ticket Report -->
             <div class="report-section active" id="ticket-report">
                 <!-- Key Insights -->
@@ -481,13 +546,13 @@ $report_title = 'Ticket Report';
                             <h3 class="text-white"><i class="fas fa-lightbulb"></i> Key Insights</h3>
                             <p class="text-white-50 mb-0">
                                 <?php if ($tickets_stats['critical_tickets'] > 0): ?>
-                                • <?php echo $tickets_stats['critical_tickets']; ?> critical priority tickets<br>
+                                    • <?php echo $tickets_stats['critical_tickets']; ?> critical priority tickets<br>
                                 <?php endif; ?>
                                 <?php if ($tickets_stats['open_tickets'] > 0): ?>
-                                • <?php echo round(($tickets_stats['open_tickets'] / $tickets_stats['total_tickets']) * 100, 1); ?>% of tickets are still open<br>
+                                    • <?php echo round(($tickets_stats['open_tickets'] / $tickets_stats['total_tickets']) * 100, 1); ?>% of tickets are still open<br>
                                 <?php endif; ?>
                                 <?php if ($tickets_stats['avg_resolution_days'] > 0): ?>
-                                • Average resolution time: <?php echo round($tickets_stats['avg_resolution_days'], 1); ?> days<br>
+                                    • Average resolution time: <?php echo round($tickets_stats['avg_resolution_days'], 1); ?> days<br>
                                 <?php endif; ?>
                                 • Total tickets processed: <?php echo $tickets_stats['total_tickets']; ?>
                             </p>
@@ -498,13 +563,13 @@ $report_title = 'Ticket Report';
                             </div>
                             <h4 class="mb-0">Ticket Health Score</h4>
                             <div class="display-4">
-                                <?php 
+                                <?php
                                 $health_score = 100;
                                 if ($tickets_stats['total_tickets'] > 0) {
                                     $resolved_rate = ($tickets_stats['resolved_tickets'] + $tickets_stats['closed_tickets']) / $tickets_stats['total_tickets'];
                                     $critical_rate = $tickets_stats['critical_tickets'] / $tickets_stats['total_tickets'];
                                     $open_rate = $tickets_stats['open_tickets'] / $tickets_stats['total_tickets'];
-                                    
+
                                     $health_score = round((($resolved_rate * 100) - ($critical_rate * 50) - ($open_rate * 30)) * 2, 0);
                                     $health_score = max(0, min(100, $health_score));
                                 }
@@ -515,7 +580,7 @@ $report_title = 'Ticket Report';
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Statistics Cards -->
                 <div class="dashboard-grid">
                     <div class="report-card">
@@ -524,36 +589,36 @@ $report_title = 'Ticket Report';
                         <div class="stat-label">Tickets Processed</div>
                         <div class="mt-3">
                             <small class="text-muted">
-                                <i class="fas fa-calendar"></i> 
+                                <i class="fas fa-calendar"></i>
                                 <?php echo date('M d, Y', strtotime($start_date)); ?> to <?php echo date('M d, Y', strtotime($end_date)); ?>
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="report-card">
                         <h3><i class="fas fa-exclamation-triangle"></i> Open Tickets</h3>
                         <div class="stat-number"><?php echo formatNumber($tickets_stats['open_tickets']); ?></div>
                         <div class="stat-label">Pending Resolution</div>
                         <div class="mt-3">
                             <small class="text-muted">
-                                <i class="fas fa-percentage"></i> 
+                                <i class="fas fa-percentage"></i>
                                 <?php echo $tickets_stats['total_tickets'] > 0 ? round(($tickets_stats['open_tickets'] / $tickets_stats['total_tickets']) * 100, 1) : 0; ?>% of total
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="report-card">
                         <h3><i class="fas fa-check-circle"></i> Resolved Tickets</h3>
                         <div class="stat-number"><?php echo formatNumber($tickets_stats['resolved_tickets']); ?></div>
                         <div class="stat-label">Successfully Resolved</div>
                         <div class="mt-3">
                             <small class="text-muted">
-                                <i class="fas fa-percentage"></i> 
+                                <i class="fas fa-percentage"></i>
                                 <?php echo $tickets_stats['total_tickets'] > 0 ? round(($tickets_stats['resolved_tickets'] / $tickets_stats['total_tickets']) * 100, 1) : 0; ?>% of total
                             </small>
                         </div>
                     </div>
-                    
+
                     <div class="report-card">
                         <h3><i class="fas fa-clock"></i> Avg Resolution</h3>
                         <div class="stat-number">
@@ -562,13 +627,13 @@ $report_title = 'Ticket Report';
                         <div class="stat-label">Days to Resolve</div>
                         <div class="mt-3">
                             <small class="text-muted">
-                                <i class="fas fa-history"></i> 
+                                <i class="fas fa-history"></i>
                                 Average time from creation to resolution
                             </small>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Charts -->
                 <div class="row">
                     <div class="col-md-6">
@@ -588,7 +653,7 @@ $report_title = 'Ticket Report';
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Recent Tickets -->
                 <div class="report-card">
                     <h3><i class="fas fa-history"></i> Recent Tickets</h3>
@@ -607,23 +672,23 @@ $report_title = 'Ticket Report';
                             </thead>
                             <tbody>
                                 <?php foreach ($recent_tickets as $ticket): ?>
-                                <tr>
-                                    <td>#<?php echo $ticket['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($ticket['company_name'] ?? 'Internal'); ?></td>
-                                    <td><?php echo htmlspecialchars($ticket['subject'] ?? 'No Subject'); ?></td>
-                                    <td>
-                                        <span class="<?php echo getPriorityClass($ticket['priority']); ?>">
-                                            <?php echo htmlspecialchars($ticket['priority']); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="<?php echo getStatusClass($ticket['status']); ?>">
-                                            <?php echo htmlspecialchars($ticket['status']); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo date('M d, Y', strtotime($ticket['created_at'])); ?></td>
-                                    <td><?php echo htmlspecialchars($ticket['assigned_to'] ?? 'Unassigned'); ?></td>
-                                </tr>
+                                    <tr>
+                                        <td>#<?php echo $ticket['id']; ?></td>
+                                        <td><?php echo htmlspecialchars($ticket['company_name'] ?? 'Internal'); ?></td>
+                                        <td><?php echo htmlspecialchars($ticket['subject'] ?? 'No Subject'); ?></td>
+                                        <td>
+                                            <span class="<?php echo getPriorityClass($ticket['priority']); ?>">
+                                                <?php echo htmlspecialchars($ticket['priority']); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="<?php echo getStatusClass($ticket['status']); ?>">
+                                                <?php echo htmlspecialchars($ticket['status']); ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo date('M d, Y', strtotime($ticket['created_at'])); ?></td>
+                                        <td><?php echo htmlspecialchars($ticket['assigned_to'] ?? 'Unassigned'); ?></td>
+                                    </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
@@ -632,7 +697,7 @@ $report_title = 'Ticket Report';
             </div>
         </main>
     </div>
-    
+
     <!-- JavaScript Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -645,22 +710,22 @@ $report_title = 'Ticket Report';
                 width: '100%',
                 placeholder: 'Select...'
             });
-            
+
             // Initialize date pickers
             flatpickr('.datepicker', {
                 dateFormat: 'Y-m-d',
                 allowInput: true
             });
-            
+
             // Initialize charts
             initializeCharts();
-            
+
             function initializeCharts() {
                 // Priority Distribution Chart
                 const priorityCtx = document.getElementById('priorityDistributionChart').getContext('2d');
                 const priorityLabels = <?php echo json_encode(array_column($priority_distribution, 'priority')); ?>;
                 const priorityData = <?php echo json_encode(array_column($priority_distribution, 'count')); ?>;
-                
+
                 new Chart(priorityCtx, {
                     type: 'doughnut',
                     data: {
@@ -683,12 +748,12 @@ $report_title = 'Ticket Report';
                         }
                     }
                 });
-                
+
                 // Status Distribution Chart
                 const statusCtx = document.getElementById('statusDistributionChart').getContext('2d');
                 const statusLabels = <?php echo json_encode(array_column($status_distribution, 'status')); ?>;
                 const statusData = <?php echo json_encode(array_column($status_distribution, 'count')); ?>;
-                
+
                 new Chart(statusCtx, {
                     type: 'bar',
                     data: {
@@ -728,7 +793,7 @@ $report_title = 'Ticket Report';
                     }
                 });
             }
-            
+
             // Export functionality
             $('#export-pdf').on('click', function() {
                 const toast = $(`
@@ -748,36 +813,38 @@ $report_title = 'Ticket Report';
                 $('body').append(toast);
                 setTimeout(() => toast.remove(), 3000);
             });
-            
+
             $('#export-excel').on('click', function() {
                 // Generate CSV data
                 let csvContent = "Ticket Report - " + new Date().toLocaleDateString() + "\n";
                 csvContent += "Date Range," + "<?php echo date('M d, Y', strtotime($start_date)); ?> to <?php echo date('M d, Y', strtotime($end_date)); ?>" + "\n\n";
-                
+
                 // Add summary data
                 csvContent += "SUMMARY\n";
                 csvContent += "Total Tickets," + <?php echo $tickets_stats['total_tickets']; ?> + "\n";
                 csvContent += "Open Tickets," + <?php echo $tickets_stats['open_tickets']; ?> + "\n";
                 csvContent += "Resolved Tickets," + <?php echo $tickets_stats['resolved_tickets']; ?> + "\n";
                 csvContent += "Average Resolution Time," + <?php echo $tickets_stats['avg_resolution_days']; ?> + "\n\n";
-                
+
                 // Add priority distribution
                 csvContent += "PRIORITY DISTRIBUTION\n";
                 csvContent += "Priority,Count,Percentage\n";
                 <?php foreach ($priority_distribution as $item): ?>
-                csvContent += "<?php echo $item['priority']; ?>,<?php echo $item['count']; ?>,<?php echo $item['percentage']; ?>%\n";
+                    csvContent += "<?php echo $item['priority']; ?>,<?php echo $item['count']; ?>,<?php echo $item['percentage']; ?>%\n";
                 <?php endforeach; ?>
                 csvContent += "\n";
-                
+
                 // Add recent tickets
                 csvContent += "RECENT TICKETS\n";
                 csvContent += "Ticket #,Client,Subject,Priority,Status,Created,Assigned To\n";
                 <?php foreach ($recent_tickets as $ticket): ?>
-                csvContent += "<?php echo $ticket['id']; ?>,<?php echo $ticket['company_name'] ?? 'Internal'; ?>,<?php echo $ticket['subject'] ?? 'No Subject'; ?>,<?php echo $ticket['priority']; ?>,<?php echo $ticket['status']; ?>,<?php echo date('Y-m-d', strtotime($ticket['created_at'])); ?>,<?php echo $ticket['assigned_to'] ?? 'Unassigned'; ?>\n";
+                    csvContent += "<?php echo $ticket['id']; ?>,<?php echo $ticket['company_name'] ?? 'Internal'; ?>,<?php echo $ticket['subject'] ?? 'No Subject'; ?>,<?php echo $ticket['priority']; ?>,<?php echo $ticket['status']; ?>,<?php echo date('Y-m-d', strtotime($ticket['created_at'])); ?>,<?php echo $ticket['assigned_to'] ?? 'Unassigned'; ?>\n";
                 <?php endforeach; ?>
-                
+
                 // Create and download CSV
-                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const blob = new Blob([csvContent], {
+                    type: 'text/csv'
+                });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -787,11 +854,12 @@ $report_title = 'Ticket Report';
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
             });
-            
+
             $('#print-report').on('click', function() {
                 window.print();
             });
         });
     </script>
 </body>
+
 </html>

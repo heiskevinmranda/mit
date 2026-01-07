@@ -226,7 +226,7 @@ function getRoleBadge($role) {
     </style>
 </head>
 <body>
-?>
+
 
 <div class="dashboard-container">
     <!-- Sidebar -->

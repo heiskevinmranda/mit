@@ -178,7 +178,7 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
 </head>
 <body>
 
-?>
+
     <div class="dashboard-container">
         <?php include '../../includes/sidebar.php'; ?>
         
