@@ -52,23 +52,31 @@ $staff_members = [];
 $client_locations = [];
 
 try {
-    // Get clients (all for managers/admins, only assigned for staff)
-    if (isManager() || isAdmin()) {
-        $stmt = $pdo->query("SELECT id, company_name FROM clients ORDER BY company_name");
-        $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } else {
-        // Staff can only create tickets for their assigned clients
-        $staff_id = $current_user['staff_profile']['id'] ?? 0;
-        if ($staff_id) {
-            $clients = $pdo->query("SELECT id, company_name FROM clients ORDER BY company_name LIMIT 50")->fetchAll();
-        }
-    }
+    // Get all clients - all users can create tickets for any client
+    $stmt = $pdo->query("SELECT id, company_name FROM clients ORDER BY company_name");
+    $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get staff members for assignment
-    $staff_members = $pdo->query("SELECT id, full_name FROM staff_profiles WHERE employment_status = 'Active' ORDER BY full_name")->fetchAll();
+    // Get staff members for assignment - prioritize those with complete profiles
+    $stmt = $pdo->query("
+        SELECT 
+            COALESCE(sp.id, u.id) as id,
+            CASE 
+                WHEN sp.full_name IS NOT NULL AND sp.full_name != '' THEN sp.full_name
+                ELSE CONCAT(u.email, ' (Profile Incomplete)')
+            END as full_name,
+            CASE WHEN sp.full_name IS NULL OR sp.full_name = '' THEN 1 ELSE 0 END as needs_profile
+        FROM users u
+        LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+        WHERE u.user_type IN ('super_admin', 'admin', 'manager', 'support_tech', 'staff', 'engineer')
+          AND u.is_active = true
+          AND (sp.employment_status = 'Active' OR sp.id IS NULL)
+        ORDER BY needs_profile ASC, full_name ASC
+    ");
+    $staff_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get all locations
-    $client_locations = $pdo->query("SELECT id, client_id, location_name FROM client_locations ORDER BY location_name")->fetchAll();
+    $stmt = $pdo->query("SELECT id, client_id, location_name FROM client_locations ORDER BY location_name");
+    $client_locations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (Exception $e) {
     $error = "Error loading data: " . $e->getMessage();
@@ -861,14 +869,6 @@ function calculateHours($start_time, $end_time) {
             </div>
             <?php endif; ?>
             
-            <!-- Large File Warning -->
-            <div class="large-file-warning">
-                <i class="fas fa-exclamation-triangle"></i>
-                <strong>Note:</strong> Large files (up to 200MB each) are supported. 
-                Total upload limit is 500MB. Ensure PHP configuration allows large uploads.
-                <br><small>Current PHP upload_max_filesize: <?php echo ini_get('upload_max_filesize'); ?> | post_max_size: <?php echo ini_get('post_max_size'); ?></small>
-            </div>
-            
             <!-- Create Ticket Form -->
             <div class="form-card">
                 <form method="POST" id="ticketForm" enctype="multipart/form-data">
@@ -1002,10 +1002,17 @@ function calculateHours($start_time, $end_time) {
                                         </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <?php if (empty($staff_members)): ?>
+                                    <div class="text-danger small mt-1">
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        No active staff members found. Please ensure staff profiles are created and marked as 'Active'.
+                                    </div>
+                                    <?php else: ?>
                                     <div class="text-muted small mt-1">
                                         <i class="fas fa-info-circle"></i> 
                                         Hold Ctrl (or Cmd on Mac) to select multiple staff members. First selected will be primary.
                                     </div>
+                                    <?php endif; ?>
                                     <div class="selected-assignees mt-2" id="selectedAssignees">
                                         <!-- Selected assignees will appear here -->
                                     </div>
@@ -1243,7 +1250,7 @@ function calculateHours($start_time, $end_time) {
                     <div class="form-section">
                         <h4><i class="fas fa-paperclip"></i> Attachments (Optional)</h4>
                         <p class="text-muted mb-3">
-                            Upload supporting files. Max 200MB per file, 500MB total.
+                            Upload supporting files. Max <?php echo ini_get('upload_max_filesize'); ?> per file, <?php echo ini_get('post_max_size'); ?> total.
                             <button type="button" class="btn btn-link btn-sm p-0" onclick="showSupportedFormats()">
                                 View supported formats
                             </button>
@@ -1255,7 +1262,7 @@ function calculateHours($start_time, $end_time) {
                                 <i class="fas fa-cloud-upload-alt"></i>
                             </div>
                             <h5>Drag & Drop Files Here</h5>
-                            <p class="text-muted">or click to browse (up to 200MB per file)</p>
+                            <p class="text-muted">or click to browse (up to <?php echo ini_get('upload_max_filesize'); ?> per file)</p>
                             <input type="file" id="fileInput" name="attachments[]" multiple 
                                    style="display: none;"
                                    accept="<?php echo '.' . implode(',.', $ALLOWED_EXTENSIONS); ?>">
@@ -1291,7 +1298,7 @@ function calculateHours($start_time, $end_time) {
                                 <i class="fas fa-chart-bar"></i>
                                 <span id="totalFiles">0 files</span> | 
                                 <span id="totalSize">0 B</span> | 
-                                <span id="remainingSpace">500 MB available</span>
+                                <span id="remainingSpace"><?php echo ini_get('post_max_size'); ?> available</span>
                             </div>
                         </div>
                     </div>
@@ -1390,12 +1397,34 @@ function calculateHours($start_time, $end_time) {
         </div>
     </div>
     
+    <?php
+    // Helper function to parse PHP size notation to bytes
+    function parse_size($size) {
+        $unit = strtoupper(substr($size, -1));
+        $value = (int)$size;
+        switch ($unit) {
+            case 'G': return $value * 1024 * 1024 * 1024;
+            case 'M': return $value * 1024 * 1024;
+            case 'K': return $value * 1024;
+            default: return $value;
+        }
+    }
+    ?>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Configuration
-        const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
-        const MAX_TOTAL_SIZE = 500 * 1024 * 1024; // 500MB
+        // Configuration - Match PHP upload limits
+        const MAX_FILE_SIZE = <?php echo min(parse_size(ini_get('upload_max_filesize')), 2097152); ?>; // Current PHP limit or 2MB
+        const MAX_TOTAL_SIZE = <?php echo min(parse_size(ini_get('post_max_size')), 8388608); ?>; // Current PHP limit or 8MB
         let uploadedFiles = [];
+        
+        // Parse size string to bytes
+        function parseSize(size) {
+            const units = {'K': 1024, 'M': 1024*1024, 'G': 1024*1024*1024};
+            const match = size.toString().match(/(\d+)([KMG]?)/i);
+            if (!match) return 0;
+            return parseInt(match[1]) * (units[match[2].toUpperCase()] || 1);
+        }
         
         // Format bytes
         function formatBytes(bytes, decimals = 2) {
@@ -1441,7 +1470,7 @@ function calculateHours($start_time, $end_time) {
             // Check total size limit
             let currentTotalSize = uploadedFiles.reduce((sum, file) => sum + file.size, 0);
             if (currentTotalSize + totalNewSize > MAX_TOTAL_SIZE) {
-                alert('Adding these files would exceed the 500MB total upload limit.');
+                alert('Adding these files would exceed the ' + formatBytes(MAX_TOTAL_SIZE) + ' total upload limit.');
                 return;
             }
             
@@ -1451,7 +1480,7 @@ function calculateHours($start_time, $end_time) {
                 
                 // Check individual file size
                 if (file.size > MAX_FILE_SIZE) {
-                    alert(`File "${file.name}" exceeds the 200MB limit.`);
+                    alert(`File "${file.name}" exceeds the ${formatBytes(MAX_FILE_SIZE)} per-file limit.`);
                     continue;
                 }
                 
@@ -1637,13 +1666,21 @@ function calculateHours($start_time, $end_time) {
         // Work pattern selection
         function selectWorkPattern(pattern) {
             // Update radio button
-            document.querySelector(`input[name="work_pattern"][value="${pattern}"]`).checked = true;
+            const radioButton = document.querySelector(`input[name="work_pattern"][value="${pattern}"]`);
+            if (radioButton) {
+                radioButton.checked = true;
+            }
             
-            // Update UI
+            // Update UI - find and select the clicked pattern option
             document.querySelectorAll('.pattern-option').forEach(option => {
                 option.classList.remove('selected');
             });
-            event.currentTarget.classList.add('selected');
+            
+            // Add selected class to the clicked pattern
+            const clickedPattern = document.querySelector(`.pattern-option input[value="${pattern}"]`);
+            if (clickedPattern) {
+                clickedPattern.closest('.pattern-option').classList.add('selected');
+            }
             
             // Show/hide multi-day configuration
             const multiDayConfig = document.getElementById('multiDayConfig');
@@ -2155,9 +2192,54 @@ function calculateHours($start_time, $end_time) {
                 const clientId = this.value;
                 const locationSelect = document.getElementById('location_id');
                 
-                // In a real application, you would fetch locations via AJAX
                 console.log('Client selected:', clientId);
-                // You would make an AJAX call here to get locations for this client
+                
+                // Clear current options
+                locationSelect.innerHTML = '<option value="">Loading locations...</option>';
+                
+                if (!clientId) {
+                    locationSelect.innerHTML = '<option value="">Select location</option>';
+                    return;
+                }
+                
+                // Fetch locations for the selected client
+                const url = `/mit/api/get_locations.php?client_id=${clientId}`;
+                console.log('Fetching from:', url);
+                
+                fetch(url)
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Received data:', data);
+                        locationSelect.innerHTML = '<option value="">Select location</option>';
+                        
+                        if (data.locations && data.locations.length > 0) {
+                            console.log('Adding', data.locations.length, 'locations');
+                            data.locations.forEach(location => {
+                                const option = document.createElement('option');
+                                option.value = location.id;
+                                option.textContent = location.location_name;
+                                if (location.city) {
+                                    option.textContent += ' - ' + location.city;
+                                }
+                                locationSelect.appendChild(option);
+                                console.log('Added location:', location.location_name);
+                            });
+                        } else {
+                            console.log('No locations found for client:', clientId);
+                            locationSelect.innerHTML = '<option value="">No locations found for this client</option>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching locations:', error);
+                        locationSelect.innerHTML = '<option value="">Error loading locations</option>';
+                        alert('Error loading locations: ' + error.message + '\nPlease check the browser console for details.');
+                    });
             });
         });
         

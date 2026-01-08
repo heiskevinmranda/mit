@@ -20,8 +20,9 @@ $stmt->execute([$current_user['id']]);
 $staff = $stmt->fetch();
 
 if (!$staff) {
-    // Redirect to create profile if doesn't exist
-    header('Location: create_profile.php');
+    // Show message if profile doesn't exist
+    $_SESSION['error'] = "You don't have a staff profile yet. Please contact your administrator to create one.";
+    header('Location: ' . route('dashboard'));
     exit;
 }
 

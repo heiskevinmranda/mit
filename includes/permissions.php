@@ -52,4 +52,11 @@ function canCreateTickets() {
 function canAssignTickets() {
     return isManager(); // Only manager and above
 }
+
+/**
+ * Check if user can delete tickets
+ */
+function canDeleteTickets() {
+    return isManager(); // Only manager and above (manager, admin, super_admin)
+}
 ?>

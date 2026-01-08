@@ -43,6 +43,7 @@ class RouteManager
         'tickets.create' => '/tickets/create',
         'tickets.edit' => '/tickets/edit',
         'tickets.view' => '/tickets/view',
+        'tickets.delete' => '/tickets/delete',
         'tickets.export' => '/tickets/export',
         'tickets.export_bulk' => '/tickets/export-bulk',
         'tickets.work_log' => '/tickets/work-log',

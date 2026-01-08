@@ -185,11 +185,15 @@ function handleErrorReporting($errno, $errstr, $errfile, $errline) {
         E_USER_ERROR => 'User Error',
         E_USER_WARNING => 'User Warning',
         E_USER_NOTICE => 'User Notice',
-        E_STRICT => 'Strict Notice',
         E_RECOVERABLE_ERROR => 'Recoverable Error',
         E_DEPRECATED => 'Deprecated',
         E_USER_DEPRECATED => 'User Deprecated',
     ];
+    
+    // E_STRICT is deprecated in PHP 8.x and is now included in E_ALL
+    if (defined('E_STRICT')) {
+        $error_types[E_STRICT] = 'Strict Notice';
+    }
     
     $error_type = $error_types[$errno] ?? 'Unknown Error';
     $message = "$error_type: $errstr in $errfile on line $errline";

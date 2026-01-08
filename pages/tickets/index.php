@@ -3,6 +3,7 @@
 
 // Include authentication
 require_once '../../includes/auth.php';
+require_once '../../includes/permissions.php';
 
 // Check if user is logged in
 requireLogin();
@@ -716,6 +717,11 @@ function formatTimeDiff($date1, $date2 = null) {
                                             <?php if (isManager() || isAdmin() || $ticket['created_by'] == $current_user['id']): ?>
                                             <a href="<?php echo route('tickets.edit', ['id' => $ticket['id']]); ?>" class="btn btn-warning" title="Edit">
                                                 <i class="fas fa-edit"></i>
+                                            </a>
+                                            <?php endif; ?>
+                                            <?php if (canDeleteTickets()): ?>
+                                            <a href="<?php echo route('tickets.delete', ['id' => $ticket['id']]); ?>" class="btn btn-danger" title="Delete">
+                                                <i class="fas fa-trash"></i>
                                             </a>
                                             <?php endif; ?>
                                         </div>

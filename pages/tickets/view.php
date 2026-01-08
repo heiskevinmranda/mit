@@ -4,6 +4,7 @@
 // Include authentication
 require_once '../../includes/routes.php';
 require_once '../../includes/auth.php';
+require_once '../../includes/permissions.php';
 
 // Check if user is logged in
 requireLogin();
@@ -89,9 +90,14 @@ try {
     
     // Get all assignees (multiple assignees)
     $stmt = $pdo->prepare("
-        SELECT ta.*, sp.full_name, sp.official_email, sp.designation, sp.department
+        SELECT ta.*, 
+               COALESCE(sp.full_name, u.email) as full_name, 
+               sp.official_email, 
+               sp.designation, 
+               sp.department
         FROM ticket_assignees ta
         LEFT JOIN staff_profiles sp ON ta.staff_id = sp.id
+        LEFT JOIN users u ON sp.user_id = u.id
         WHERE ta.ticket_id = ?
         ORDER BY ta.is_primary DESC, ta.assigned_at ASC
     ");
@@ -639,6 +645,16 @@ function formatDuration($minutes) {
                     </div>
                     <div class="col-md-4 text-md-end">
                         <div class="action-buttons">
+                            <?php if (isManager() || isAdmin() || $ticket['created_by'] == $current_user['id']): ?>
+                            <a href="<?php echo route('tickets.edit', ['id' => $ticket_id]); ?>" class="btn btn-warning btn-action">
+                                <i class="fas fa-edit"></i> Edit Ticket
+                            </a>
+                            <?php endif; ?>
+                            <?php if (canDeleteTickets()): ?>
+                            <a href="<?php echo route('tickets.delete', ['id' => $ticket_id]); ?>" class="btn btn-danger btn-action">
+                                <i class="fas fa-trash"></i> Delete Ticket
+                            </a>
+                            <?php endif; ?>
                             <a href="<?php echo route('tickets.export'); ?>?id=<?php echo urlencode($ticket_id); ?>&type=pdf" class="btn btn-danger btn-action" target="_blank">
                                 <i class="fas fa-file-pdf"></i> Export PDF
                             </a>
@@ -854,19 +870,35 @@ function formatDuration($minutes) {
                                 <?php foreach ($assignees as $assignee): ?>
                                 <div class="assignee-item <?php echo $assignee['is_primary'] ? 'assignee-primary' : ''; ?>">
                                     <div class="assignee-avatar">
-                                        <?php echo strtoupper(substr($assignee['full_name'], 0, 1)); ?>
+                                        <?php 
+                                        $fullName = $assignee['full_name'] ?? 'Unknown';
+                                        // If it looks like an email, extract first letter before @
+                                        if (strpos($fullName, '@') !== false) {
+                                            echo strtoupper(substr($fullName, 0, 1));
+                                        } else {
+                                            echo strtoupper(substr($fullName, 0, 1));
+                                        }
+                                        ?>
                                     </div>
                                     <div class="assignee-info">
                                         <div class="assignee-name">
-                                            <?php echo htmlspecialchars($assignee['full_name']); ?>
+                                            <?php 
+                                            $displayName = $assignee['full_name'] ?? 'Unknown User';
+                                            // If it's an email, add a note
+                                            if (strpos($displayName, '@') !== false) {
+                                                echo htmlspecialchars($displayName) . ' <span class="text-muted small">(Profile Incomplete)</span>';
+                                            } else {
+                                                echo htmlspecialchars($displayName);
+                                            }
+                                            ?>
                                             <?php if ($assignee['is_primary']): ?>
                                             <span class="badge bg-primary ms-2">Primary</span>
                                             <?php endif; ?>
                                         </div>
-                                        <?php if ($assignee['designation']): ?>
+                                        <?php if (!empty($assignee['designation'])): ?>
                                         <div class="assignee-role"><?php echo htmlspecialchars($assignee['designation']); ?></div>
                                         <?php endif; ?>
-                                        <?php if ($assignee['department']): ?>
+                                        <?php if (!empty($assignee['department'])): ?>
                                         <div class="assignee-role"><?php echo htmlspecialchars($assignee['department']); ?></div>
                                         <?php endif; ?>
                                         <div class="assignee-role">
