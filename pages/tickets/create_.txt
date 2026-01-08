@@ -684,7 +684,7 @@ function formatBytes($bytes, $precision = 2) {
                         <i class="fas fa-building"></i> Clients
                     </a></li>
                     
-                    <li><a href="../../logout.php">
+                    <li><a href="/mit/logout.php">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </a></li>
                 </ul>

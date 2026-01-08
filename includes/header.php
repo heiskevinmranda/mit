@@ -1,4 +1,11 @@
 <?php
+// Prevent browser caching of authenticated pages
+if (!headers_sent()) {
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+}
+
 require_once 'auth.php';
 $current_user = getCurrentUser();
 $flash_message = getFlashMessage();

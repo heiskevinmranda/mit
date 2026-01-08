@@ -1,5 +1,6 @@
 <?php
 require_once '../../includes/auth.php';
+require_once '../../includes/routes.php';
 requireLogin();
 
 $page_title = 'My Profile';
@@ -183,9 +184,9 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
         <?php include '../../includes/sidebar.php'; ?>
         
         <main class="main-content">
-            <div class="header">
+            <div class="header d-flex justify-content-between align-items-center">
                 <h1><i class="fas fa-user"></i> My Profile</h1>
-                <a href="../users/edit.php?id=<?php echo $current_user['id']; ?>" class="btn btn-primary">
+                <a href="<?php echo route('staff.edit_profile'); ?>" class="btn btn-primary">
                     <i class="fas fa-edit"></i> Edit Profile
                 </a>
             </div>

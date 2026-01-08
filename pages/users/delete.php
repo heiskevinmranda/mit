@@ -649,7 +649,7 @@ function formatDate($date) {
                 <span class="text-white me-3">
                     <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
                 </span>
-                <a href="../../logout.php" class="btn btn-sm btn-outline-light">
+                <a href="/mit/logout.php" class="btn btn-sm btn-outline-light">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>

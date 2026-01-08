@@ -1,8 +1,18 @@
 <?php
 // includes/auth.php - COMPLETE VERSION
 
+// Set timezone to Dar es Salaam
+ini_set('date.timezone', 'Africa/Dar_es_Salaam');
+// Prevent browser caching of authenticated pages
+if (!headers_sent()) {
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+}
+
 // Include database configuration
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/error_handler.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -22,9 +32,8 @@ function isLoggedIn() {
  * Require user to be logged in, redirect if not
  */
 function requireLogin() {
-    if (!isLoggedIn()) {
-        header('Location: /mit/login');
-        exit;
+    if (!isLoggedIn() || !isSessionValid()) {
+        handle401Error('You must be logged in to access this page.');
     }
 }
 
@@ -56,9 +65,12 @@ function checkPermission($required_role) {
  * Require specific permission, redirect if not authorized
  */
 function requirePermission($required_role) {
-    if (!checkPermission($required_role)) {
-        header('Location: /mit/dashboard');
-        exit;
+    if (!isLoggedIn() || !isSessionValid() || !checkPermission($required_role)) {
+        if (!isLoggedIn() || !isSessionValid()) {
+            handle401Error('You must be logged in to access this resource.');
+        } else {
+            handle403Error('You do not have permission to access this resource.');
+        }
     }
 }
 
@@ -228,6 +240,10 @@ function attemptLogin($email, $password) {
                 $_SESSION['user_type'] = $user['user_type'];
                 $_SESSION['staff_profile'] = $staff_profile;
                 
+                // Store session validation data
+                $_SESSION['last_activity'] = time();
+                $_SESSION['user_ip'] = $_SERVER['REMOTE_ADDR'];
+                
                 return ['success' => true, 'user' => $user];
             } else {
                 return ['success' => false, 'error' => 'Account is deactivated'];
@@ -244,9 +260,52 @@ function attemptLogin($email, $password) {
  * Logout user
  */
 function logout() {
+    // Unset all session variables
+    $_SESSION = array();
+    
+    // Delete the session cookie
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+    
+    // Destroy the session
     session_destroy();
+    
+    // Redirect to login page directly instead of using route function to avoid issues after session destruction
     header('Location: /mit/login');
     exit;
+}
+
+/**
+ * Validate session timeout
+ */
+function isSessionValid() {
+    if (!isset($_SESSION['last_activity']) || !isset($_SESSION['user_ip'])) {
+        // If these values don't exist, the session might be corrupted
+        session_destroy();
+        return false;
+    }
+    
+    // Check if session has been active for too long (1 hour timeout)
+    if (time() - $_SESSION['last_activity'] > 3600) {
+        session_destroy();
+        return false;
+    }
+    
+    // Update last activity
+    $_SESSION['last_activity'] = time();
+    
+    // Check if IP has changed (basic security check)
+    if ($_SESSION['user_ip'] !== $_SERVER['REMOTE_ADDR']) {
+        session_destroy();
+        return false;
+    }
+    
+    return true;
 }
 
 // ========== HELPER FUNCTIONS ==========

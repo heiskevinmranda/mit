@@ -834,7 +834,7 @@ function getOtherStaff($pdo, $current_user_id) {
             <p class="text-muted">Update information for <?= htmlspecialchars($user['full_name'] ?? $user['email']) ?></p>
         </div>
         <div class="btn-group">
-            <a href="<?= route('users.view', ['id' => $user_id]) ?>" class="btn btn-outline-secondary">
+            <a href="<?= route('users.view') . '?id=' . $user_id ?>" class="btn btn-outline-secondary">
                 <i class="fas fa-eye"></i> View Profile
             </a>
             <a href="<?= route('users.index') ?>" class="btn btn-outline-secondary ms-2">
@@ -944,7 +944,7 @@ function getOtherStaff($pdo, $current_user_id) {
             <?php unset($_SESSION['error']); endif; ?>
             
             <!-- Edit Form -->
-            <form method="POST" action="edit.php?id=<?= htmlspecialchars($user_id) ?>" id="editUserForm">
+            <form method="POST" action="?id=<?= htmlspecialchars($user_id) ?>" id="editUserForm">
                 <!-- Tab Navigation -->
                 <ul class="nav nav-tabs mb-4" id="editTabs" role="tablist">
                     <li class="nav-item" role="presentation">
@@ -1417,7 +1417,7 @@ function getOtherStaff($pdo, $current_user_id) {
                 <div class="form-actions">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <a href="<?= route('users.view', ['id' => $user_id]) ?>" class="btn btn-outline-secondary">
+                            <a href="<?= route('users.view') . '?id=' . $user_id ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                         </div>

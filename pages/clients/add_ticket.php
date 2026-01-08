@@ -799,7 +799,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span class="text-white me-3 d-none d-md-inline">
                     <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
                 </span>
-                <a href="../../logout.php" class="btn btn-outline-light btn-sm">
+                <a href="/mit/logout.php" class="btn btn-outline-light btn-sm">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>

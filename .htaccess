@@ -75,6 +75,7 @@ RewriteRule ^reports$ pages/reports/index.php [L]
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^staff/profile/$ pages/staff/profile.php [L]
 RewriteRule ^staff/profile$ pages/staff/profile.php [L]
+RewriteRule ^staff/edit-profile$ pages/staff/edit_profile.php [L]
 
 # API routes
 RewriteRule ^api/get-locations$ api/get_locations.php [L]
@@ -83,7 +84,13 @@ RewriteRule ^api/get-next-asset-number$ api/get_next_asset_number.php [L]
 # File download routes
 RewriteRule ^attachments/download$ download_attachment.php [L]
 
+# Error page routes
+RewriteRule ^errors/404$ pages/errors/404.php [L]
+RewriteRule ^errors/403$ pages/errors/403.php [L]
+RewriteRule ^errors/500$ pages/errors/500.php [L]
+RewriteRule ^errors/401$ pages/errors/401.php [L]
+
 # Catch-all for other routes (to handle 404s or custom routing)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.+)$ index.php?route=$1 [L,QSA]
+RewriteRule ^(.+)$ error_handler.php [L]

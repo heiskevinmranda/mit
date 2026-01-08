@@ -1,98 +1,35 @@
 <?php
-// Start session
-session_start();
+// Include the authentication system
+require_once 'includes/auth.php';
+require_once 'includes/error_handler.php';
 
-// Database configuration
-$DB_HOST = $_ENV['DB_HOST'] ?? $_SERVER['DB_HOST'] ?? 'localhost';
-$DB_PORT = $_ENV['DB_PORT'] ?? $_SERVER['DB_PORT'] ?? '5432';
-$DB_NAME = $_ENV['DB_NAME'] ?? $_SERVER['DB_NAME'] ?? 'MSP_Application';
-$DB_USER = $_ENV['DB_USER'] ?? $_SERVER['DB_USER'] ?? 'MSPAppUser';
-$DB_PASS = $_ENV['DB_PASS'] ?? $_SERVER['DB_PASS'] ?? '2q+w7wQMH8xd';
-
-define('DB_HOST', $DB_HOST);
-define('DB_PORT', $DB_PORT);
-define('DB_NAME', $DB_NAME);
-define('DB_USER', $DB_USER);
-define('DB_PASS', $DB_PASS);
-
-// Create connection
-function getDBConnection() {
-    try {
-        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME;
-        $pdo = new PDO($dsn, DB_USER, DB_PASS);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        return $pdo;
-    } catch (PDOException $e) {
-        die("Database connection failed: " . $e->getMessage());
-    }
+// Prevent browser caching of login page
+if (!headers_sent()) {
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
 }
 
 // Check if already logged in
-if (isset($_SESSION['user_id'])) {
+if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
     header('Location: /mit/dashboard');
     exit;
 }
 
-$pdo = getDBConnection();
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'] ?? '';
+    $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     
-
-    
     if (!empty($email) && !empty($password)) {
-        try {
-            // Get user from database
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-            $stmt->execute([$email]);
-            $user = $stmt->fetch();
-            
-
-            
-            if ($user) {
-
-                
-                if (password_verify($password, $user['password'])) {
-                    if ($user['is_active']) {
-                        // Update last login
-                        $stmt = $pdo->prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
-                        $stmt->execute([$user['id']]);
-                        
-                        // Get staff profile if exists
-                        $staff_profile = null;
-                        if (in_array($user['user_type'], ['super_admin', 'admin', 'manager', 'support_tech', 'staff'])) {
-                            $stmt = $pdo->prepare("SELECT * FROM staff_profiles WHERE user_id = ?");
-                            $stmt->execute([$user['id']]);
-                            $staff_profile = $stmt->fetch();
-                        }
-                        
-
-                        
-                        // Set session variables
-                        $_SESSION['user_id'] = $user['id'];
-                        $_SESSION['email'] = $user['email'];
-                        $_SESSION['user_type'] = $user['user_type'];
-                        $_SESSION['staff_profile'] = $staff_profile;
-                        
-
-                        
-                        // Redirect based on user type
-                        header('Location: /mit/dashboard');
-                        exit;
-                    } else {
-                        $error = 'Your account is deactivated. Please contact administrator.';
-                    }
-                } else {
-                    $error = 'Invalid email or password.';
-                }
-            } else {
-                $error = 'Invalid email or password.';
-            }
-        } catch (PDOException $e) {
-            $error = 'Database error: ' . $e->getMessage();
+        $login_result = attemptLogin($email, $password);
+        
+        if ($login_result['success']) {
+            header('Location: /mit/dashboard');
+            exit;
+        } else {
+            $error = $login_result['error'];
         }
     } else {
         $error = 'Please enter both email and password.';
@@ -252,9 +189,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </form>
             
-
-            
-
         </div>
     </div>
     

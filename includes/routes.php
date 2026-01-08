@@ -82,6 +82,7 @@ class RouteManager
         
         // Staff routes
         'staff.profile' => '/staff/profile',
+        'staff.edit_profile' => '/staff/edit-profile',
         
         // API routes
         'api.get_locations' => '/api/get-locations',
@@ -89,6 +90,12 @@ class RouteManager
         
         // File download routes
         'attachments.download' => '/attachments/download',
+        
+        // Error routes
+        'errors.404' => '/errors/404',
+        'errors.403' => '/errors/403',
+        'errors.500' => '/errors/500',
+        'errors.401' => '/errors/401',
     ];
     
     /**
