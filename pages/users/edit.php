@@ -520,9 +520,6 @@ function getOtherStaff($pdo, $current_user_id) {
         /* Additional styles specific to this page if needed */
         .main-content {
             padding: 1.5rem !important;
-            padding-bottom: 5rem !important;
-            overflow-y: auto;
-            max-height: 100vh;
         }
         
         /* Enhanced stats cards */
@@ -604,14 +601,11 @@ function getOtherStaff($pdo, $current_user_id) {
             font-weight: 500;
             padding: 1rem 1.5rem;
             transition: all 0.3s ease;
-            cursor: pointer;
-            background: none;
         }
         
         .nav-tabs .nav-link:hover {
             color: #495057;
             border-color: transparent;
-            background-color: #f8f9fa;
         }
         
         .nav-tabs .nav-link.active {
@@ -799,14 +793,7 @@ function getOtherStaff($pdo, $current_user_id) {
             padding: 1.5rem;
             border-radius: 12px;
             margin-top: 1.5rem;
-            margin-bottom: 3rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            position: relative;
-            z-index: 10;
-        }
-        
-        .form-actions .btn {
-            min-width: 120px;
         }
         
         /* Mobile menu toggle */
@@ -833,44 +820,12 @@ function getOtherStaff($pdo, $current_user_id) {
             transform: scale(1.1);
             box-shadow: 0 6px 16px rgba(0,0,0,0.3);
         }
-        
-        /* Floating Save Button */
-        .floating-save-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 9999;
-            animation: pulse 2s infinite;
-        }
-        
-        .floating-save-btn button {
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 50px;
-            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
-        }
-        
-        .floating-save-btn button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(40, 167, 69, 0.6);
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-        }
     </style>    
 </head>
 <body>
-<div class="dashboard-container">
-    <?php include '../../includes/sidebar.php'; ?>
-    
-    <main class="main-content">
+<?php include '../../includes/sidebar.php'; ?>
+
+<div class="main-content">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="page-title">
@@ -989,9 +944,7 @@ function getOtherStaff($pdo, $current_user_id) {
             <?php unset($_SESSION['error']); endif; ?>
             
             <!-- Edit Form -->
-            <div class="card">
-                <div class="card-body">
-                    <form method="POST" action="?id=<?= htmlspecialchars($user_id) ?>" id="editUserForm">
+            <form method="POST" action="?id=<?= htmlspecialchars($user_id) ?>" id="editUserForm">
                 <!-- Tab Navigation -->
                 <ul class="nav nav-tabs mb-4" id="editTabs" role="tablist">
                     <li class="nav-item" role="presentation">
@@ -1461,38 +1414,24 @@ function getOtherStaff($pdo, $current_user_id) {
                 </div>
                 
                 <!-- Form Actions -->
-                <div class="form-actions" style="background: white; border-top: 2px solid #dee2e6;">
+                <div class="form-actions">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <a href="<?= route('users.view') . '?id=' . $user_id ?>" class="btn btn-outline-secondary btn-lg">
+                            <a href="<?= route('users.view') . '?id=' . $user_id ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                         </div>
                         <div>
-                            <button type="reset" class="btn btn-outline-secondary btn-lg me-2">
+                            <button type="reset" class="btn btn-outline-secondary me-2">
                                 <i class="fas fa-redo"></i> Reset
                             </button>
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Update User
                             </button>
                         </div>
                     </div>
                 </div>
             </form>
-                </div>
-            </div>
-            
-            <!-- Scroll to bottom helper -->
-            <div class="text-center mt-3 mb-5" style="color: #6c757d; font-size: 0.9rem;">
-                <i class="fas fa-arrow-up"></i> Scroll up to view all tabs and fields
-            </div>
-            
-            <!-- Floating Save Button -->
-            <div class="floating-save-btn">
-                <button type="submit" form="editUserForm" class="btn btn-success btn-lg shadow-lg">
-                    <i class="fas fa-save"></i> Save Changes
-                </button>
-            </div>
         </main>
     </div>
     
@@ -1500,14 +1439,6 @@ function getOtherStaff($pdo, $current_user_id) {
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Check if Bootstrap is loaded
-        if (typeof bootstrap === 'undefined') {
-            console.error('Bootstrap is not loaded!');
-            alert('Error: Bootstrap JavaScript is not loaded. Tabs may not work properly.');
-        } else {
-            console.log('Bootstrap loaded successfully');
-        }
-        
         // Simple mobile menu toggle
         function toggleSidebar() {
             const sidebar = document.querySelector('.sidebar');
@@ -1523,39 +1454,33 @@ function getOtherStaff($pdo, $current_user_id) {
         }, 5000);
         
         // Toggle password visibility
-        const togglePassword = document.getElementById('togglePassword');
-        if (togglePassword) {
-            togglePassword.addEventListener('click', function() {
-                const passwordField = document.getElementById('password');
-                const icon = this.querySelector('i');
-                if (passwordField.type === 'password') {
-                    passwordField.type = 'text';
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                } else {
-                    passwordField.type = 'password';
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                }
-            });
-        }
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordField = document.getElementById('password');
+            const icon = this.querySelector('i');
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
         
-        const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
-        if (toggleConfirmPassword) {
-            toggleConfirmPassword.addEventListener('click', function() {
-                const confirmField = document.getElementById('confirm_password');
-                const icon = this.querySelector('i');
-                if (confirmField.type === 'password') {
-                    confirmField.type = 'text';
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                } else {
-                    confirmField.type = 'password';
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                }
-            });
-        }
+        document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+            const confirmField = document.getElementById('confirm_password');
+            const icon = this.querySelector('i');
+            if (confirmField.type === 'password') {
+                confirmField.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                confirmField.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
         
         // Password strength checker
         const passwordField = document.getElementById('password');
@@ -1701,14 +1626,6 @@ function getOtherStaff($pdo, $current_user_id) {
         // Initialize Bootstrap tabs
         const tabEl = document.querySelectorAll('button[data-bs-toggle="tab"]');
         tabEl.forEach(tab => {
-            // Manually initialize Bootstrap tabs
-            const tabTrigger = new bootstrap.Tab(tab);
-            
-            tab.addEventListener('click', function (e) {
-                e.preventDefault();
-                tabTrigger.show();
-            });
-            
             tab.addEventListener('shown.bs.tab', function (event) {
                 // Save active tab to localStorage
                 localStorage.setItem('activeEditTab', event.target.id);
@@ -1720,8 +1637,7 @@ function getOtherStaff($pdo, $current_user_id) {
         if (activeTab) {
             const tabElement = document.getElementById(activeTab);
             if (tabElement) {
-                const tabTrigger = new bootstrap.Tab(tabElement);
-                tabTrigger.show();
+                new bootstrap.Tab(tabElement).show();
             }
         }
         
