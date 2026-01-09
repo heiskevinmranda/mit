@@ -72,16 +72,23 @@ try {
     $is_creator = ($current_user['id'] == $ticket['created_by']);
     $is_admin_or_manager = (isAdmin() || isManager());
     
-    // Check if user is assigned to the ticket
+    // Check if user is assigned to the ticket (either as primary assignee or in ticket_assignees)
     $is_assigned = false;
     if (isset($current_user['staff_profile']['id'])) {
+        $staff_id = $current_user['staff_profile']['id'];
+        // Check if user is in ticket_assignees table
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count FROM ticket_assignees 
             WHERE ticket_id = ? AND staff_id = ?
         ");
-        $stmt->execute([$ticket_id, $current_user['staff_profile']['id']]);
+        $stmt->execute([$ticket_id, $staff_id]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $is_assigned = ($result['count'] > 0);
+        
+        // Also check if user is the primary assignee
+        if (!$is_assigned && $ticket['assigned_to'] == $staff_id) {
+            $is_assigned = true;
+        }
     }
     
     if (!$is_creator && !$is_admin_or_manager && !$is_assigned) {
@@ -702,6 +709,20 @@ function formatDuration($minutes) {
                 <div class="info-item">
                     <span class="info-label">Closed</span>
                     <span class="info-value"><?php echo date('M j, Y g:i A', strtotime($ticket['closed_at'])); ?></span>
+                </div>
+                <?php endif; ?>
+                
+                <?php if ($ticket['requested_by']): ?>
+                <div class="info-item">
+                    <span class="info-label">Requested By</span>
+                    <span class="info-value"><?php echo htmlspecialchars($ticket['requested_by']); ?></span>
+                </div>
+                <?php endif; ?>
+                
+                <?php if ($ticket['requested_by_email']): ?>
+                <div class="info-item">
+                    <span class="info-label">Requester Email</span>
+                    <span class="info-value"><?php echo htmlspecialchars($ticket['requested_by_email']); ?></span>
                 </div>
                 <?php endif; ?>
             </div>

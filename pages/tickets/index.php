@@ -50,13 +50,14 @@ $params = [];
 
 // Apply filters based on user role
 if (!isManager() && !isAdmin()) {
-    // Regular staff can only see tickets assigned to them or created by them
+    // Regular staff can only see tickets assigned to them (primary or in ticket_assignees), or created by them
     $staff_id = $current_user['staff_profile']['id'] ?? 0;
     if ($staff_id) {
-        $query .= " AND (t.assigned_to = ? OR t.created_by = ? OR 
+        $query .= " AND (t.created_by = ? OR 
+                t.assigned_to = ? OR 
                 EXISTS (SELECT 1 FROM ticket_assignees ta WHERE ta.ticket_id = t.id AND ta.staff_id = ?))";
-        $params[] = $staff_id;
         $params[] = $current_user['id'];
+        $params[] = $staff_id;
         $params[] = $staff_id;
     } else {
         // If no staff profile, show only tickets created by user

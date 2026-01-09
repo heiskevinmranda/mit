@@ -43,7 +43,9 @@ $form_data = [
     'work_start_time' => $_POST['work_start_time'] ?? '',
     'work_pattern' => $_POST['work_pattern'] ?? 'single',
     'expected_days' => $_POST['expected_days'] ?? 1,
-    'work_days' => $_POST['work_days'] ?? [['date' => date('Y-m-d'), 'start' => '09:00', 'end' => '17:00', 'desc' => '', 'staff_id' => '']]
+    'work_days' => $_POST['work_days'] ?? [['date' => date('Y-m-d'), 'start' => '09:00', 'end' => '17:00', 'desc' => '', 'staff_id' => '']],
+    'requested_by' => $_POST['requested_by'] ?? '',
+    'requested_by_email' => $_POST['requested_by_email'] ?? ''
 ];
 
 // Get clients for dropdown
@@ -117,20 +119,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'status' => 'Open',
             'created_by' => $created_by,
             'estimated_hours' => !empty($_POST['estimated_hours']) ? $_POST['estimated_hours'] : null,
-            'work_start_time' => !empty($_POST['work_start_time']) ? $_POST['work_start_time'] : null
+            'work_start_time' => !empty($_POST['work_start_time']) ? $_POST['work_start_time'] : null,
+            'requested_by' => !empty($_POST['requested_by']) ? $_POST['requested_by'] : null,
+            'requested_by_email' => !empty($_POST['requested_by_email']) ? $_POST['requested_by_email'] : null
         ];
         
         // Start transaction
         $pdo->beginTransaction();
         
         // Insert ticket and RETURN the UUID
-        $stmt = $pdo->prepare("
-            INSERT INTO tickets (
+        $stmt = $pdo->prepare(
+            "INSERT INTO tickets (
                 ticket_number, title, description, client_id, location_id, location_manual,
-                category, priority, status, created_by, estimated_hours, work_start_time
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            RETURNING id
-        ");
+                category, priority, status, created_by, estimated_hours, work_start_time,
+                requested_by, requested_by_email
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING id"
+        );
         
         $stmt->execute([
             $ticket_data['ticket_number'],
@@ -144,7 +149,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ticket_data['status'],
             $ticket_data['created_by'],
             $ticket_data['estimated_hours'],
-            $ticket_data['work_start_time']
+            $ticket_data['work_start_time'],
+                        $ticket_data['requested_by'],
+                        $ticket_data['requested_by_email']
         ]);
         
         // Get the UUID from the RETURNING clause
@@ -956,6 +963,26 @@ function calculateHours($start_time, $end_time) {
                                         }
                                         ?>
                                     </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="requested_by" class="form-label">Requested By</label>
+                                    <input type="text" class="form-control" id="requested_by" name="requested_by" 
+                                           value="<?php echo htmlspecialchars($form_data['requested_by'] ?? ''); ?>"
+                                           placeholder="Name of person requesting the ticket">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="requested_by_email" class="form-label">Requester Email (Optional)</label>
+                                    <input type="email" class="form-control" id="requested_by_email" name="requested_by_email" 
+                                           value="<?php echo htmlspecialchars($form_data['requested_by_email'] ?? ''); ?>"
+                                           placeholder="Email of person requesting the ticket">
                                 </div>
                             </div>
                         </div>
