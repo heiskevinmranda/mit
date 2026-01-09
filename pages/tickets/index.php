@@ -118,19 +118,6 @@ $total_pages = ceil($total / $limit);
 
 // ========== GET TICKETS ==========
 $query .= " ORDER BY 
-            CASE t.priority 
-                WHEN 'Critical' THEN 1 
-                WHEN 'High' THEN 2 
-                WHEN 'Medium' THEN 3 
-                WHEN 'Low' THEN 4 
-                ELSE 5 
-            END,
-            CASE 
-                WHEN t.sla_breach_time IS NOT NULL AND t.sla_breach_time < NOW() THEN 0
-                WHEN t.sla_breach_time IS NOT NULL THEN 1
-                ELSE 2
-            END,
-            t.sla_breach_time ASC,
             t.created_at DESC 
             LIMIT ? OFFSET ?";
 
@@ -395,14 +382,26 @@ $flash = getFlashMessage();
                     <a href="<?php echo route('tickets.create'); ?>" class="btn btn-primary">
                         <i class="fas fa-plus"></i> New Ticket
                     </a>
+                    <?php
+// Build filter query string for export links
+$export_filter_params = [];
+if ($status && $status !== 'all') $export_filter_params['status'] = $status;
+if ($priority && $priority !== 'all') $export_filter_params['priority'] = $priority;
+if ($assigned_to && $assigned_to !== 'all') $export_filter_params['assigned_to'] = $assigned_to;
+if ($client_id && $client_id !== 'all') $export_filter_params['client_id'] = $client_id;
+if ($category && $category !== 'all') $export_filter_params['category'] = $category;
+if ($search) $export_filter_params['search'] = $search;
+
+$export_filters = !empty($export_filter_params) ? '?' . http_build_query($export_filter_params) : '';
+?>
                     <div class="btn-group">
                         <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-download"></i> Export
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="<?php echo route('tickets.export_bulk'); ?>?type=excel"><i class="fas fa-file-excel text-success"></i> Export as Excel</a></li>
-                            <li><a class="dropdown-item" href="<?php echo route('tickets.export_bulk'); ?>?type=csv"><i class="fas fa-file-csv text-primary"></i> Export as CSV</a></li>
-                            <li><a class="dropdown-item" href="<?php echo route('tickets.export_bulk'); ?>?type=pdf"><i class="fas fa-file-pdf text-danger"></i> Export as PDF</a></li>
+                            <li><a class="dropdown-item" href="<?php echo route('tickets.export_bulk') . $export_filters; ?>&type=excel"><i class="fas fa-file-excel text-success"></i> Export as Excel</a></li>
+                            <li><a class="dropdown-item" href="<?php echo route('tickets.export_bulk') . $export_filters; ?>&type=csv"><i class="fas fa-file-csv text-primary"></i> Export as CSV</a></li>
+                            <li><a class="dropdown-item" href="<?php echo route('tickets.export_bulk') . $export_filters; ?>&type=pdf"><i class="fas fa-file-pdf text-danger"></i> Export as PDF</a></li>
                         </ul>
                     </div>
                 </div>

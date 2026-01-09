@@ -49,6 +49,7 @@ RewriteRule ^tickets/view/(.*)$ pages/tickets/view.php?id=$1 [L]
 RewriteRule ^tickets/delete$ pages/tickets/delete.php [L]
 RewriteRule ^tickets/delete/(.*)$ pages/tickets/delete.php?id=$1 [L]
 RewriteRule ^tickets/export$ pages/tickets/export.php [L]
+RewriteRule ^tickets/export-bulk$ pages/tickets/export_bulk.php [L]
 RewriteRule ^tickets/work-log$ pages/tickets/work_log.php [L]
 RewriteRule ^tickets/simple$ pages/tickets/simple.php [L]
 
