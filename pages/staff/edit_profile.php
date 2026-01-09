@@ -1,5 +1,12 @@
 <?php
 require_once '../../includes/auth.php';
+
+// Define generateStaffId as a closure to ensure it's available
+$generateStaffId = function() {
+    // Generate a unique staff ID (e.g., STAFF + timestamp + random)
+    return 'STAFF' . date('Ymd') . rand(1000, 9999);
+};
+
 require_once '../../includes/routes.php';
 requireLogin();
 
@@ -24,7 +31,7 @@ if (!$staff) {
     $staff = [
         'id' => null,
         'user_id' => $current_user['id'],
-        'staff_id' => '',
+        'staff_id' => $generateStaffId(),
         'full_name' => $current_user['email'],
         'phone_number' => '',
         'official_email' => $user['email'] ?? $current_user['email'],
@@ -55,6 +62,7 @@ $success = false;
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
+    $staff_id = trim($_POST['staff_id'] ?? '');
     $full_name = trim($_POST['full_name'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $official_email = trim($_POST['official_email'] ?? '');
@@ -111,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // If no errors, update user
+// If no errors, update user
     if (empty($errors)) {
         try {
             $pdo->beginTransaction();
@@ -138,24 +146,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     current_address = ?,
                                     emergency_contact_name = ?,
                                     emergency_contact_number = ?,
+                                    staff_id = ?,
                                     updated_at = NOW()
                                     WHERE user_id = ?";
                 $staffUpdateStmt = $pdo->prepare($staffUpdateQuery);
                 $staffUpdateStmt->execute([
                     $full_name, $phone, $official_email, $personal_email,
                     $alternate_phone, $current_address, $emergency_contact_name,
-                    $emergency_contact_number, $current_user['id']
+                    $emergency_contact_number, $staff_id ?: $generateStaffId(), $current_user['id']
                 ]);
             } else {
                 // Create new staff profile
                 $staffInsertQuery = "INSERT INTO staff_profiles 
-                                    (user_id, full_name, phone_number, official_email,
+                                    (user_id, staff_id, full_name, phone_number, official_email,
                                      personal_email, alternate_phone, current_address,
                                      emergency_contact_name, emergency_contact_number, created_at, updated_at) 
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
                 $staffInsertStmt = $pdo->prepare($staffInsertQuery);
                 $staffInsertStmt->execute([
-                    $current_user['id'], $full_name, $phone, $official_email,
+                    $current_user['id'], $staff_id ?: $generateStaffId(), $full_name, $phone, $official_email,
                     $personal_email, $alternate_phone, $current_address,
                     $emergency_contact_name, $emergency_contact_number
                 ]);
@@ -173,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $_SESSION['success'] = "Profile updated successfully!";
             // Redirect to profile page
-            header("Location: profile.php");
+            header("Location: " . route('staff.profile'));
             exit();
 
         } catch (PDOException $e) {
@@ -379,6 +388,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php if (isset($errors['email'])): ?>
                             <div class="invalid-feedback"><?= htmlspecialchars($errors['email']) ?></div>
                             <?php endif; ?>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="staff_id" class="form-label">Staff ID</label>
+                            <input type="text" class="form-control" 
+                                   id="staff_id" name="staff_id" value="<?= htmlspecialchars($staff['staff_id'] ?? '') ?>" 
+                                   placeholder="Staff ID" readonly>
+                            <small class="text-muted">Staff ID is automatically generated and cannot be changed.</small>
                         </div>
                         
                         <div class="mb-3">

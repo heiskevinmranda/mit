@@ -19,29 +19,31 @@ $stmt = $pdo->prepare("    SELECT sp.*, u.email as login_email,
 $stmt->execute([$current_user['id']]);
 $staff = $stmt->fetch();
 
-if (!$staff) {
-    // Show message if profile doesn't exist
-    $_SESSION['error'] = "You don't have a staff profile yet. Please contact your administrator to create one.";
-    header('Location: ' . route('dashboard'));
-    exit;
-}
+// Don't redirect if staff profile doesn't exist - allow access to profile page
+// If profile doesn't exist, we'll show an incomplete profile message and direct to edit
+$is_profile_complete = $staff !== false;
 
 // Get assigned tickets
-$stmt = $pdo->prepare("    SELECT COUNT(*) as total_tickets 
-    FROM tickets 
-    WHERE assigned_to = ?");
-$stmt->execute([$staff['id']]);
-$ticket_count = $stmt->fetch()['total_tickets'];
+$ticket_count = 0;
+$completed_this_month = 0;
 
-// Get completed tickets this month
-$stmt = $pdo->prepare("    SELECT COUNT(*) as completed_tickets 
-    FROM tickets 
-    WHERE assigned_to = ? 
-    AND status = 'Closed' 
-    AND EXTRACT(MONTH FROM closed_at) = EXTRACT(MONTH FROM CURRENT_DATE)
-    AND EXTRACT(YEAR FROM closed_at) = EXTRACT(YEAR FROM CURRENT_DATE)");
-$stmt->execute([$staff['id']]);
-$completed_this_month = $stmt->fetch()['completed_tickets'];
+if ($is_profile_complete && isset($staff['id'])) {
+    $stmt = $pdo->prepare("    SELECT COUNT(*) as total_tickets 
+        FROM tickets 
+        WHERE assigned_to = ?");
+    $stmt->execute([$staff['id']]);
+    $ticket_count = $stmt->fetch()['total_tickets'];
+    
+    // Get completed tickets this month
+    $stmt = $pdo->prepare("    SELECT COUNT(*) as completed_tickets 
+        FROM tickets 
+        WHERE assigned_to = ? 
+        AND status = 'Closed' 
+        AND EXTRACT(MONTH FROM closed_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+        AND EXTRACT(YEAR FROM closed_at) = EXTRACT(YEAR FROM CURRENT_DATE)");
+    $stmt->execute([$staff['id']]);
+    $completed_this_month = $stmt->fetch()['completed_tickets'];
+}
 
 // Close PHP and start HTML
 ?>
@@ -192,31 +194,39 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
                 </a>
             </div>
             
+            <?php if (!$is_profile_complete): ?>
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Your profile is incomplete!</strong> Please complete your profile information.
+                <a href="<?php echo route('staff.edit_profile'); ?>" class="btn btn-sm btn-primary ms-2">Complete Profile Now</a>
+            </div>
+            <?php endif; ?>
+            
             <!-- Profile Header -->
             <div class="profile-header">
                 <div class="profile-avatar">
-                    <?php echo strtoupper(substr($staff['full_name'], 0, 1)); ?>
+                    <?php echo $is_profile_complete ? strtoupper(substr($staff['full_name'], 0, 1)) : strtoupper(substr($current_user['email'], 0, 1)); ?>
                 </div>
                 <div class="profile-info">
-                    <h1><?php echo htmlspecialchars($staff['full_name']); ?></h1>
-                    <div class="designation"><?php echo htmlspecialchars($staff['designation']); ?></div>
-                    <div class="department"><?php echo htmlspecialchars($staff['department']); ?></div>
+                    <h1><?php echo $is_profile_complete ? htmlspecialchars($staff['full_name'] ?? '') : 'Incomplete Profile'; ?></h1>
+                    <div class="designation"><?php echo $is_profile_complete ? htmlspecialchars($staff['designation'] ?? '') : 'Profile Incomplete'; ?></div>
+                    <div class="department"><?php echo $is_profile_complete ? htmlspecialchars($staff['department'] ?? '') : 'Please complete your profile'; ?></div>
                     
                     <div class="profile-stats">
                         <div class="profile-stat">
-                            <span class="number"><?php echo $ticket_count; ?></span>
+                            <span class="number"><?php echo $is_profile_complete ? $ticket_count : '0'; ?></span>
                             <span class="label">Total Tickets</span>
                         </div>
                         <div class="profile-stat">
-                            <span class="number"><?php echo $completed_this_month; ?></span>
+                            <span class="number"><?php echo $is_profile_complete ? $completed_this_month : '0'; ?></span>
                             <span class="label">Completed This Month</span>
                         </div>
                         <div class="profile-stat">
-                            <span class="number"><?php echo $staff['experience_years'] ?? '0'; ?> yrs</span>
+                            <span class="number"><?php echo $is_profile_complete ? ($staff['experience_years'] ?? '0') : '0'; ?> yrs</span>
                             <span class="label">Experience</span>
                         </div>
                         <div class="profile-stat">
-                            <span class="number">92%</span>
+                            <span class="number"><?php echo $is_profile_complete ? '92%' : 'N/A'; ?></span>
                             <span class="label">SLA Compliance</span>
                         </div>
                     </div>
@@ -231,21 +241,21 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
                             <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
                             <div class="info-row">
                                 <div class="info-label">Staff ID:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['staff_id']); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['staff_id'] ?? '') : 'N/A'; ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Email:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['login_email']); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['login_email'] ?? '') : htmlspecialchars($current_user['email']); ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Phone:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['phone_number'] ?? 'N/A'); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['phone_number'] ?? 'N/A') : 'N/A'; ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Date of Joining:</div>
                                 <div class="info-value">
                                     <?php 
-                                    if (!empty($staff['date_of_joining'])) {
+                                    if ($is_profile_complete && !empty($staff['date_of_joining'])) {
                                         echo date('F d, Y', strtotime($staff['date_of_joining'])); 
                                     } else {
                                         echo 'N/A';
@@ -255,7 +265,7 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Employment Type:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['employment_type'] ?? 'N/A'); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['employment_type'] ?? '') : 'N/A'; ?></div>
                             </div>
                         </div>
                         
@@ -264,13 +274,13 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
                             <h3><i class="fas fa-briefcase"></i> Job Information</h3>
                             <div class="info-row">
                                 <div class="info-label">Role Category:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['role_category'] ?? 'N/A'); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['role_category'] ?? '') : 'N/A'; ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Skills:</div>
                                 <div class="info-value">
                                     <?php 
-                                    if (!empty($staff['skills'])) {
+                                    if ($is_profile_complete && !empty($staff['skills'])) {
                                         $skills = json_decode($staff['skills'], true);
                                         if (is_array($skills)) {
                                             echo implode(', ', array_map('htmlspecialchars', $skills));
@@ -285,15 +295,15 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Certifications:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['certifications'] ?? 'N/A'); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['certifications'] ?? '') : 'N/A'; ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Service Area:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['service_area'] ?? 'N/A'); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['service_area'] ?? '') : 'N/A'; ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">On-call Support:</div>
-                                <div class="info-value"><?php echo $staff['on_call_support'] ? 'Yes' : 'No'; ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? ($staff['on_call_support'] ? 'Yes' : 'No') : 'N/A'; ?></div>
                             </div>
                         </div>
                     </div>
@@ -304,28 +314,28 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
                             <h3><i class="fas fa-address-card"></i> Contact Information</h3>
                             <div class="info-row">
                                 <div class="info-label">Official Email:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['official_email'] ?? $staff['login_email']); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['official_email'] ?? $staff['login_email'] ?? '') : htmlspecialchars($current_user['email']); ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Personal Email:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['personal_email'] ?? 'N/A'); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['personal_email'] ?? '') : 'N/A'; ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Alternate Phone:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['alternate_phone'] ?? 'N/A'); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['alternate_phone'] ?? '') : 'N/A'; ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Emergency Contact:</div>
                                 <div class="info-value">
-                                    <?php echo htmlspecialchars($staff['emergency_contact_name'] ?? 'N/A'); ?>
-                                    <?php if (!empty($staff['emergency_contact_number'])): ?>
-                                        (<?php echo htmlspecialchars($staff['emergency_contact_number']); ?>)
+                                    <?php echo $is_profile_complete ? htmlspecialchars($staff['emergency_contact_name'] ?? '') : 'N/A'; ?>
+                                    <?php if ($is_profile_complete && !empty($staff['emergency_contact_number'])): ?>
+                                        (<?php echo htmlspecialchars($staff['emergency_contact_number'] ?? ''); ?>)
                                     <?php endif; ?>
                                 </div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Current Address:</div>
-                                <div class="info-value"><?php echo nl2br(htmlspecialchars($staff['current_address'] ?? 'N/A')); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? nl2br(htmlspecialchars($staff['current_address'] ?? '')) : 'N/A'; ?></div>
                             </div>
                         </div>
                         
@@ -334,7 +344,7 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
                             <h3><i class="fas fa-laptop"></i> System Access</h3>
                             <div class="info-row">
                                 <div class="info-label">Username:</div>
-                                <div class="info-value"><?php echo htmlspecialchars($staff['username'] ?? $current_user['email']); ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['username'] ?? $current_user['email']) : htmlspecialchars($current_user['email']); ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">User Role:</div>
@@ -350,22 +360,22 @@ $completed_this_month = $stmt->fetch()['completed_tickets'];
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Company Laptop:</div>
-                                <div class="info-value"><?php echo $staff['company_laptop_issued'] ? 'Yes' : 'No'; ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? ($staff['company_laptop_issued'] ? 'Yes' : 'No') : 'N/A'; ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">VPN Access:</div>
-                                <div class="info-value"><?php echo $staff['vpn_access'] ? 'Yes' : 'No'; ?></div>
+                                <div class="info-value"><?php echo $is_profile_complete ? ($staff['vpn_access'] ? 'Yes' : 'No') : 'N/A'; ?></div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Reporting Manager:</div>
                                 <div class="info-value">
-                                    <?php if (!empty($staff['reporting_manager_name'])): ?>
-                                        <?php echo htmlspecialchars($staff['reporting_manager_name']); ?>
+                                    <?php if ($is_profile_complete && !empty($staff['reporting_manager_name'])): ?>
+                                        <?php echo htmlspecialchars($staff['reporting_manager_name'] ?? ''); ?>
                                         <?php if (!empty($staff['reporting_manager_designation'])): ?>
-                                            <br><small><?php echo htmlspecialchars($staff['reporting_manager_designation']); ?></small>
+                                            <br><small><?php echo htmlspecialchars($staff['reporting_manager_designation'] ?? ''); ?></small>
                                         <?php endif; ?>
                                     <?php else: ?>
-                                        Not assigned
+                                        <?php echo $is_profile_complete ? 'Not assigned' : 'N/A'; ?>
                                     <?php endif; ?>
                                 </div>
                             </div>
