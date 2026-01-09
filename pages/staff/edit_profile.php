@@ -412,7 +412,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="phone" class="form-label">Phone Number</label>
                             <input type="tel" class="form-control" 
                                    id="phone" name="phone" value="<?= htmlspecialchars($phone) ?>" 
-                                   placeholder="+1 (555) 123-4567">
+                                   placeholder="+255 xxx xxx xxx">
                         </div>
                     </div>
                     
@@ -443,7 +443,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="tel" class="form-control" 
                                    id="alternate_phone" name="alternate_phone" 
                                    value="<?= htmlspecialchars($alternate_phone) ?>" 
-                                   placeholder="+1 (555) 987-6543">
+                                   placeholder="+255 xxx xxx xxx">
                         </div>
                     </div>
                 </div>
@@ -483,7 +483,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="tel" class="form-control" 
                                    id="emergency_contact_number" name="emergency_contact_number" 
                                    value="<?= htmlspecialchars($emergency_contact_number) ?>" 
-                                   placeholder="+1 (555) 111-2222">
+                                   placeholder="+255 xxx xxx xxx">
                         </div>
                     </div>
                     
