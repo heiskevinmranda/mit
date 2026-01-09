@@ -186,8 +186,22 @@ try {
         $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
-    // Get staff members for assignment
-    $stmt = $pdo->query("SELECT id, full_name FROM staff_profiles WHERE employment_status = 'Active' ORDER BY full_name");
+    // Get staff members for assignment - prioritize those with complete profiles
+    $stmt = $pdo->query("
+        SELECT 
+            COALESCE(sp.id, u.id) as id,
+            CASE 
+                WHEN sp.full_name IS NOT NULL AND sp.full_name != '' THEN sp.full_name
+                ELSE CONCAT(u.email, ' (Profile Incomplete)')
+            END as full_name,
+            CASE WHEN sp.full_name IS NULL OR sp.full_name = '' THEN 1 ELSE 0 END as needs_profile
+        FROM users u
+        LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+        WHERE u.user_type IN ('super_admin', 'admin', 'manager', 'support_tech', 'staff', 'engineer')
+          AND u.is_active = true
+          AND (sp.employment_status = 'Active' OR sp.id IS NULL)
+        ORDER BY needs_profile ASC, full_name ASC
+    ");
     $staff_members = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get all locations
@@ -1163,10 +1177,17 @@ function calculateHours($start_time, $end_time) {
                                         </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <?php if (empty($staff_members)): ?>
+                                    <div class="text-danger small mt-1">
+                                        <i class="fas fa-exclamation-triangle"></i> 
+                                        No active staff members found. Please ensure staff profiles are created and marked as 'Active'.
+                                    </div>
+                                    <?php else: ?>
                                     <div class="text-muted small mt-1">
                                         <i class="fas fa-info-circle"></i> 
                                         Hold Ctrl (or Cmd on Mac) to select multiple staff members. First selected will be primary.
                                     </div>
+                                    <?php endif; ?>
                                     <div class="selected-assignees mt-2" id="selectedAssignees">
                                         <!-- Selected assignees will appear here -->
                                     </div>
@@ -2183,7 +2204,7 @@ function calculateHours($start_time, $end_time) {
             fileList.innerHTML = '<div class="text-muted text-center py-3">No new files selected</div>';
         }
         
-        // Update selected assignees display
+        // Update selected assignees display on page load
         updateSelectedAssignees();
         
         // Listen for changes in assignee selection

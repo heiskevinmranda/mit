@@ -1,9 +1,10 @@
 <?php
-// pages/tickets/index.php - ENHANCED VERSION
+// pages/tickets/index.php - FIXED VERSION
 
 // Include authentication
 require_once '../../includes/auth.php';
 require_once '../../includes/permissions.php';
+require_once '../../includes/routes.php'; // Include routes if route() function is defined there
 
 // Check if user is logged in
 requireLogin();
@@ -76,8 +77,12 @@ if ($priority && $priority !== 'all') {
 }
 
 if ($assigned_to && $assigned_to !== 'all') {
-    $query .= " AND t.assigned_to = ?";
-    $params[] = $assigned_to;
+    if ($assigned_to === 'unassigned') {
+        $query .= " AND t.assigned_to IS NULL";
+    } else {
+        $query .= " AND t.assigned_to = ?";
+        $params[] = $assigned_to;
+    }
 }
 
 if ($client_id && $client_id !== 'all') {
@@ -106,6 +111,7 @@ try {
     $total = $stmt->fetch()['total'];
 } catch (Exception $e) {
     $total = 0;
+    $error = "Error counting tickets: " . $e->getMessage();
 }
 
 $total_pages = ceil($total / $limit);
@@ -146,9 +152,25 @@ $staff_members = [];
 $categories = [];
 
 try {
+    // Get staff members for filter - EXACT COPY FROM edit.php
+    $staff_members = $pdo->query("
+        SELECT 
+            COALESCE(sp.id, u.id) as id,
+            CASE 
+                WHEN sp.full_name IS NOT NULL AND sp.full_name != '' THEN sp.full_name
+                ELSE CONCAT(u.email, ' (Profile Incomplete)')
+            END as full_name,
+            CASE WHEN sp.full_name IS NULL OR sp.full_name = '' THEN 1 ELSE 0 END as needs_profile
+        FROM users u
+        LEFT JOIN staff_profiles sp ON sp.user_id = u.id
+        WHERE u.user_type IN ('super_admin', 'admin', 'manager', 'support_tech', 'staff', 'engineer')
+          AND u.is_active = true
+          AND (sp.employment_status = 'Active' OR sp.id IS NULL)
+        ORDER BY needs_profile ASC, full_name ASC
+    ")->fetchAll();
+    
     if (isManager() || isAdmin()) {
         $clients = $pdo->query("SELECT id, company_name FROM clients ORDER BY company_name")->fetchAll();
-        $staff_members = $pdo->query("SELECT id, full_name FROM staff_profiles WHERE employment_status = 'Active' ORDER BY full_name")->fetchAll();
     }
     
     // Get all unique categories
@@ -157,7 +179,7 @@ try {
         $categories[] = $cat['category'];
     }
 } catch (Exception $e) {
-    // Ignore errors for filter data
+    $error = "Error loading filter data: " . $e->getMessage();
 }
 
 // Function to calculate SLA status
@@ -196,15 +218,15 @@ function getPriorityHours($priority) {
 
 // Function to format time difference
 function formatTimeDiff($date1, $date2 = null) {
-    if (!$date2) {
-        $date2 = new DateTime();
-    }
+    if (!$date1) return 'N/A';
     
     if (!($date1 instanceof DateTime)) {
         $date1 = new DateTime($date1);
     }
     
-    if (!($date2 instanceof DateTime)) {
+    if (!$date2) {
+        $date2 = new DateTime();
+    } elseif (!($date2 instanceof DateTime)) {
         $date2 = new DateTime($date2);
     }
     
@@ -218,6 +240,9 @@ function formatTimeDiff($date1, $date2 = null) {
         return $diff->i . 'm';
     }
 }
+
+// Get flash message (function is in auth.php)
+$flash = getFlashMessage();
 ?>
 
 <!DOCTYPE html>
@@ -359,7 +384,7 @@ function formatTimeDiff($date1, $date2 = null) {
 </head>
 <body>
     <div class="dashboard-container">
-            <!-- Sidebar -->
+        <!-- Sidebar -->
         <?php include '../../includes/sidebar.php'; ?>
         
         <!-- Main Content -->
@@ -384,10 +409,7 @@ function formatTimeDiff($date1, $date2 = null) {
             </div>
             
             <!-- Flash Messages -->
-            <?php 
-            $flash = getFlashMessage();
-            if ($flash): 
-            ?>
+            <?php if ($flash): ?>
             <div class="alert alert-<?php echo $flash['type']; ?> alert-dismissible fade show">
                 <i class="fas fa-<?php echo $flash['type'] == 'success' ? 'check-circle' : 'exclamation-circle'; ?>"></i>
                 <?php echo htmlspecialchars($flash['message']); ?>
@@ -513,20 +535,28 @@ function formatTimeDiff($date1, $date2 = null) {
                         </select>
                     </div>
                     
-                    <?php if (isManager() || isAdmin()): ?>
+                    <!-- UPDATED: Assigned To dropdown matching edit.php -->
                     <div class="col-md-2">
                         <label class="form-label"><i class="fas fa-user"></i> Assigned To</label>
                         <select name="assigned_to" class="form-select">
                             <option value="all">All Staff</option>
+                            <option value="unassigned" <?php echo $assigned_to == 'unassigned' ? 'selected' : ''; ?>>Unassigned</option>
                             <?php foreach ($staff_members as $staff): ?>
-                            <option value="<?php echo $staff['id']; ?>" 
+                            <option value="<?php echo htmlspecialchars($staff['id']); ?>" 
                                     <?php echo $assigned_to == $staff['id'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($staff['full_name']); ?>
                             </option>
                             <?php endforeach; ?>
                         </select>
+                        <?php if (empty($staff_members)): ?>
+                        <div class="text-danger small mt-1">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            No active staff members found. Please ensure staff profiles are created and marked as 'Active'.
+                        </div>
+                        <?php endif; ?>
                     </div>
                     
+                    <?php if (isManager() || isAdmin()): ?>
                     <div class="col-md-2">
                         <label class="form-label"><i class="fas fa-building"></i> Client</label>
                         <select name="client_id" class="form-select">
@@ -817,18 +847,6 @@ function formatTimeDiff($date1, $date2 = null) {
                 if (!e.target.closest('a') && !e.target.closest('button')) {
                     window.location = this.querySelector('a.btn-info').href;
                 }
-            });
-        });
-        
-        // Quick status update
-        document.querySelectorAll('.status-badge').forEach(badge => {
-            badge.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const ticketId = this.dataset.ticketId;
-                const currentStatus = this.dataset.status;
-                
-                // Show status change modal or dropdown
-                console.log('Change status for ticket', ticketId, 'from', currentStatus);
             });
         });
     </script>

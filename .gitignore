@@ -1,0 +1,26 @@
+# Backup files
+*- Copy.php
+*.bak
+*.backup
+*.tmp
+*.temp
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
+
+# Log files
+*.log
+logs/
+
+# Temporary upload directories (if needed)
+uploads/temp/
