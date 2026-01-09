@@ -481,7 +481,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['success_message'] = $success_msg;
         
         // Redirect to ticket view
-        header('Location: view.php?id=' . $ticket_id);
+        header('Location: ' . route('tickets.view', ['id' => $ticket_id]));
         exit;
         
     } catch (Exception $e) {

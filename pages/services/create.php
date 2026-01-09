@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'message' => 'Service added successfully!'
             ];
             
-            header('Location: view.php?id=' . urlencode($service_id));
+            header('Location: ' . route('services.view', ['id' => $service_id]));
             exit;
             
         } catch (Exception $e) {

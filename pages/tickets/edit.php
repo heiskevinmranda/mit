@@ -547,7 +547,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
         $_SESSION['success_message'] = $success_msg;
         
         // Redirect to ticket view
-        header('Location: view.php?id=' . $ticket_id);
+        header('Location: ' . route('tickets.view', ['id' => $ticket_id]));
         exit;
         
     } catch (Exception $e) {
@@ -977,7 +977,7 @@ function calculateHours($start_time, $end_time) {
         <main class="main-content">
             <div class="header">
                 <h1><i class="fas fa-edit"></i> Edit Ticket #<?php echo htmlspecialchars($ticket['ticket_number'] ?? ''); ?></h1>
-                <a href="view.php?id=<?php echo $ticket_id; ?>" class="btn btn-secondary">
+                <?php $view_url = route('tickets.view', ['id' => $ticket_id]); ?><a href="<?php echo $view_url; ?>" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Ticket
                 </a>
             </div>
@@ -2165,7 +2165,7 @@ function calculateHours($start_time, $end_time) {
         // Confirm cancel
         function confirmCancel() {
             if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
-                window.location.href = 'view.php?id=<?php echo $ticket_id; ?>';
+                window.location.href = '<?php echo route('tickets.view', ['id' => $ticket_id]); ?>';
             }
         }
         

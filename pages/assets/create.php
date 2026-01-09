@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
             
             // Redirect to view page or index
-            header('Location: view.php?id=' . urlencode($asset_id));
+            header('Location: ' . route('assets.view', ['id' => $asset_id]));
             exit;
             
         } catch (Exception $e) {

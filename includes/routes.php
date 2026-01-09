@@ -21,17 +21,17 @@ class RouteManager
         // User management routes
         'users.index' => '/users',
         'users.create' => '/users/create',
-        'users.edit' => '/users/edit',
-        'users.view' => '/users/view',
-        'users.delete' => '/users/delete',
+        'users.edit' => '/users/edit/{id}',
+        'users.view' => '/users/view/{id}',
+        'users.delete' => '/users/delete/{id}',
         'users.batch_create' => '/users/batch-create',
         
         // Client management routes
         'clients.index' => '/clients',
         'clients.create' => '/clients/create',
-        'clients.edit' => '/clients/edit',
-        'clients.view' => '/clients/view',
-        'clients.delete' => '/clients/delete',
+        'clients.edit' => '/clients/edit/{id}',
+        'clients.view' => '/clients/view/{id}',
+        'clients.delete' => '/clients/delete/{id}',
         'clients.add_location' => '/clients/add-location',
         'clients.locations' => '/clients/locations',
         'clients.add_asset' => '/clients/add-asset',
@@ -41,9 +41,9 @@ class RouteManager
         // Ticket management routes
         'tickets.index' => '/tickets',
         'tickets.create' => '/tickets/create',
-        'tickets.edit' => '/tickets/edit',
-        'tickets.view' => '/tickets/view',
-        'tickets.delete' => '/tickets/delete',
+        'tickets.edit' => '/tickets/edit/{id}',
+        'tickets.view' => '/tickets/view/{id}',
+        'tickets.delete' => '/tickets/delete/{id}',
         'tickets.export' => '/tickets/export',
         'tickets.export_bulk' => '/tickets/export-bulk',
         'tickets.work_log' => '/tickets/work-log',
@@ -52,9 +52,9 @@ class RouteManager
         // Inventory management routes
         'assets.index' => '/inventory',
         'assets.create' => '/inventory/create',
-        'assets.edit' => '/inventory/edit',
-        'assets.view' => '/inventory/view',
-        'assets.delete' => '/inventory/delete',
+        'assets.edit' => '/inventory/edit/{id}',
+        'assets.view' => '/inventory/view/{id}',
+        'assets.delete' => '/inventory/delete/{id}',
         'assets.import' => '/inventory/import',
         'assets.reports' => '/inventory/reports',
         'assets.preview' => '/inventory/preview',
@@ -62,8 +62,9 @@ class RouteManager
         // Service management routes
         'services.index' => '/services',
         'services.create' => '/services/create',
-        'services.edit' => '/services/edit',
-        'services.view' => '/services/view',
+        'services.edit' => '/services/edit/{id}',
+        'services.view' => '/services/view/{id}',
+        'services.delete' => '/services/delete/{id}',
         'services.renewals' => '/services/renewals',
         'services.export' => '/services/export',
         'services.catalog' => '/services/catalog',
@@ -71,8 +72,9 @@ class RouteManager
         // Contract management routes
         'contracts.index' => '/contracts',
         'contracts.create' => '/contracts/create',
-        'contracts.edit' => '/contracts/edit',
-        'contracts.view' => '/contracts/view',
+        'contracts.edit' => '/contracts/edit/{id}',
+        'contracts.view' => '/contracts/view/{id}',
+        'contracts.delete' => '/contracts/delete/{id}',
         'contracts.renewals' => '/contracts/renewals',
         
         // Report routes
@@ -112,20 +114,20 @@ class RouteManager
         
         // Process parameters if provided
         if (!empty($params)) {
+            $used_params = [];
             foreach ($params as $key => $value) {
-                $url = str_replace('{' . $key . '}', $value, $url);
-            }
-            
-            // If there are remaining parameters, append them as query string
-            $query_params = [];
-            foreach ($params as $key => $value) {
-                if (strpos($url, '{' . $key . '}') === false) {
-                    $query_params[$key] = $value;
+                $placeholder = '{' . $key . '}';
+                if (strpos($url, $placeholder) !== false) {
+                    $url = str_replace($placeholder, $value, $url);
+                    $used_params[$key] = $value;
                 }
             }
             
-            if (!empty($query_params)) {
-                $url .= '?' . http_build_query($query_params);
+            // If there are remaining parameters, append them as query string
+            $unused_params = array_diff_key($params, $used_params);
+            
+            if (!empty($unused_params)) {
+                $url .= '?' . http_build_query($unused_params);
             }
         }
         

@@ -107,7 +107,8 @@ try {
     $total_logged_hours = array_sum(array_column($work_logs, 'total_hours'));
     
 } catch (Exception $e) {
-    header('Location: view.php?id=' . $ticket_id . '&error=' . urlencode($e->getMessage()));
+    $redirect_url = route('tickets.view', ['id' => $ticket_id]) . '&error=' . urlencode($e->getMessage());
+                header('Location: ' . $redirect_url);
     exit;
 }
 
@@ -1293,5 +1294,5 @@ elseif ($export_type === 'print') {
 }
 
 // If no valid export type, redirect back to view
-header('Location: view.php?id=' . $ticket_id);
+header('Location: ' . route('tickets.view', ['id' => $ticket_id]));
 exit;

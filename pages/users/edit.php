@@ -459,7 +459,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($is_self) {
                 header("Location: ../staff/profile.php");
             } else {
-                header("Location: view.php?id=$user_id");
+                header('Location: ' . route('users.view', ['id' => $user_id]));
             }
             exit();
             

@@ -314,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->commit();
             
             $_SESSION['success'] = "Client '{$form_data['company_name']}' updated successfully!";
-            header("Location: view.php?id=$client_id");
+            header('Location: ' . route('clients.view', ['id' => $client_id]));
             exit();
             
         } catch (PDOException $e) {
