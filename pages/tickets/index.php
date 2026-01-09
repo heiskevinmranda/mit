@@ -26,8 +26,13 @@ $client_id = $_GET['client_id'] ?? '';
 $category = $_GET['category'] ?? '';
 $search = $_GET['search'] ?? '';
 $page = $_GET['page'] ?? 1;
-$limit = 15;
-$offset = ($page - 1) * $limit;
+$page_size = $_GET['page_size'] ?? 15;
+
+// Validate page_size to prevent malicious input
+$valid_page_sizes = [5, 10, 15, 20, 25, 50, 100];
+$page_size = in_array($page_size, $valid_page_sizes) ? (int)$page_size : 15;
+
+$offset = ($page - 1) * $page_size;
 
 // ========== BUILD QUERY ==========
 $query = "SELECT 
@@ -115,14 +120,14 @@ try {
     $error = "Error counting tickets: " . $e->getMessage();
 }
 
-$total_pages = ceil($total / $limit);
+$total_pages = ceil($total / $page_size);
 
 // ========== GET TICKETS ==========
 $query .= " ORDER BY 
             t.created_at DESC 
             LIMIT ? OFFSET ?";
 
-$params[] = $limit;
+$params[] = $page_size;
 $params[] = $offset;
 
 try {
@@ -368,6 +373,46 @@ $flash = getFlashMessage();
                 padding: 3px 6px;
             }
         }
+        
+        /* Enhanced Pagination Styles */
+        .pagination-container {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .pagination .page-link {
+            min-width: 36px;
+            text-align: center;
+            border-radius: 6px !important;
+            margin: 0 2px;
+            border: 1px solid #dee2e6;
+            transition: all 0.2s ease;
+        }
+        
+        .pagination .page-link:hover {
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-1px);
+        }
+        
+        .pagination .page-item.active .page-link {
+            background-color: #004E89;
+            border-color: #004E89;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0, 78, 137, 0.3);
+        }
+        
+        .pagination .page-item.disabled .page-link {
+            color: #6c757d;
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+        }
+        
+        .form-select-sm {
+            min-width: 80px;
+        }
     </style>
 </head>
 <body>
@@ -590,11 +635,99 @@ $export_filters = !empty($export_filter_params) ? '?' . http_build_query($export
                         <a href="<?php echo route('tickets.index'); ?>" class="btn btn-secondary">
                             <i class="fas fa-redo"></i> Reset
                         </a>
-                        <span class="text-muted ms-3">
-                            <i class="fas fa-info-circle"></i> Showing <?php echo count($tickets); ?> of <?php echo $total; ?> tickets
-                        </span>
                     </div>
                 </form>
+            </div>
+            
+            <!-- Top Pagination Controls -->
+            <div class="pagination-container mb-3 p-3 bg-light rounded">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center flex-fill flex-sm-grow-0">
+                        <label for="page_size" class="me-2 mb-0 small fw-medium">Show:</label>
+                        <select name="page_size" id="page_size" class="form-select form-select-sm me-2" onchange="changePageSize(this.value)">
+                            <option value="5" <?php echo ($page_size == 5 ? 'selected' : ''); ?>>5</option>
+                            <option value="10" <?php echo ($page_size == 10 ? 'selected' : ''); ?>>10</option>
+                            <option value="15" <?php echo ($page_size == 15 ? 'selected' : ''); ?>>15</option>
+                            <option value="20" <?php echo ($page_size == 20 ? 'selected' : ''); ?>>20</option>
+                            <option value="25" <?php echo ($page_size == 25 ? 'selected' : ''); ?>>25</option>
+                            <option value="50" <?php echo ($page_size == 50 ? 'selected' : ''); ?>>50</option>
+                            <option value="100" <?php echo ($page_size == 100 ? 'selected' : ''); ?>>100</option>
+                        </select>
+                        <span class="me-3 small text-muted">per page</span>
+                        
+                        <span class="me-3 text-nowrap">
+                            <span class="small fw-medium text-muted">Showing&nbsp;</span>
+                            <span class="fw-bold text-primary"><?php echo (($page - 1) * $page_size + 1); ?></span>
+                            <span class="small text-muted">to&nbsp;</span>
+                            <span class="fw-bold text-primary"><?php echo min($page * $page_size, $total); ?></span>
+                            <span class="small text-muted">of&nbsp;</span>
+                            <span class="fw-bold text-dark"><?php echo $total; ?></span>
+                            <span class="small text-muted">&nbsp;tickets</span>
+                        </span>
+                    </div>
+                    
+                    <?php if ($total_pages > 1): ?>
+                    <nav aria-label="Top page navigation" class="ms-auto">
+                        <ul class="pagination mb-0">
+                            <li class="page-item <?php echo $page == 1 ? 'disabled' : ''; ?>">
+                                <a class="page-link py-1 px-2" 
+                                   href="?page=<?php echo $page - 1; ?>&page_size=<?php echo $page_size; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            
+                            <?php 
+                            // Show limited pagination
+                            $start = max(1, $page - 2);
+                            $end = min($total_pages, $page + 2);
+                            
+                            if ($start > 1): ?>
+                            <li class="page-item">
+                                <a class="page-link py-1 px-2" 
+                                   href="?page=1&page_size=<?php echo $page_size; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
+                                    1
+                                </a>
+                            </li>
+                            <?php if ($start > 2): ?>
+                            <li class="page-item disabled">
+                                <span class="page-link py-1 px-2">...</span>
+                            </li>
+                            <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <?php for ($i = $start; $i <= $end; $i++): ?>
+                            <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                <a class="page-link py-1 px-2" 
+                                   href="?page=<?php echo $i; ?>&page_size=<?php echo $page_size; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
+                                    <?php echo $i; ?>
+                                </a>
+                            </li>
+                            <?php endfor; ?>
+                            
+                            <?php if ($end < $total_pages): ?>
+                            <?php if ($end < $total_pages - 1): ?>
+                            <li class="page-item disabled">
+                                <span class="page-link py-1 px-2">...</span>
+                            </li>
+                            <?php endif; ?>
+                            <li class="page-item">
+                                <a class="page-link py-1 px-2" 
+                                   href="?page=<?php echo $total_pages; ?>&page_size=<?php echo $page_size; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
+                                    <?php echo $total_pages; ?>
+                                </a>
+                            </li>
+                            <?php endif; ?>
+                            
+                            <li class="page-item <?php echo $page == $total_pages ? 'disabled' : ''; ?>">
+                                <a class="page-link py-1 px-2" 
+                                   href="?page=<?php echo $page + 1; ?>&page_size=<?php echo $page_size; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                    <?php endif; ?>
+                </div>
             </div>
             
             <!-- Tickets Table -->
@@ -762,68 +895,6 @@ $export_filters = !empty($export_filter_params) ? '?' . http_build_query($export
                         </table>
                     </div>
                     
-                    <!-- Pagination -->
-                    <?php if ($total_pages > 1): ?>
-                    <nav aria-label="Page navigation" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item <?php echo $page == 1 ? 'disabled' : ''; ?>">
-                                <a class="page-link" 
-                                   href="?page=<?php echo $page - 1; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
-                                    <i class="fas fa-chevron-left"></i>
-                                </a>
-                            </li>
-                            
-                            <?php 
-                            // Show limited pagination
-                            $start = max(1, $page - 2);
-                            $end = min($total_pages, $page + 2);
-                            
-                            if ($start > 1): ?>
-                            <li class="page-item">
-                                <a class="page-link" 
-                                   href="?page=1&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
-                                    1
-                                </a>
-                            </li>
-                            <?php if ($start > 2): ?>
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-                            <?php endif; ?>
-                            <?php endif; ?>
-                            
-                            <?php for ($i = $start; $i <= $end; $i++): ?>
-                            <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
-                                <a class="page-link" 
-                                   href="?page=<?php echo $i; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
-                                    <?php echo $i; ?>
-                                </a>
-                            </li>
-                            <?php endfor; ?>
-                            
-                            <?php if ($end < $total_pages): ?>
-                            <?php if ($end < $total_pages - 1): ?>
-                            <li class="page-item disabled">
-                                <span class="page-link">...</span>
-                            </li>
-                            <?php endif; ?>
-                            <li class="page-item">
-                                <a class="page-link" 
-                                   href="?page=<?php echo $total_pages; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
-                                    <?php echo $total_pages; ?>
-                                </a>
-                            </li>
-                            <?php endif; ?>
-                            
-                            <li class="page-item <?php echo $page == $total_pages ? 'disabled' : ''; ?>">
-                                <a class="page-link" 
-                                   href="?page=<?php echo $page + 1; ?>&status=<?php echo $status; ?>&priority=<?php echo $priority; ?>&category=<?php echo $category; ?>&assigned_to=<?php echo $assigned_to; ?>&client_id=<?php echo $client_id; ?>&search=<?php echo urlencode($search); ?>">
-                                    <i class="fas fa-chevron-right"></i>
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                    <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>
@@ -833,6 +904,21 @@ $export_filters = !empty($export_filter_params) ? '?' . http_build_query($export
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Function to change page size
+        function changePageSize(size) {
+            // Get current URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Set the new page size
+            urlParams.set('page_size', size);
+            
+            // Reset to page 1 when changing page size
+            urlParams.set('page', 1);
+            
+            // Keep other parameters
+            window.location.search = urlParams.toString();
+        }
+        
         // Auto-hide alerts after 5 seconds
         setTimeout(() => {
             document.querySelectorAll('.alert').forEach(alert => {
