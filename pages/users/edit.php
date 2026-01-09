@@ -91,9 +91,9 @@ if (!$user_id) {
 
 // Fetch user data with related information
 $userQuery = "SELECT 
-                u.*, 
+                u.id, u.email, u.password, u.user_type, u.is_active, u.email_verified, u.two_factor_enabled, u.last_login, u.created_at as user_created_at, u.updated_at as user_updated_at, u.role_id,
                 ur.role_name,
-                sp.*,
+                sp.id as staff_profile_id, sp.staff_id, sp.full_name as staff_full_name, sp.designation, sp.department, sp.employment_type, sp.date_of_joining, sp.reporting_manager_id, sp.official_email, sp.personal_email, sp.phone_number as staff_phone_number, sp.alternate_phone, sp.emergency_contact_name, sp.emergency_contact_number, sp.current_address, sp.permanent_address, sp.national_id, sp.passport_number, sp.date_of_birth, sp.gender, sp.nationality, sp.tax_id, sp.work_permit_details, sp.role_category, sp.skills, sp.certifications, sp.experience_years, sp.assigned_clients, sp.service_area, sp.shift_timing, sp.on_call_support, sp.username as staff_username, sp.role_level, sp.system_access, sp.company_laptop_issued, sp.asset_serial_number, sp.vpn_access, sp.bank_name, sp.account_number, sp.salary_type, sp.payment_method, sp.employment_status, sp.last_working_day, sp.remarks, sp.staff_signature_data, sp.hr_approval_date, sp.hr_manager_id, sp.created_at as staff_created_at, sp.updated_at as staff_updated_at,
                 (SELECT COUNT(*) FROM tickets WHERE created_by = u.id) as ticket_count,
                 (SELECT COUNT(*) FROM tickets WHERE assigned_to = u.id) as assigned_tickets,
                 (SELECT COUNT(*) FROM site_visits WHERE engineer_id = u.id) as site_visits_count
@@ -184,8 +184,8 @@ if (canEditField('site_visit_info', $current_user_role, $user['user_type'], $is_
 // Initialize variables
 $email = $user['email'] ?? '';
 $user_type = $user['user_type'] ?? '';
-$full_name = $user['full_name'] ?? '';
-$phone = $user['phone_number'] ?? '';
+$full_name = $user['staff_full_name'] ?? $user['full_name'] ?? '';
+$phone = $user['staff_phone_number'] ?? '';
 $staff_id = $user['staff_id'] ?? '';
 $is_active = $user['is_active'] ?? 1;
 $email_verified = $user['email_verified'] ?? 0;
@@ -834,7 +834,7 @@ function getOtherStaff($pdo, $current_user_id) {
             <p class="text-muted">Update information for <?= htmlspecialchars($user['full_name'] ?? $user['email']) ?></p>
         </div>
         <div class="btn-group">
-            <a href="<?= route('users.view') . '?id=' . $user_id ?>" class="btn btn-outline-secondary">
+            <a href="<?= route('users.view', ['id' => $user_id]) ?>" class="btn btn-outline-secondary">
                 <i class="fas fa-eye"></i> View Profile
             </a>
             <a href="<?= route('users.index') ?>" class="btn btn-outline-secondary ms-2">
@@ -1417,7 +1417,7 @@ function getOtherStaff($pdo, $current_user_id) {
                 <div class="form-actions">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <a href="<?= route('users.view') . '?id=' . $user_id ?>" class="btn btn-outline-secondary">
+                            <a href="<?= route('users.view', ['id' => $user_id]) ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                         </div>

@@ -609,7 +609,7 @@ if (!hasClientPermission('view')) {
                     <a href="<?= route('clients.index') ?>" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left"></i> Back to Clients
                     </a>
-                    <a href="<?= route('clients.edit') . '?id=' . $client_id ?>" class="btn btn-warning">
+                    <a href="<?= route('clients.edit', ['id' => $client_id]) ?>" class="btn btn-warning">
                         <i class="fas fa-edit"></i> Edit Client
                     </a>
                     <?php if ($client['phone']): 
@@ -926,16 +926,16 @@ if (!hasClientPermission('view')) {
                                             </td>
                                             <td>
                                                 <div class="action-buttons">
-                                                    <a href="<?= route('contracts.view') . '?id=' . $contract['id'] ?>" 
+                                                    <a href="<?= route('contracts.view', ['id' => $contract['id']]) ?>" 
                                                        class="btn btn-primary btn-sm">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <a href="<?= route('contracts.edit') . '?id=' . $contract['id'] ?>" 
+                                                    <a href="<?= route('contracts.edit', ['id' => $contract['id']]) ?>" 
                                                        class="btn btn-warning btn-sm">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     <?php if ($is_expired && $is_active): ?>
-                                                    <a href="<?= route('contracts.edit') . '?id=' . $contract['id'] ?>" 
+                                                    <a href="<?= route('contracts.edit', ['id' => $contract['id']]) ?>" 
                                                        class="btn btn-success btn-sm">
                                                         <i class="fas fa-redo"></i> Renew
                                                     </a>
@@ -961,17 +961,17 @@ if (!hasClientPermission('view')) {
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3 mb-3">
-                            <a href="<?= route('clients.add_ticket') . '?client_id=' . $client_id ?>" class="btn btn-primary w-100">
+                            <a href="<?= route('clients.add_ticket', ['client_id' => $client_id]) ?>" class="btn btn-primary w-100">
                                 <i class="fas fa-ticket-alt"></i> Create Ticket
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="<?= route('clients.add_asset') . '?client_id=' . $client_id ?>" class="btn btn-success w-100">
+                            <a href="<?= route('clients.add_asset', ['client_id' => $client_id]) ?>" class="btn btn-success w-100">
                                 <i class="fas fa-server"></i> Add Asset
                             </a>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <a href="<?= route('clients.add_contract') . '?client_id=' . $client_id ?>" class="btn btn-warning w-100">
+                            <a href="<?= route('clients.add_contract', ['client_id' => $client_id]) ?>" class="btn btn-warning w-100">
                                 <i class="fas fa-file-contract"></i> New Contract
                             </a>
                         </div>

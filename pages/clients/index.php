@@ -245,16 +245,16 @@ $industries = getAllIndustries($pdo);
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="<?php echo route('clients.view') . '?id=' . $client['id']; ?>" class="btn btn-info" title="View">
+                                            <a href="<?php echo route('clients.view', ['id' => $client['id']]); ?>" class="btn btn-info" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php if ($can_edit): ?>
-                                            <a href="<?php echo route('clients.edit') . '?id=' . $client['id']; ?>" class="btn btn-warning" title="Edit">
+                                            <a href="<?php echo route('clients.edit', ['id' => $client['id']]); ?>" class="btn btn-warning" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <?php endif; ?>
                                             <?php if ($can_delete): ?>
-                                            <a href="<?php echo route('clients.delete') . '?id=' . $client['id']; ?>" class="btn btn-danger" title="Delete" onclick="return confirm('Delete this client?')">
+                                            <a href="<?php echo route('clients.delete', ['id' => $client['id']]); ?>" class="btn btn-danger" title="Delete" onclick="return confirm('Delete this client?')">
                                                 <i class="fas fa-trash"></i>
                                             </a>
                                             <?php endif; ?>

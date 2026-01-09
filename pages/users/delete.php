@@ -36,7 +36,8 @@ if (!$user_id) {
 }
 
 // Fetch user data
-$userQuery = "SELECT u.*, ur.role_name, sp.full_name 
+$userQuery = "SELECT u.id, u.email, u.user_type, u.is_active, u.email_verified, u.two_factor_enabled, u.last_login, u.created_at as user_created_at, u.updated_at as user_updated_at, u.role_id,
+              ur.role_name, sp.full_name as staff_full_name
               FROM users u 
               LEFT JOIN user_roles ur ON u.role_id = ur.id 
               LEFT JOIN staff_profiles sp ON u.id = sp.user_id 
@@ -702,7 +703,7 @@ function formatDate($date) {
                         <?= strtoupper(substr($user['email'], 0, 1)) ?>
                     </div>
                     <div class="user-details flex-grow-1">
-                        <h3><?= htmlspecialchars($user['full_name'] ?? $user['email']) ?></h3>
+                        <h3><?= htmlspecialchars($user['staff_full_name'] ?? $user['full_name'] ?? $user['email']) ?></h3>
                         <p class="mb-1">
                             <i class="fas fa-envelope me-2"></i> <?= htmlspecialchars($user['email']) ?>
                         </p>
@@ -720,7 +721,7 @@ function formatDate($date) {
                                 <?= $user['is_active'] ? 'Active' : 'Inactive' ?>
                             </span>
                             <span class="me-3">
-                                <i class="fas fa-calendar me-1"></i> Joined: <?= date('M d, Y', strtotime($user['created_at'])) ?>
+                                <i class="fas fa-calendar me-1"></i> Joined: <?= date('M d, Y', strtotime($user['user_created_at'])) ?>
                             </span>
                             <span>
                                 <i class="fas fa-sign-in-alt me-1"></i> Last login: <?= formatDate($user['last_login']) ?>

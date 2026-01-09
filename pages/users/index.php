@@ -76,7 +76,7 @@ $role_filter = $_GET['role'] ?? '';
 $status_filter = $_GET['status'] ?? '';
 
 // Build query with filters - adjust based on user role
-$query = "SELECT u.*, ur.role_name 
+$query = "SELECT u.id, u.email, u.user_type, u.is_active, u.email_verified, u.two_factor_enabled, u.last_login, u.created_at as user_created_at, u.updated_at as user_updated_at, u.role_id, ur.role_name 
           FROM users u 
           LEFT JOIN user_roles ur ON u.role_id = ur.id 
           WHERE 1=1";
@@ -393,7 +393,7 @@ function getRoleBadge($role) {
                                     <td>
                                         <div class="user-email"><?= htmlspecialchars($user['email']) ?></div>
                                         <small class="text-muted">
-                                            <i class="fas fa-calendar"></i> Joined: <?= date('M d, Y', strtotime($user['created_at'])) ?>
+                                            <i class="fas fa-calendar"></i> Joined: <?= date('M d, Y', strtotime($user['user_created_at'])) ?>
                                         </small>
                                         <?php if ($user['two_factor_enabled']): ?>
                                         <small class="two-factor-badge">2FA</small>
@@ -427,11 +427,11 @@ function getRoleBadge($role) {
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="<?php echo route('users.view'); ?>?id=<?= $user['id'] ?>" class="btn btn-info" title="View">
+                                            <a href="<?php echo route('users.view', ['id' => $user['id']]); ?>" class="btn btn-info" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <?php if ($can_edit_user): ?>
-                                            <a href="<?php echo route('users.edit'); ?>?id=<?= $user['id'] ?>" class="btn btn-warning" title="Edit">
+                                            <a href="<?php echo route('users.edit', ['id' => $user['id']]); ?>" class="btn btn-warning" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             <?php else: ?>
