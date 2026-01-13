@@ -150,10 +150,10 @@ $recent_tickets_sql = "SELECT
     t.ticket_number,
     t.title,
     c.company_name,
-    u.email as assigned_to
+    sp.full_name as assigned_to
 FROM tickets t
 LEFT JOIN clients c ON t.client_id = c.id
-LEFT JOIN users u ON t.assigned_to = u.id
+LEFT JOIN staff_profiles sp ON t.assigned_to = sp.id
 WHERE $where_sql
 ORDER BY t.created_at DESC
 LIMIT 10";

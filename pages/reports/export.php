@@ -62,10 +62,10 @@ switch ($export_type) {
         
     case 'ticket':
         // Ticket report data
-        $sql = "SELECT t.*, c.company_name, u.email as assigned_to
+        $sql = "SELECT t.*, c.company_name, sp.full_name as assigned_to
                 FROM tickets t
                 LEFT JOIN clients c ON t.client_id = c.id
-                LEFT JOIN users u ON t.assigned_to = u.id
+                LEFT JOIN staff_profiles sp ON t.assigned_to = sp.id
                 WHERE t.created_at BETWEEN ? AND ?";
         
         $params = [$start_date, $end_date];

@@ -69,7 +69,7 @@ $user_type = $current_user['user_type'] ?? 'client';
                 $is_assets_page = strpos($_SERVER['SCRIPT_NAME'], '/assets/') !== false && 
                                  strpos($_SERVER['SCRIPT_NAME'], '/clients/') === false;
                 echo $is_assets_page ? 'class="active"' : ''; ?>>
-                <i class="fas fa-server"></i> Inventory
+                <i class="fas fa-server"></i> Assets
             </a></li>
             
             <?php if (hasManagerLevel()): ?>

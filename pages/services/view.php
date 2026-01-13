@@ -42,9 +42,9 @@ $renewals = $renewals_stmt->fetchAll();
 
 // Get service tickets
 $tickets_stmt = $pdo->prepare("
-    SELECT t.*, u.full_name as assigned_to_name
+    SELECT t.*, sp.full_name as assigned_to_name
     FROM tickets t
-    LEFT JOIN users u ON t.assigned_to = u.id
+    LEFT JOIN staff_profiles sp ON t.assigned_to = sp.id
     WHERE t.service_id = ?
     ORDER BY t.created_at DESC
 ");

@@ -28,9 +28,9 @@ try {
         // Get recent tickets
         $recent_tickets = $pdo->query("
             SELECT t.*, c.company_name, sp.full_name as assigned_to_name 
-            FROM tickets t 
-            LEFT JOIN clients c ON t.client_id = c.id 
-            LEFT JOIN staff_profiles sp ON t.assigned_to = sp.id 
+            FROM tickets t
+            LEFT JOIN clients c ON t.client_id = c.id
+            LEFT JOIN staff_profiles sp ON t.assigned_to = sp.id
             ORDER BY t.created_at DESC 
             LIMIT 10
         ")->fetchAll();
