@@ -473,8 +473,8 @@ $report_title = 'Service Contract Report';
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('reports.index'); ?>"><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Service Contract Report</li>
                 </ol>
             </nav>

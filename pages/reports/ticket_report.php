@@ -64,7 +64,11 @@ $tickets_sql = "SELECT
     COUNT(CASE WHEN status = 'Closed' THEN 1 END) as closed_tickets,
     COUNT(CASE WHEN priority = 'Critical' THEN 1 END) as critical_tickets,
     COUNT(CASE WHEN priority = 'High' THEN 1 END) as high_priority_tickets,
-    NULL as avg_resolution_days
+    CASE 
+        WHEN COUNT(CASE WHEN status IN ('Resolved', 'Closed') THEN 1 END) > 0 THEN 
+            AVG(CASE WHEN status IN ('Resolved', 'Closed') THEN EXTRACT(EPOCH FROM (closed_at - created_at))/86400.0 END)
+        ELSE 0 
+    END as avg_resolution_days
 FROM tickets t
 WHERE $where_sql";
 
@@ -134,6 +138,8 @@ $client_tickets = $stmt->fetchAll();
 // Get top 10 tickets
 $recent_tickets_sql = "SELECT 
     t.*,
+    t.ticket_number,
+    t.title,
     c.company_name,
     u.email as assigned_to
 FROM tickets t
@@ -455,8 +461,8 @@ $report_title = 'Ticket Report';
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('reports.index'); ?>"><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Ticket Report</li>
                 </ol>
             </nav>
@@ -548,7 +554,7 @@ $report_title = 'Ticket Report';
                                 <?php if ($tickets_stats['critical_tickets'] > 0): ?>
                                     • <?php echo $tickets_stats['critical_tickets']; ?> critical priority tickets<br>
                                 <?php endif; ?>
-                                <?php if ($tickets_stats['open_tickets'] > 0): ?>
+                                <?php if ($tickets_stats['total_tickets'] > 0): ?>
                                     • <?php echo round(($tickets_stats['open_tickets'] / $tickets_stats['total_tickets']) * 100, 1); ?>% of tickets are still open<br>
                                 <?php endif; ?>
                                 <?php if ($tickets_stats['avg_resolution_days'] > 0): ?>
@@ -570,7 +576,7 @@ $report_title = 'Ticket Report';
                                     $critical_rate = $tickets_stats['critical_tickets'] / $tickets_stats['total_tickets'];
                                     $open_rate = $tickets_stats['open_tickets'] / $tickets_stats['total_tickets'];
 
-                                    $health_score = round((($resolved_rate * 100) - ($critical_rate * 50) - ($open_rate * 30)) * 2, 0);
+                                    $health_score = round((($resolved_rate * 100) - ($critical_rate * 30) - ($open_rate * 40)) * 1.5, 0);
                                     $health_score = max(0, min(100, $health_score));
                                 }
                                 echo $health_score;
@@ -673,9 +679,9 @@ $report_title = 'Ticket Report';
                             <tbody>
                                 <?php foreach ($recent_tickets as $ticket): ?>
                                     <tr>
-                                        <td>#<?php echo $ticket['id']; ?></td>
+                                        <td><?php echo htmlspecialchars($ticket['ticket_number'] ?? $ticket['id']); ?></td>
                                         <td><?php echo htmlspecialchars($ticket['company_name'] ?? 'Internal'); ?></td>
-                                        <td><?php echo htmlspecialchars($ticket['subject'] ?? 'No Subject'); ?></td>
+                                        <td><?php echo htmlspecialchars($ticket['title'] ?? 'No Subject'); ?></td>
                                         <td>
                                             <span class="<?php echo getPriorityClass($ticket['priority']); ?>">
                                                 <?php echo htmlspecialchars($ticket['priority']); ?>
@@ -824,7 +830,7 @@ $report_title = 'Ticket Report';
                 csvContent += "Total Tickets," + <?php echo $tickets_stats['total_tickets']; ?> + "\n";
                 csvContent += "Open Tickets," + <?php echo $tickets_stats['open_tickets']; ?> + "\n";
                 csvContent += "Resolved Tickets," + <?php echo $tickets_stats['resolved_tickets']; ?> + "\n";
-                csvContent += "Average Resolution Time," + <?php echo $tickets_stats['avg_resolution_days']; ?> + "\n\n";
+                csvContent += "Average Resolution Time (Days)," + <?php echo $tickets_stats['avg_resolution_days'] > 0 ? round($tickets_stats['avg_resolution_days'], 2) : 0; ?> + "\n\n";
 
                 // Add priority distribution
                 csvContent += "PRIORITY DISTRIBUTION\n";
@@ -838,7 +844,7 @@ $report_title = 'Ticket Report';
                 csvContent += "RECENT TICKETS\n";
                 csvContent += "Ticket #,Client,Subject,Priority,Status,Created,Assigned To\n";
                 <?php foreach ($recent_tickets as $ticket): ?>
-                    csvContent += "<?php echo $ticket['id']; ?>,<?php echo $ticket['company_name'] ?? 'Internal'; ?>,<?php echo $ticket['subject'] ?? 'No Subject'; ?>,<?php echo $ticket['priority']; ?>,<?php echo $ticket['status']; ?>,<?php echo date('Y-m-d', strtotime($ticket['created_at'])); ?>,<?php echo $ticket['assigned_to'] ?? 'Unassigned'; ?>\n";
+                    csvContent += "<?php echo $ticket['ticket_number'] ?? $ticket['id']; ?>,<?php echo $ticket['company_name'] ?? 'Internal'; ?>,<?php echo $ticket['title'] ?? 'No Subject'; ?>,<?php echo $ticket['priority']; ?>,<?php echo $ticket['status']; ?>,<?php echo date('Y-m-d', strtotime($ticket['created_at'])); ?>,<?php echo $ticket['assigned_to'] ?? 'Unassigned'; ?>\n";
                 <?php endforeach; ?>
 
                 // Create and download CSV
