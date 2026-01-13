@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $userStmt->execute([$email, $password_hash, $user_type, $is_active, $email_verified]);
             }
             
-            // Get the last inserted ID
+            // Get the last inserted ID - we'll handle this in the exception block
             $new_user_id = $pdo->lastInsertId();
 
             // Create staff profile if user type is staff and staff_id is provided
@@ -210,8 +210,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
         } catch (PDOException $e) {
             $pdo->rollBack();
-            $errors['general'] = "Database error: " . $e->getMessage();
-            error_log("User creation error: " . $e->getMessage());
+            // Check if it's the PostgreSQL lastval error
+            if (strpos($e->getMessage(), 'lastval is not yet defined') !== false || strpos($e->getMessage(), 'current transaction is aborted') !== false) {
+                // Retry without using lastInsertId
+                try {
+                    $pdo->beginTransaction();
+                    
+                    // Re-execute the user insert query
+                    if ($role_id) {
+                        $userQuery = "INSERT INTO users (email, password, user_type, role_id, is_active, email_verified, created_at, updated_at) 
+                                      VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                        $userStmt = $pdo->prepare($userQuery);
+                        $userStmt->execute([$email, $password_hash, $user_type, $role_id, $is_active, $email_verified]);
+                    } else {
+                        $userQuery = "INSERT INTO users (email, password, user_type, is_active, email_verified, created_at, updated_at) 
+                                      VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
+                        $userStmt = $pdo->prepare($userQuery);
+                        $userStmt->execute([$email, $password_hash, $user_type, $is_active, $email_verified]);
+                    }
+                    
+                    // Get the user ID using a separate query
+                    $getIdQuery = "SELECT id FROM users WHERE email = ? ORDER BY created_at DESC LIMIT 1";
+                    $getIdStmt = $pdo->prepare($getIdQuery);
+                    $getIdStmt->execute([$email]);
+                    $result = $getIdStmt->fetch(PDO::FETCH_ASSOC);
+                    $new_user_id = $result['id'] ?? null;
+                    
+                    if (!$new_user_id) {
+                        throw new Exception("Could not retrieve the newly created user ID");
+                    }
+                    
+                    // Continue with the rest of the user creation process
+                    // Create staff profile if user type is staff and staff_id is provided
+                    if (in_array($user_type, ['admin', 'manager', 'support_tech']) && !empty($staff_id)) {
+                        // Check if staff profile already exists for this user
+                        $checkStaffQuery = "SELECT id FROM staff_profiles WHERE user_id = ? OR staff_id = ?";
+                        $checkStaffStmt = $pdo->prepare($checkStaffQuery);
+                        $checkStaffStmt->execute([$new_user_id, $staff_id]);
+                        
+                        if (!$checkStaffStmt->fetch()) {
+                            $staffQuery = "INSERT INTO staff_profiles 
+                                           (user_id, staff_id, full_name, phone_number, official_email, employment_status, created_at, updated_at) 
+                                           VALUES (?, ?, ?, ?, ?, 'Active', NOW(), NOW())";
+                            $staffStmt = $pdo->prepare($staffQuery);
+                            $staffStmt->execute([$new_user_id, $staff_id, $full_name, $phone, $email]);
+                        }
+                    } elseif ($user_type === 'client') {
+                        // For client users, we might want to create a client record
+                        // This could be expanded based on your requirements
+                    }
+
+                    // Audit log
+                    try {
+                        $auditQuery = "INSERT INTO audit_logs (user_id, action, entity_type, entity_id, ip_address, created_at) 
+                                       VALUES (?, ?, ?, ?, ?, NOW())";
+                        $auditStmt = $pdo->prepare($auditQuery);
+                        $auditStmt->execute([
+                            $user_id,
+                            'CREATE',
+                            'user',
+                            $new_user_id,
+                            $_SERVER['REMOTE_ADDR']
+                        ]);
+                    } catch (PDOException $audit_e) {
+                        // Audit table might not exist, ignore error
+                        error_log("Audit log error: " . $audit_e->getMessage());
+                    }
+
+                    $pdo->commit();
+                    
+                    $_SESSION['success'] = "User '$email' created successfully!";
+                    
+                    // Send welcome email if requested (placeholder - implement email functionality)
+                    if ($send_welcome_email) {
+                        // TODO: Implement email sending functionality
+                        // mail($email, "Welcome to MSP Portal", "Your account has been created. Email: $email");
+                    }
+                    
+                    // Redirect to user list or view page
+                    header("Location: " . route('users.index'));
+                    exit();
+                    
+                } catch (Exception $retry_e) {
+                    $pdo->rollBack();
+                    $errors['general'] = "Database error: " . $retry_e->getMessage();
+                    error_log("User creation retry error: " . $retry_e->getMessage());
+                }
+            } else {
+                $errors['general'] = "Database error: " . $e->getMessage();
+                error_log("User creation error: " . $e->getMessage());
+            }
         } catch (Exception $e) {
             $pdo->rollBack();
             $errors['general'] = "Error: " . $e->getMessage();
@@ -335,7 +423,7 @@ function formatPhone($phone) {
                     </div>
                     <?php endif; ?>
                     
-                    <form method="POST" action="create.php" id="createUserForm">
+                    <form method="POST" action="<?php echo route('users.create'); ?>" id="createUserForm">
                         <!-- Basic Information Section -->
                         <div class="form-section">
                             <h6><i class="fas fa-id-card me-2"></i> Basic Information</h6>
