@@ -79,8 +79,9 @@ class RouteManager
         
         // Report routes
         'reports.index' => '/reports',
-        'reports.asset' => '/reports/asset_report',
         'reports.ticket' => '/reports/ticket_report',
+        'reports.ticket_export' => '/reports/ticket_report_export',
+        'reports.asset' => '/reports/asset_report',
         'reports.service' => '/reports/service_report',
         
         // Staff routes

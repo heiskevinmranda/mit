@@ -25,6 +25,11 @@ $client_id = $_GET['client_id'] ?? '';
 $priority = $_GET['priority'] ?? '';
 $status = $_GET['status'] ?? '';
 
+// Enforce client selection - redirect if no client selected for initial load
+if (empty($client_id) && empty($_GET)) {
+    $client_id = ''; // Allow empty initially to show selection prompt
+}
+
 // Get filter options
 $clients = $pdo->query("SELECT id, company_name FROM clients ORDER BY company_name")->fetchAll();
 $priorities = ['Low', 'Medium', 'High', 'Critical'];
@@ -35,10 +40,14 @@ $where_conditions = ['t.created_at BETWEEN ? AND ?'];
 $params = [$start_date, $end_date];
 $types = [PDO::PARAM_STR, PDO::PARAM_STR];
 
+// Require client selection for security and filtering purposes
 if ($client_id) {
     $where_conditions[] = "t.client_id = ?";
     $params[] = $client_id;
     $types[] = PDO::PARAM_STR;
+} else {
+    // If no client is selected, show no results but allow page to load
+    $where_conditions[] = "1=0"; // This ensures no records match
 }
 
 if ($priority) {
@@ -482,9 +491,9 @@ $report_title = 'Ticket Report';
                             value="<?php echo htmlspecialchars($end_date); ?>">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Client</label>
-                        <select class="form-select select2" name="client_id">
-                            <option value="">All Clients</option>
+                        <label class="form-label">Client *</label>
+                        <select class="form-select select2" name="client_id" required>
+                            <option value="">Select Client</option>
                             <?php foreach ($clients as $client): ?>
                                 <option value="<?php echo htmlspecialchars($client['id']); ?>"
                                     <?php echo $client_id == $client['id'] ? 'selected' : ''; ?>>
@@ -520,7 +529,7 @@ $report_title = 'Ticket Report';
                     <div class="col-12">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <button type="submit" class="btn btn-primary">
+                                <button type="submit" class="btn btn-primary" id="apply-filters-btn">
                                     <i class="fas fa-filter"></i> Apply Filters
                                 </button>
                                 <a href="?type=ticket" class="btn btn-outline-secondary">
@@ -802,22 +811,23 @@ $report_title = 'Ticket Report';
 
             // Export functionality
             $('#export-pdf').on('click', function() {
-                const toast = $(`
-                    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
-                        <div class="toast show" role="alert">
-                            <div class="toast-header bg-info text-white">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong class="me-auto">PDF Export</strong>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-                            </div>
-                            <div class="toast-body">
-                                PDF export feature will be available in the next update.
-                            </div>
-                        </div>
-                    </div>
-                `);
-                $('body').append(toast);
-                setTimeout(() => toast.remove(), 3000);
+                // Collect filter parameters
+                const params = new URLSearchParams({
+                    start_date: $('[name="start_date"]').val(),
+                    end_date: $('[name="end_date"]').val(),
+                    client_id: $('[name="client_id"]').val(),
+                    priority: $('[name="priority"]').val(),
+                    status: $('[name="status"]').val(),
+                    export_type: 'pdf'
+                });
+                
+                // Direct download PDF in same window
+                const link = document.createElement('a');
+                link.href = './ticket_report_export?' + params.toString();
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             });
 
             $('#export-excel').on('click', function() {
@@ -861,6 +871,16 @@ $report_title = 'Ticket Report';
                 window.URL.revokeObjectURL(url);
             });
 
+            // Validate client selection before submitting form
+            $('#apply-filters-btn').on('click', function(e) {
+                const clientId = $('[name="client_id"]').val();
+                if (!clientId) {
+                    e.preventDefault();
+                    alert('Please select a client to generate the report.');
+                    return false;
+                }
+            });
+            
             $('#print-report').on('click', function() {
                 window.print();
             });
