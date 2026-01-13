@@ -615,7 +615,7 @@ if (!hasClientPermission('view')) {
                     <?php if ($client['phone']): 
                         $phone_number = $client['phone'];
                         $whatsapp_number = str_replace('+', '', $phone_number);
-                        $message = urlencode("Hello " . $client['company_name'] . ",\n\nThis is a message from MSP Portal.");
+                        $message = urlencode("Hello " . $client['company_name'] . ",\n\nThis is a message from FLASHNET MSP Portal.");
                     ?>
                     <a href="https://wa.me/<?= $whatsapp_number ?>?text=<?= $message ?>" 
                        target="_blank" 

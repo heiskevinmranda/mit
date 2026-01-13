@@ -1028,13 +1028,6 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                 </div>
             </div>
 
-
-
-
-
-
-
-
             <!-- Staff Performance Table -->
             <?php if (!empty($staff_performance_data)): ?>
             <div class="staff-performance-table">
