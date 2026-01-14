@@ -8,6 +8,8 @@ require_once __DIR__ . '/../../includes/permissions.php';
 require_once __DIR__ . '/../../includes/routes.php';
 require_once __DIR__ . '/includes/client_functions.php';
 
+$page_title = 'Edit Client - ' . htmlspecialchars($client['company_name'] ?? 'Client');
+
 if (!isLoggedIn()) {
     header("Location: ../../login.php");
     exit();
@@ -370,464 +372,407 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+require_once __DIR__ . '/../../includes/header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Client - <?= htmlspecialchars($client['company_name'] ?? 'Client') ?> - MSP Application</title>
-    
-    <!-- Main CSS -->
-    <link rel="stylesheet" href="/mit/css/style.css">
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Custom Styles -->
-    <style>
-        :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
-            --accent-color: #e74c3c;
-            --success-color: #27ae60;
-            --warning-color: #f39c12;
-            --light-bg: #f8f9fa;
-            --dark-text: #2c3e50;
-            --light-text: #7f8c8d;
-            --border-color: #e0e6ed;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f7fa;
-            color: var(--dark-text);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-        
-        /* Header/Navbar */
-        .navbar {
-            background-color: var(--secondary-color);
-            color: white;
-            padding: 0.75rem 1rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1030;
-        }
-        
-        .navbar h4 {
-            margin: 0;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-        }
-        
-        .navbar h4 i {
-            margin-right: 10px;
-        }
-        
-        /* Main Layout */
-        .main-wrapper {
-            display: flex;
-            min-height: calc(100vh - 56px);
-        }
-        
+<style>
 
-        
-        /* Main Content */
+    
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f5f7fa;
+        color: #333;
+        line-height: 1.6;
+        min-height: 100vh;
+    }
+    
+    /* Main Content */
+    .main-content {
+        flex: 1;
+        padding: 25px;
+        background-color: #f5f5f5;
+        overflow-y: auto;
+        width: calc(100vw - 250px);
+        margin-left: 250px;
+        transition: margin-left 0.3s ease;
+        min-height: 100vh;
+        box-sizing: border-box;
+    }
+    
+    /* Adjust for mobile */
+    @media (max-width: 992px) {
         .main-content {
-            flex: 1;
-            padding: 25px;
-            background-color: #f5f7fa;
-            overflow-y: auto;
-            width: 100%;
+            margin-left: 0;
+            width: 100vw;
         }
-        
-        @media (max-width: 992px) {
-            .main-content {
-                padding: 15px;
-            }
+    }
+    
+    /* Override any conflicting styles */
+    .main-content > * {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    @media (max-width: 992px) {
+        .main-content {
+            padding: 15px;
         }
-        
-        /* Page Header */
-        .page-title {
-            color: var(--secondary-color);
-            font-weight: 700;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 3px solid var(--primary-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .page-title i {
-            color: var(--primary-color);
-        }
-        
-        /* Cards */
-        .card {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 25px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .card-header {
-            background-color: var(--light-bg);
-            color: var(--secondary-color);
-            padding: 18px 25px;
-            font-weight: 600;
-            border-radius: 10px 10px 0 0 !important;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .card-header h5 {
-            margin: 0;
-            display: flex;
-            align-items: center;
-        }
-        
-        .card-header h5 i {
-            margin-right: 10px;
-            color: var(--primary-color);
-        }
-        
-        .card-body {
-            padding: 25px;
-        }
-        
-        /* Form Elements */
-        .form-label {
-            font-weight: 500;
-            color: var(--secondary-color);
-            margin-bottom: 8px;
-            display: block;
-        }
-        
-        .form-label.required::after {
-            content: " *";
-            color: var(--accent-color);
-        }
-        
-        .form-control, .form-select {
-            width: 100%;
-            padding: 10px 15px;
-            border: 2px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 15px;
-            transition: all 0.3s;
-            background-color: white;
-        }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-        }
-        
-        .form-control[readonly] {
-            background-color: #f8f9fa;
-            cursor: not-allowed;
-        }
-        
-        /* Form Sections */
-        .form-section {
-            background-color: var(--light-bg);
-            border-radius: 8px;
-            padding: 25px;
-            margin-bottom: 25px;
-            border-left: 4px solid var(--primary-color);
-        }
-        
-        .section-title {
-            color: var(--secondary-color);
-            font-weight: 600;
-            margin: 0 0 20px 0;
-            padding-bottom: 12px;
-            border-bottom: 2px solid var(--border-color);
-            display: flex;
-            align-items: center;
-        }
-        
-        .section-title i {
-            margin-right: 10px;
-            color: var(--primary-color);
-        }
-        
-        /* Buttons */
-        .btn {
-            padding: 10px 24px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 15px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .btn i {
-            margin-right: 8px;
-        }
-        
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
-        }
-        
-        .btn-success {
-            background-color: var(--success-color);
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background-color: #219653;
-            transform: translateY(-2px);
-        }
-        
-        .btn-warning {
-            background-color: var(--warning-color);
-            color: white;
-        }
-        
-        .btn-warning:hover {
-            background-color: #e67e22;
-            transform: translateY(-2px);
-        }
-        
-        .btn-outline-secondary {
-            background-color: transparent;
-            border: 2px solid #95a5a6;
-            color: #7f8c8d;
-        }
-        
-        .btn-outline-secondary:hover {
-            background-color: #95a5a6;
-            color: white;
-            border-color: #95a5a6;
-        }
-        
-        /* Alerts */
-        .alert {
-            padding: 18px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: none;
-            border-left: 4px solid;
-        }
-        
-        .alert-danger {
-            background-color: #fde8e8;
-            color: #c0392b;
-            border-left-color: var(--accent-color);
-        }
-        
-        .alert-success {
-            background-color: #d4efdf;
-            color: #27ae60;
-            border-left-color: var(--success-color);
-        }
-        
-        /* Form Check */
-        .form-check {
-            margin-bottom: 10px;
-        }
-        
-        .form-check-input {
-            margin-right: 10px;
-            cursor: pointer;
-        }
-        
-        .form-check-label {
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        /* Helper Text */
-        .text-muted {
-            color: var(--light-text) !important;
-            font-size: 13px;
-            margin-top: 5px;
-            display: block;
-        }
-        
-        .phone-format {
-            font-size: 12px;
-            color: var(--light-text);
-            margin-top: 3px;
-            display: block;
-        }
-        
-        /* Breadcrumb */
-        .breadcrumb {
-            background-color: transparent;
-            padding: 0;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        
-        .breadcrumb-item a {
-            color: var(--primary-color);
-            text-decoration: none;
-        }
-        
-        .breadcrumb-item.active {
-            color: var(--light-text);
-        }
-        
-        /* Mobile Menu Button */
+    }
+    
+    /* Page Header */
+    .page-title {
+        color: #004E89;
+        font-weight: 700;
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #FF6B35;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .page-title i {
+        color: #FF6B35;
+    }
+    
+    /* Cards */
+    .card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 25px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        color: #004E89;
+        padding: 18px 25px;
+        font-weight: 600;
+        border-radius: 10px 10px 0 0 !important;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .card-header h5 {
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .card-header h5 i {
+        margin-right: 10px;
+        color: #FF6B35;
+    }
+    
+    .card-body {
+        padding: 25px;
+    }
+    
+    /* Form Elements */
+    .form-label {
+        font-weight: 500;
+        color: #004E89;
+        margin-bottom: 8px;
+        display: block;
+    }
+    
+    .form-label.required::after {
+        content: " *";
+        color: #DC3545;
+    }
+    
+    .form-control, .form-select {
+        width: 100%;
+        padding: 10px 15px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 15px;
+        transition: all 0.3s;
+        background-color: white;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #FF6B35;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+    }
+    
+    .form-control[readonly] {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+    
+    /* Form Sections */
+    .form-section {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 25px;
+        margin-bottom: 25px;
+        border-left: 4px solid #FF6B35;
+    }
+    
+    .section-title {
+        color: #004E89;
+        font-weight: 600;
+        margin: 0 0 20px 0;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #dee2e6;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-title i {
+        margin-right: 10px;
+        color: #FF6B35;
+    }
+    
+    /* Buttons */
+    .btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn i {
+        margin-right: 8px;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2980b9;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+    }
+    
+    .btn-success {
+        background-color: var(--success-color);
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background-color: #219653;
+        transform: translateY(-2px);
+    }
+    
+    .btn-warning {
+        background-color: #FFC107;
+        color: white;
+    }
+    
+    .btn-warning:hover {
+        background-color: #e67e22;
+        transform: translateY(-2px);
+    }
+    
+    .btn-outline-secondary {
+        background-color: transparent;
+        border: 2px solid #95a5a6;
+        color: #7f8c8d;
+    }
+    
+    .btn-outline-secondary:hover {
+        background-color: #95a5a6;
+        color: white;
+        border-color: #95a5a6;
+    }
+    
+    /* Alerts */
+    .alert {
+        padding: 18px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: none;
+        border-left: 4px solid;
+    }
+    
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border-left-color: #DC3545;
+    }
+    
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border-left-color: #28A745;
+    }
+    
+    /* Form Check */
+    .form-check {
+        margin-bottom: 10px;
+    }
+    
+    .form-check-input {
+        margin-right: 10px;
+        cursor: pointer;
+    }
+    
+    .form-check-label {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    /* Helper Text */
+    .text-muted {
+        color: #6c757d !important;
+        font-size: 13px;
+        margin-top: 5px;
+        display: block;
+    }
+    
+    .phone-format {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 3px;
+        display: block;
+    }
+    
+    /* Breadcrumb */
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+    
+    .breadcrumb-item a {
+        color: #FF6B35;
+        text-decoration: none;
+    }
+    
+    .breadcrumb-item.active {
+        color: #6c757d;
+    }
+    
+    /* Mobile Menu Button */
+    .mobile-menu-btn {
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        background-color: #FF6B35;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        font-size: 22px;
+        cursor: pointer;
+        z-index: 1030;
+        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+    
+    .mobile-menu-btn:hover {
+        background-color: #e55a2b;
+        transform: scale(1.05);
+    }
+    
+    @media (max-width: 992px) {
         .mobile-menu-btn {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            font-size: 22px;
-            cursor: pointer;
-            z-index: 1030;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-        
-        .mobile-menu-btn:hover {
-            background-color: #2980b9;
-            transform: scale(1.05);
-        }
-        
-        @media (max-width: 992px) {
-            .mobile-menu-btn {
-                display: flex;
-            }
-        }
-        
-        /* Error Messages */
-        .error-message {
-            color: var(--accent-color);
-            font-size: 13px;
-            margin-top: 5px;
-            display: block;
-        }
-        
-        /* Input Group */
-        .input-group {
             display: flex;
         }
-        
-        .input-group .form-control {
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
+    }
+    
+    /* Error Messages */
+    .error-message {
+        color: #DC3545;
+        font-size: 13px;
+        margin-top: 5px;
+        display: block;
+    }
+    
+    /* Input Group */
+    .input-group {
+        display: flex;
+    }
+    
+    .input-group .form-control {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    
+    .input-group .btn {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+    
+    /* Backdrop for mobile sidebar */
+    .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1039;
+    }
+    
+    @media (max-width: 992px) {
+        .sidebar-backdrop.active {
+            display: block;
         }
-        
-        .input-group .btn {
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
+    }
+    
+    /* Responsive Grid */
+    @media (max-width: 768px) {
+        .row > div {
+            width: 100% !important;
+            margin-bottom: 15px;
         }
-        
-        /* Backdrop for mobile sidebar */
-        .sidebar-backdrop {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1039;
-        }
-        
-        @media (max-width: 992px) {
-            .sidebar-backdrop.active {
-                display: block;
-            }
-        }
-        
-        /* Responsive Grid */
-        @media (max-width: 768px) {
-            .row > div {
-                width: 100% !important;
-                margin-bottom: 15px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Header -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <h4><i class="fas fa-tools"></i> MSP Portal</h4>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3 d-none d-md-inline">
-                    <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
-                </span>
-                <a href="/mit/logout.php" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
+    }
+</style>
+
+<div class="dashboard-container">
+    <?php include '../../includes/sidebar.php'; ?>
+    
+    <div class="main-content">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="<?= route('dashboard') ?>">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="<?= route('clients.index') ?>">Clients</a></li>
+            <li class="breadcrumb-item"><a href="<?= route('clients.view', ['id' => $client_id]) ?>"><?= htmlspecialchars($client['company_name']) ?></a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit Client</li>
+        </ol>
     </nav>
     
-    <!-- Sidebar Backdrop (mobile) -->
-    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
-    
-    <div class="main-wrapper">
-        <!-- Sidebar -->
-        <?php include '../../includes/sidebar.php'; ?>
-        
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Breadcrumb -->
-            <nav aria-label="breadcrumb" class="mb-4">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php">Clients</a></li>
-                    <li class="breadcrumb-item"><a href="view.php?id=<?= $client_id ?>"><?= htmlspecialchars($client['company_name']) ?></a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Edit Client</li>
-                </ol>
-            </nav>
-            
-            <!-- Page Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h1 class="page-title">
-                        <i class="fas fa-edit"></i> Edit Client: <?= htmlspecialchars($client['company_name']) ?>
-                    </h1>
-                    <p class="text-muted">Update client information</p>
-                </div>
-                <a href="<?= route('clients.view') . '?id=' . $client_id ?>" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Client
-                </a>
-            </div>
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="page-title">
+                <i class="fas fa-edit"></i> Edit Client: <?= htmlspecialchars($client['company_name']) ?>
+            </h1>
+            <p class="text-muted">Update client information</p>
+        </div>
+        <a href="<?= route('clients.view', ['id' => $client_id]) ?>" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Client
+        </a>
+    </div>
+
             
             <!-- Error Messages -->
             <?php if (!empty($errors)): ?>
@@ -1093,29 +1038,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </form>
                 </div>
             </div>
-        </main>
-    </div>
-    
-    <!-- Mobile Menu Button -->
-    <button class="mobile-menu-btn" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i>
-    </button>
-    
-    <!-- Bootstrap JS Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    </div> <!-- End main-content -->
+        
+    </div> <!-- End main-content -->
     
     <script>
         // Mobile sidebar toggle
         function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const backdrop = document.getElementById('sidebarBackdrop');
+            const sidebar = document.querySelector('.sidebar');
+            const backdrop = document.querySelector('.sidebar-backdrop');
             
-            if (sidebar.classList.contains('active')) {
+            if (sidebar && sidebar.classList.contains('active')) {
                 sidebar.classList.remove('active');
-                backdrop.classList.remove('active');
+                if(backdrop) backdrop.classList.remove('active');
             } else {
                 sidebar.classList.add('active');
-                backdrop.classList.add('active');
+                if(backdrop) backdrop.classList.add('active');
             }
         }
         
@@ -1128,167 +1066,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         });
         
-        // Form validation
-        document.getElementById('clientForm').addEventListener('submit', function(event) {
-            let isValid = true;
-            
-            // Clear previous errors
-            document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
-            
-            // Company name validation
-            const companyName = document.getElementById('company_name');
-            if (!companyName.value.trim()) {
-                document.getElementById('company_name_error').textContent = 'Company name is required';
-                companyName.focus();
-                isValid = false;
-            }
-            
-            // Contact person validation
-            const contactPerson = document.getElementById('contact_person');
-            if (!contactPerson.value.trim()) {
-                document.getElementById('contact_person_error').textContent = 'Contact person is required';
-                if (isValid) {
-                    contactPerson.focus();
-                    isValid = false;
-                }
-            }
-            
-            // Email validation
-            const email = document.getElementById('email');
-            if (email.value.trim() && !isValidEmail(email.value)) {
-                alert('Please enter a valid email address');
-                email.focus();
-                isValid = false;
-            }
-            
-            // Phone validation - accepts + at start
-            const phone = document.getElementById('phone');
-            if (phone.value.trim() && !isValidInternationalPhone(phone.value)) {
-                alert('Please enter a valid phone number with country code (e.g., +255712345678 or 255712345678)');
-                phone.focus();
-                isValid = false;
-            }
-            
-            if (!isValid) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-        });
-        
-        function isValidEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
-        }
-        
-        function isValidInternationalPhone(phone) {
-            // Accepts + at the beginning, then digits only
-            // Minimum: + and 7 digits (e.g., +2551234)
-            // Maximum: + and 15 digits (typical max for international numbers)
-            const cleanPhone = phone.replace(/\s+/g, ''); // Remove spaces
-            // Check if starts with + followed by digits, or just digits
-            return /^\+?\d{7,15}$/.test(cleanPhone);
-        }
-        
-        // Phone number formatting - allows + at start
-        ['phone', 'whatsapp_number'].forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                field.addEventListener('input', function(e) {
-                    let value = e.target.value;
-                    
-                    // Allow + at the beginning, then only digits
-                    if (value.startsWith('+')) {
-                        // Keep the + and allow digits only after it
-                        const plus = '+';
-                        const digits = value.substring(1).replace(/\D/g, '');
-                        value = plus + digits;
-                    } else {
-                        // No + at start, allow digits only
-                        value = value.replace(/\D/g, '');
-                    }
-                    
-                    // Limit total length to 16 characters (+ plus 15 digits max)
-                    if (value.length > 16) {
-                        value = value.substring(0, 16);
-                    }
-                    
-                    e.target.value = value;
-                });
-            }
-        });
-        
-        // WhatsApp test button functionality
-        const whatsappField = document.getElementById('whatsapp_number');
-        const testWhatsappBtn = document.getElementById('test_whatsapp');
-        
-        if (whatsappField && testWhatsappBtn) {
-            whatsappField.addEventListener('input', function() {
-                const value = this.value.replace(/\s+/g, '');
-                // Enable button if we have at least 7 digits after +
-                const cleanValue = value.replace(/[^\d]/g, '');
-                testWhatsappBtn.disabled = cleanValue.length < 7;
-            });
-            
-            testWhatsappBtn.addEventListener('click', function() {
-                let whatsappNumber = whatsappField.value.replace(/\s+/g, '');
-                // Remove + for WhatsApp URL
-                if (whatsappNumber.startsWith('+')) {
-                    whatsappNumber = whatsappNumber.substring(1);
-                }
-                
-                if (whatsappNumber) {
-                    const companyName = document.getElementById('company_name').value || 'Client';
-                    const message = encodeURIComponent(
-                        `Hello ${companyName},
-
-This is a test message from MSP Portal.
-
-Best regards,
-MSP Support Team`
-                    );
-                    window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
-                }
-            });
-        }
-        
-        // Auto-hide alerts after 5 seconds
-        setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                alert.style.display = 'none';
-            });
-        }, 5000);
-        
-        // Format phone numbers on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Format existing phone numbers to show + if they have enough digits
-            ['phone', 'whatsapp_number'].forEach(fieldId => {
-                const field = document.getElementById(fieldId);
-                if (field && field.value) {
-                    let value = field.value.replace(/\D/g, '');
-                    if (value.length >= 7 && !field.value.startsWith('+')) {
-                        // Add + for Tanzania numbers (starting with 255)
-                        if (value.startsWith('255') && value.length >= 12) {
-                            field.value = '+' + value;
-                        }
-                    }
-                }
-            });
-        });
-        
         // Close sidebar when clicking outside (mobile)
         document.addEventListener('click', function(event) {
-            const sidebar = document.getElementById('sidebar');
-            const backdrop = document.getElementById('sidebarBackdrop');
+            const sidebar = document.querySelector('.sidebar');
+            const backdrop = document.querySelector('.sidebar-backdrop');
             const mobileBtn = document.querySelector('.mobile-menu-btn');
             
             if (window.innerWidth < 992 && 
-                sidebar.classList.contains('active') && 
+                sidebar && sidebar.classList.contains('active') && 
                 !sidebar.contains(event.target) && 
-                !mobileBtn.contains(event.target)) {
+                (!mobileBtn || !mobileBtn.contains(event.target))) {
                 toggleSidebar();
             }
         });
     </script>
-</body>
-</html>
+    
+    <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
