@@ -45,7 +45,8 @@ $form_data = [
     'expected_days' => $_POST['expected_days'] ?? 1,
     'work_days' => $_POST['work_days'] ?? [['date' => date('Y-m-d'), 'start' => '09:00', 'end' => '17:00', 'desc' => '', 'staff_id' => '']],
     'requested_by' => $_POST['requested_by'] ?? '',
-    'requested_by_email' => $_POST['requested_by_email'] ?? ''
+    'requested_by_email' => $_POST['requested_by_email'] ?? '',
+    'csr_sn' => $_POST['csr_sn'] ?? ''
 ];
 
 // Get clients for dropdown
@@ -121,7 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'estimated_hours' => !empty($_POST['estimated_hours']) ? $_POST['estimated_hours'] : null,
             'work_start_time' => !empty($_POST['work_start_time']) ? $_POST['work_start_time'] : null,
             'requested_by' => !empty($_POST['requested_by']) ? $_POST['requested_by'] : null,
-            'requested_by_email' => !empty($_POST['requested_by_email']) ? $_POST['requested_by_email'] : null
+            'requested_by_email' => !empty($_POST['requested_by_email']) ? $_POST['requested_by_email'] : null,
+            'csr_sn' => !empty($_POST['csr_sn']) ? $_POST['csr_sn'] : null
         ];
         
         // Start transaction
@@ -132,8 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "INSERT INTO tickets (
                 ticket_number, title, description, client_id, location_id, location_manual,
                 category, priority, status, created_by, estimated_hours, work_start_time,
-                requested_by, requested_by_email
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                requested_by, requested_by_email, csr_sn
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING id"
         );
         
@@ -151,7 +153,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ticket_data['estimated_hours'],
             $ticket_data['work_start_time'],
                         $ticket_data['requested_by'],
-                        $ticket_data['requested_by_email']
+                        $ticket_data['requested_by_email'],
+                        $ticket_data['csr_sn']
         ]);
         
         // Get the UUID from the RETURNING clause
@@ -976,13 +979,24 @@ function calculateHours($start_time, $end_time) {
                                            placeholder="Name of person requesting the ticket">
                                 </div>
                             </div>
-                            
+                                            
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="requested_by_email" class="form-label">Requester Email (Optional)</label>
                                     <input type="email" class="form-control" id="requested_by_email" name="requested_by_email" 
                                            value="<?php echo htmlspecialchars($form_data['requested_by_email'] ?? ''); ?>"
                                            placeholder="Email of person requesting the ticket">
+                                </div>
+                            </div>
+                        </div>
+                                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="csr_sn" class="form-label">CSR S/N (Customer Service Report Serial Number)</label>
+                                    <input type="text" class="form-control" id="csr_sn" name="csr_sn" 
+                                           value="<?php echo htmlspecialchars($form_data['csr_sn'] ?? ''); ?>"
+                                           placeholder="Enter CSR Serial Number (optional)">
                                 </div>
                             </div>
                         </div>

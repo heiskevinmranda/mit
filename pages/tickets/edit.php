@@ -155,7 +155,8 @@ $form_data = [
     'work_start_time' => $_POST['work_start_time'] ?? ($ticket['work_start_time'] ? substr($ticket['work_start_time'], 0, 16) : ''),
     'work_pattern' => 'existing', // For edit, we show existing work logs
     'expected_days' => $_POST['expected_days'] ?? count($existing_work_logs) ?: 1,
-    'work_days' => $_POST['work_days'] ?? []
+    'work_days' => $_POST['work_days'] ?? [],
+    'csr_sn' => $_POST['csr_sn'] ?? $ticket['csr_sn'] ?? ''
 ];
 
 // If no work_days in POST and we have existing work logs, populate them
@@ -242,17 +243,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
             'priority' => $_POST['priority'],
             'status' => $_POST['status'] ?? $ticket['status'],
             'estimated_hours' => !empty($_POST['estimated_hours']) ? $_POST['estimated_hours'] : null,
-            'work_start_time' => !empty($_POST['work_start_time']) ? $_POST['work_start_time'] : null
+            'work_start_time' => !empty($_POST['work_start_time']) ? $_POST['work_start_time'] : null,
+            'csr_sn' => !empty($_POST['csr_sn']) ? $_POST['csr_sn'] : null
         ];
         
         // Update ticket
-        $stmt = $pdo->prepare("
-            UPDATE tickets 
+        $stmt = $pdo->prepare(
+            "UPDATE tickets 
             SET title = ?, description = ?, client_id = ?, location_id = ?, location_manual = ?,
                 category = ?, priority = ?, status = ?, 
-                estimated_hours = ?, work_start_time = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-        ");
+                estimated_hours = ?, work_start_time = ?, csr_sn = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?"
+        );
         
         $stmt->execute([
             $update_data['title'],
@@ -265,6 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
             $update_data['status'],
             $update_data['estimated_hours'],
             $update_data['work_start_time'],
+            $update_data['csr_sn'],
             $ticket_id
         ]);
         
@@ -1148,6 +1151,17 @@ function calculateHours($start_time, $end_time) {
                                         Use this if location is not in the dropdown. This will override the selected location.
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="csr_sn" class="form-label">CSR S/N (Customer Service Report Serial Number)</label>
+                                <input type="text" class="form-control" id="csr_sn" name="csr_sn" 
+                                       value="<?php echo htmlspecialchars($form_data['csr_sn']); ?>"
+                                       placeholder="Enter CSR Serial Number (optional)">
                             </div>
                         </div>
                     </div>

@@ -725,6 +725,13 @@ function formatDuration($minutes) {
                     <span class="info-value"><?php echo htmlspecialchars($ticket['requested_by_email']); ?></span>
                 </div>
                 <?php endif; ?>
+                
+                <?php if ($ticket['csr_sn']): ?>
+                <div class="info-item">
+                    <span class="info-label">CSR S/N</span>
+                    <span class="info-value"><?php echo htmlspecialchars($ticket['csr_sn']); ?></span>
+                </div>
+                <?php endif; ?>
             </div>
             
             <!-- Two Column Layout -->

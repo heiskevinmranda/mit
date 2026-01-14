@@ -176,12 +176,19 @@ if ($export_type === 'pdf') {
     $pdf->Cell(40, 6, 'Category:', 0, 0, 'L');
     $pdf->SetFont('helvetica', 'B', 10);
     $pdf->Cell(50, 6, $ticket['category'], 0, 0, 'L');
-    
+
     $pdf->SetFont('helvetica', '', 10);
     $pdf->Cell(40, 6, 'Created:', 0, 0, 'L');
     $pdf->SetFont('helvetica', 'B', 10);
     $pdf->Cell(50, 6, date('M j, Y g:i A', strtotime($ticket['created_at'])), 0, 1, 'L');
-    
+
+    if ($ticket['csr_sn']) {
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->Cell(40, 6, 'CSR S/N:', 0, 0, 'L');
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(50, 6, $ticket['csr_sn'], 0, 1, 'L');
+    }
+
     if ($ticket['closed_at']) {
         $pdf->SetFont('helvetica', '', 10);
         $pdf->Cell(40, 6, 'Closed:', 0, 0, 'L');
@@ -433,7 +440,11 @@ elseif ($export_type === 'excel') {
     
     echo "<tr><td class='header'>Created</td><td>" . date('M j, Y g:i A', strtotime($ticket['created_at'])) . "</td>";
     echo "<td class='header'>Last Updated</td><td>" . date('M j, Y g:i A', strtotime($ticket['updated_at'])) . "</td></tr>";
-    
+
+    if ($ticket['csr_sn']) {
+        echo "<tr><td class='header'>CSR S/N</td><td>" . $ticket['csr_sn'] . "</td></tr>";
+    }
+
     if ($ticket['work_start_time']) {
         echo "<tr><td class='header'>Scheduled Start</td><td>" . date('M j, Y g:i A', strtotime($ticket['work_start_time'])) . "</td>";
     }
@@ -589,7 +600,11 @@ elseif ($export_type === 'csv') {
     fputcsv($output, ['Category', $ticket['category']]);
     fputcsv($output, ['Created', date('M j, Y g:i A', strtotime($ticket['created_at']))]);
     fputcsv($output, ['Last Updated', date('M j, Y g:i A', strtotime($ticket['updated_at']))]);
-    
+
+    if ($ticket['csr_sn']) {
+        fputcsv($output, ['CSR S/N', $ticket['csr_sn']]);
+    }
+
     if ($ticket['work_start_time']) {
         fputcsv($output, ['Scheduled Start', date('M j, Y g:i A', strtotime($ticket['work_start_time']))]);
     }
@@ -1017,6 +1032,13 @@ elseif ($export_type === 'print') {
                         <div class="info-value"><?php echo date('M j, Y g:i A', strtotime($ticket['updated_at'])); ?></div>
                     </div>
                     
+                    <?php if ($ticket['csr_sn']): ?>
+                    <div class="info-item">
+                        <div class="info-label">CSR S/N</div>
+                        <div class="info-value"><?php echo htmlspecialchars($ticket['csr_sn']); ?></div>
+                    </div>
+                    <?php endif; ?>
+
                     <?php if ($ticket['work_start_time']): ?>
                     <div class="info-item">
                         <div class="info-label">Scheduled Start</div>
