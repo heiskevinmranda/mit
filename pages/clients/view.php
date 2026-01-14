@@ -680,6 +680,14 @@ if (!hasClientPermission('view')) {
                                     <span class="info-label">Company Name:</span>
                                     <span class="info-value"><?= htmlspecialchars($client['company_name']) ?></span>
                                 </div>
+                                <?php if (!empty($client['logo_path'])): ?>
+                                <div class="info-item">
+                                    <span class="info-label">Company Logo:</span>
+                                    <span class="info-value">
+                                        <img src="../../<?= htmlspecialchars($client['logo_path']) ?>" alt="Company Logo" style="max-width: 200px; max-height: 100px;">
+                                    </span>
+                                </div>
+                                <?php endif; ?>
                                 <?php if ($client['industry']): ?>
                                 <div class="info-item">
                                     <span class="info-label">Industry:</span>

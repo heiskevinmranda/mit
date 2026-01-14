@@ -15,12 +15,70 @@ if (!hasPermission('manager') && !hasPermission('admin') && !hasPermission('supp
 
 $pdo = getDBConnection();
 
-// Get export parameters
-$start_date = $_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
-$end_date = $_GET['end_date'] ?? date('Y-m-d');
-$client_id = $_GET['client_id'] ?? '';
-$priority = $_GET['priority'] ?? '';
-$status = $_GET['status'] ?? '';
+// Get export parameters - Support both GET and POST methods
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $start_date = $_POST['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
+    $end_date = $_POST['end_date'] ?? date('Y-m-d');
+    $client_id = $_POST['client_id'] ?? '';
+    $priority = $_POST['priority'] ?? '';
+    $status = $_POST['status'] ?? '';
+    $custom_suggestions = $_POST['custom_suggestions'] ?? '';
+    $detailed_suggestion_title = $_POST['detailed_suggestion_title'] ?? '';
+    $detailed_suggestion_description = $_POST['detailed_suggestion_description'] ?? '';
+    $additional_comments = $_POST['additional_comments'] ?? '';
+    
+    // Handle file uploads
+    $upload_dir = '../../uploads/reports/' . uniqid() . '/';
+    if (!is_dir(dirname(__DIR__, 2) . '/uploads/reports/')) {
+        mkdir(dirname(__DIR__, 2) . '/uploads/reports/', 0755, true);
+    }
+    
+    $before_image_path = '';
+    $after_image_path = '';
+    
+    if (isset($_FILES['before_image']) && $_FILES['before_image']['error'] === UPLOAD_ERR_OK) {
+        $before_tmp_name = $_FILES['before_image']['tmp_name'];
+        $before_name = $_FILES['before_image']['name'];
+        $before_extension = pathinfo($before_name, PATHINFO_EXTENSION);
+        $before_filename = 'before_' . uniqid() . '.' . $before_extension;
+        
+        if (!is_dir(dirname(__DIR__, 2) . $upload_dir)) {
+            mkdir(dirname(__DIR__, 2) . $upload_dir, 0755, true);
+        }
+        
+        if (move_uploaded_file($before_tmp_name, dirname(__DIR__, 2) . $upload_dir . $before_filename)) {
+            $before_image_path = $upload_dir . $before_filename;
+        }
+    }
+    
+    if (isset($_FILES['after_image']) && $_FILES['after_image']['error'] === UPLOAD_ERR_OK) {
+        $after_tmp_name = $_FILES['after_image']['tmp_name'];
+        $after_name = $_FILES['after_image']['name'];
+        $after_extension = pathinfo($after_name, PATHINFO_EXTENSION);
+        $after_filename = 'after_' . uniqid() . '.' . $after_extension;
+        
+        if (!is_dir(dirname(__DIR__, 2) . $upload_dir)) {
+            mkdir(dirname(__DIR__, 2) . $upload_dir, 0755, true);
+        }
+        
+        if (move_uploaded_file($after_tmp_name, dirname(__DIR__, 2) . $upload_dir . $after_filename)) {
+            $after_image_path = $upload_dir . $after_filename;
+        }
+    }
+} else {
+    // GET request
+    $start_date = $_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
+    $end_date = $_GET['end_date'] ?? date('Y-m-d');
+    $client_id = $_GET['client_id'] ?? '';
+    $priority = $_GET['priority'] ?? '';
+    $status = $_GET['status'] ?? '';
+    $custom_suggestions = $_GET['custom_suggestions'] ?? '';
+    $detailed_suggestion_title = $_GET['detailed_suggestion_title'] ?? '';
+    $detailed_suggestion_description = $_GET['detailed_suggestion_description'] ?? '';
+    $additional_comments = $_GET['additional_comments'] ?? '';
+    $before_image_path = '';
+    $after_image_path = '';
+}
 
 // Build where clause for reports
 $where_conditions = ['t.created_at BETWEEN ? AND ?'];
@@ -142,7 +200,13 @@ $filters = [
     'end_date' => $end_date,
     'client_id' => $client_id,
     'priority' => $priority,
-    'status' => $status
+    'status' => $status,
+    'custom_suggestions' => $custom_suggestions,
+    'detailed_suggestion_title' => $detailed_suggestion_title,
+    'detailed_suggestion_description' => $detailed_suggestion_description,
+    'additional_comments' => $additional_comments,
+    'before_image_path' => $before_image_path,
+    'after_image_path' => $after_image_path
 ];
 
 // Generate PDF

@@ -42,8 +42,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'notes' => trim($_POST['notes'] ?? ''),
         'client_region' => trim($_POST['client_region'] ?? ''), // Will store in client_locations
         'service_type' => trim($_POST['service_type'] ?? ''), // Will store in contracts or notes
-        'whatsapp_number' => trim($_POST['whatsapp_number'] ?? '')
+        'whatsapp_number' => trim($_POST['whatsapp_number'] ?? ''),
+        'logo_path' => null
     ];
+    
+    // Handle logo upload
+    if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = '../../uploads/logos/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        
+        // Check if mime_content_type function exists
+        if (function_exists('mime_content_type')) {
+            $fileType = mime_content_type($_FILES['logo']['tmp_name']);
+        } else {
+            // Fallback: check file extension
+            $fileExtension = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
+            $mimeTypeMap = [
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif'
+            ];
+            $fileType = $mimeTypeMap[$fileExtension] ?? '';
+        }
+        
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        
+        if (in_array($fileType, $allowedTypes)) {
+            $fileName = uniqid('logo_') . '_' . basename($_FILES['logo']['name']);
+            $filePath = $uploadDir . $fileName;
+            
+            if (move_uploaded_file($_FILES['logo']['tmp_name'], $filePath)) {
+                $form_data['logo_path'] = 'uploads/logos/' . $fileName;
+            }
+        } else {
+            $errors[] = "Invalid file type. Please upload a JPG, PNG, or GIF image.";
+        }
+    }
     
     // Validation
     if (empty($form_data['company_name'])) {
@@ -83,15 +120,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             
             // Insert client
-            $stmt = $pdo->prepare("
-                INSERT INTO clients (
+            $stmt = $pdo->prepare(
+                "INSERT INTO clients (
                     id, company_name, contact_person, email, phone, address, 
-                    city, state, country, website, industry, created_at, updated_at
+                    city, state, country, website, industry, logo_path, created_at, updated_at
                 ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
                 )
             ");
-            
+                        
             $stmt->execute([
                 $client_id,
                 $form_data['company_name'],
@@ -103,7 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $form_data['state'],
                 $form_data['country'],
                 $form_data['website'],
-                $form_data['industry']
+                $form_data['industry'],
+                $form_data['logo_path']
             ]);
             
             // Always create a primary location
@@ -278,7 +316,7 @@ $service_types = [
                     <h5><i class="fas fa-building"></i> Client Information</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" id="clientForm" novalidate>
+                    <form method="POST" id="clientForm" enctype="multipart/form-data" novalidate>
                     
                     <!-- First Row: Company Information, Primary Contact, Company Address -->
                     <div class="row mb-4">
@@ -371,6 +409,18 @@ $service_types = [
                                                       rows="2"
                                                       placeholder="Any additional information about this client..."><?= htmlspecialchars($form_data['notes'] ?? '') ?></textarea>
                                             <small class="text-muted">Will be stored in contract service scope</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label for="logo" class="form-label">Company Logo</label>
+                                            <input type="file" 
+                                                   class="form-control" 
+                                                   id="logo" 
+                                                   name="logo" 
+                                                   accept="image/*">
+                                            <small class="text-muted">Upload company logo (optional, PNG/JPG/GIF)</small>
                                         </div>
                                     </div>
                                 </div>

@@ -179,6 +179,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'whatsapp_number' => trim($_POST['whatsapp_number'] ?? '')
     ];
     
+    // Handle logo upload
+    if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
+        $uploadDir = '../../uploads/logos/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+        
+        // Check if mime_content_type function exists
+        if (function_exists('mime_content_type')) {
+            $fileType = mime_content_type($_FILES['logo']['tmp_name']);
+        } else {
+            // Fallback: check file extension
+            $fileExtension = strtolower(pathinfo($_FILES['logo']['name'], PATHINFO_EXTENSION));
+            $mimeTypeMap = [
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif'
+            ];
+            $fileType = $mimeTypeMap[$fileExtension] ?? '';
+        }
+        
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        
+        if (in_array($fileType, $allowedTypes)) {
+            $fileName = uniqid('logo_') . '_' . basename($_FILES['logo']['name']);
+            $filePath = $uploadDir . $fileName;
+            
+            if (move_uploaded_file($_FILES['logo']['tmp_name'], $filePath)) {
+                $form_data['logo_path'] = 'uploads/logos/' . $fileName;
+            }
+        } else {
+            $errors[] = "Invalid file type. Please upload a JPG, PNG, or GIF image.";
+        }
+    } else {
+        // Keep existing logo if no new upload
+        $stmt = $pdo->prepare("SELECT logo_path FROM clients WHERE id = ?");
+        $stmt->execute([$client_id]);
+        $existingClient = $stmt->fetch(PDO::FETCH_ASSOC);
+        $form_data['logo_path'] = $existingClient['logo_path'] ?? null;
+    }
+    
     // Validation
     if (empty($form_data['company_name'])) {
         $errors[] = "Company name is required.";
@@ -202,8 +244,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
             
             // Update client information
-            $stmt = $pdo->prepare("
-                UPDATE clients SET
+            $stmt = $pdo->prepare(
+                "UPDATE clients SET
                     company_name = ?,
                     contact_person = ?,
                     email = ?,
@@ -214,10 +256,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     city = ?,
                     state = ?,
                     country = ?,
+                    logo_path = ?,
                     updated_at = NOW()
                 WHERE id = ?
             ");
-            
+                        
             $stmt->execute([
                 $form_data['company_name'],
                 $form_data['contact_person'],
@@ -229,6 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $form_data['city'],
                 $form_data['state'],
                 $form_data['country'],
+                $form_data['logo_path'],
                 $client_id
             ]);
             
@@ -811,7 +855,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <h5><i class="fas fa-building"></i> Client Information</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" id="clientForm" novalidate>
+                    <form method="POST" id="clientForm" enctype="multipart/form-data" novalidate>
                         <input type="hidden" name="client_id" value="<?= $client_id ?>">
                         
                         <!-- Company Information Section -->
@@ -897,6 +941,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                               rows="2"
                                               placeholder="Any additional information about this client..."><?= htmlspecialchars($form_data['notes']) ?></textarea>
                                     <small class="text-muted">Will be stored in contract service scope</small>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="logo" class="form-label">Company Logo</label>
+                                    <input type="file" 
+                                           class="form-control" 
+                                           id="logo" 
+                                           name="logo" 
+                                           accept="image/*">
+                                    <small class="text-muted">Upload company logo (optional, PNG/JPG/GIF)</small>
+                                    <?php if (!empty($client['logo_path'])): ?>
+                                        <div class="mt-2">
+                                            <label class="form-label">Current Logo:</label><br>
+                                            <img src="../../<?= htmlspecialchars($client['logo_path']) ?>" alt="Current Logo" style="max-width: 150px; max-height: 100px;">
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

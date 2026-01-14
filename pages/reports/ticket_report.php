@@ -713,6 +713,58 @@ $report_title = 'Ticket Report';
         </main>
     </div>
 
+    <!-- Modal for PDF Generation Options -->
+    <div class="modal fade" id="pdfOptionsModal" tabindex="-1" aria-labelledby="pdfOptionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pdfOptionsModalLabel">Customize Your PDF Report</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="pdfOptionsForm">
+                        <div class="mb-3">
+                            <label for="customSuggestions" class="form-label"><strong>Custom Suggestions & Recommendations</strong></label>
+                            <textarea class="form-control" id="customSuggestions" rows="4" placeholder="Enter your custom suggestions and recommendations for the client..."></textarea>
+                            <div class="form-text">Add specific suggestions relevant to this client's infrastructure or issues.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="detailedSuggestionTitle" class="form-label"><strong>Detailed Suggestion Title</strong></label>
+                            <input type="text" class="form-control" id="detailedSuggestionTitle" placeholder="e.g., Server Rack Cleanup, Network Security Enhancement">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="detailedSuggestionDescription" class="form-label"><strong>Detailed Suggestion Description</strong></label>
+                            <textarea class="form-control" id="detailedSuggestionDescription" rows="3" placeholder="Describe the detailed suggestion with benefits and implementation steps..."></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="beforeImage" class="form-label"><strong>Before Image (Optional)</strong></label>
+                            <input type="file" class="form-control" id="beforeImage" accept="image/*">
+                            <div class="form-text">Upload an image showing the current state (before implementation).</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="afterImage" class="form-label"><strong>After Image (Optional)</strong></label>
+                            <input type="file" class="form-control" id="afterImage" accept="image/*">
+                            <div class="form-text">Upload an image showing the desired state (after implementation).</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="additionalComments" class="form-label"><strong>Additional Comments</strong></label>
+                            <textarea class="form-control" id="additionalComments" rows="3" placeholder="Any additional comments or notes for the report..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="generatePdfBtn">Generate PDF Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- JavaScript Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -811,6 +863,17 @@ $report_title = 'Ticket Report';
 
             // Export functionality
             $('#export-pdf').on('click', function() {
+                // Show the modal to collect user input
+                $('#pdfOptionsModal').modal('show');
+            });
+            
+            $('#generatePdfBtn').on('click', function() {
+                // Collect user input from the form
+                const customSuggestions = $('#customSuggestions').val();
+                const detailedSuggestionTitle = $('#detailedSuggestionTitle').val();
+                const detailedSuggestionDescription = $('#detailedSuggestionDescription').val();
+                const additionalComments = $('#additionalComments').val();
+                
                 // Collect filter parameters
                 const params = new URLSearchParams({
                     start_date: $('[name="start_date"]').val(),
@@ -818,16 +881,93 @@ $report_title = 'Ticket Report';
                     client_id: $('[name="client_id"]').val(),
                     priority: $('[name="priority"]').val(),
                     status: $('[name="status"]').val(),
-                    export_type: 'pdf'
+                    export_type: 'pdf',
+                    custom_suggestions: customSuggestions,
+                    detailed_suggestion_title: detailedSuggestionTitle,
+                    detailed_suggestion_description: detailedSuggestionDescription,
+                    additional_comments: additionalComments
                 });
                 
-                // Direct download PDF in same window
-                const link = document.createElement('a');
-                link.href = './ticket_report_export?' + params.toString();
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                // Check if images were uploaded
+                const beforeImage = $('#beforeImage')[0].files[0];
+                const afterImage = $('#afterImage')[0].files[0];
+                
+                if (beforeImage || afterImage) {
+                    // If images are uploaded, use form submission instead of direct download
+                    const formData = new FormData();
+                    formData.append('start_date', $('[name="start_date"]').val());
+                    formData.append('end_date', $('[name="end_date"]').val());
+                    formData.append('client_id', $('[name="client_id"]').val());
+                    formData.append('priority', $('[name="priority"]').val());
+                    formData.append('status', $('[name="status"]').val());
+                    formData.append('export_type', 'pdf');
+                    formData.append('custom_suggestions', customSuggestions);
+                    formData.append('detailed_suggestion_title', detailedSuggestionTitle);
+                    formData.append('detailed_suggestion_description', detailedSuggestionDescription);
+                    formData.append('additional_comments', additionalComments);
+                    
+                    if (beforeImage) {
+                        formData.append('before_image', beforeImage);
+                    }
+                    
+                    if (afterImage) {
+                        formData.append('after_image', afterImage);
+                    }
+                    
+                    // Submit via AJAX to handle file uploads
+                    $.ajax({
+                        url: './ticket_report_export',
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        xhr: function() {
+                            const xhr = new window.XMLHttpRequest();
+                            // Download response as blob
+                            xhr.responseType = 'blob';
+                            return xhr;
+                        },
+                        success: function(data, textStatus, jqXHR) {
+                            // Create download link for the PDF
+                            const disposition = jqXHR.getResponseHeader('Content-Disposition');
+                            let filename = "ticket_report.pdf";
+                            if (disposition && disposition.indexOf('attachment') !== -1) {
+                                const filenameRegex = /filename[^;=\n]*=((['"])?.*?\2|[^;\n]*)/;
+                                const matches = filenameRegex.exec(disposition);
+                                if (matches != null && matches[1]) { 
+                                    filename = matches[1].replace(/['"]/g, '');
+                                }
+                            }
+                            
+                            const blob = new Blob([data], { type: 'application/pdf' });
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.setAttribute('download', filename);
+                            document.body.appendChild(link);
+                            link.click();
+                            link.remove();
+                            
+                            // Close the modal
+                            $('#pdfOptionsModal').modal('hide');
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error generating PDF:', error);
+                            alert('Error generating PDF: ' + error.message);
+                        }
+                    });
+                } else {
+                    // Direct download PDF in same window (no images to upload)
+                    const link = document.createElement('a');
+                    link.href = './ticket_report_export?' + params.toString();
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    // Close the modal
+                    $('#pdfOptionsModal').modal('hide');
+                }
             });
 
             $('#export-excel').on('click', function() {
