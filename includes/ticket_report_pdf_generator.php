@@ -121,18 +121,18 @@ class TicketReportPDFGenerator
         $pageHeight = $this->pdf->getPageHeight();
         $margin     = 20;
         $contentWidth = $pageWidth - ($margin * 2);
-
+    
         /* =========================
            FLASHNET LOGO (POSITIONED CLEARLY ABOVE TEXT)
         ========================== */
-        $logoPath = __DIR__ . '/../assets/flashnet_logo.png';  // Assume renamed to match template
+        $logoPath = __DIR__ . '/../assets/flashnet_logo.png';  // Assume path
         if (file_exists($logoPath)) {
             $logoWidth  = 80;
             $logoHeight = 40;
-
+    
             $logoX = ($pageWidth - $logoWidth) / 2; // Center the logo
             $logoY = 20; // Position at the top
-
+    
             $this->pdf->Image(
                 $logoPath,
                 $logoX,
@@ -152,7 +152,7 @@ class TicketReportPDFGenerator
             $this->pdf->SetFont('helvetica', '', 12);
             $this->pdf->Cell(100, 5, 'Managed IT Solutions', 0, 1, 'C');
         }
-
+    
         /* =========================
            MAIN TITLE (MOVED DOWN TO APPEAR BELOW LOGO)
         ========================== */
@@ -176,7 +176,7 @@ class TicketReportPDFGenerator
             1,
             'C'
         );
-
+    
         /* =========================
            TAGLINE
         ========================== */
@@ -190,7 +190,7 @@ class TicketReportPDFGenerator
             1,
             'C'
         );
-
+    
         /* =========================
            CLIENT LOGO AND REPORT TITLE
         ========================== */
@@ -201,7 +201,7 @@ class TicketReportPDFGenerator
             $clientLogoHeight = 40;
             $clientLogoX = ($pageWidth - $clientLogoWidth) / 2 - 30; // Slightly left
             $clientLogoY = $this->pdf->GetY() + 20;
-
+    
             $this->pdf->Image(
                 $clientLogoPath,
                 $clientLogoX,
@@ -211,7 +211,7 @@ class TicketReportPDFGenerator
                 'PNG'
             );
         }
-
+    
         $this->pdf->SetXY(($pageWidth / 2) + 10, $this->pdf->GetY() + 30);
         $this->pdf->SetFont('helvetica', 'B', 24);
         $this->pdf->SetTextColor(0, 128, 0); // Green for report title
@@ -225,7 +225,7 @@ class TicketReportPDFGenerator
             1,
             'L'
         );
-
+    
         /* =========================
            WEBSITE
         ========================== */
@@ -478,12 +478,10 @@ class TicketReportPDFGenerator
 
         // List suggestions
         if (!empty($this->custom_suggestions)) {
-            // Use custom suggestions provided by user
             $this->pdf->Ln(10);
             $this->pdf->SetFont('helvetica', 'B', 12);
             $this->pdf->MultiCell(0, 5, $this->custom_suggestions, 0, 'L');
         } else {
-            // If no custom suggestions provided, indicate that
             $this->pdf->Ln(10);
             $this->pdf->SetFont('helvetica', 'I', 12);
             $this->pdf->SetTextColor(128, 128, 128); // Gray color
@@ -491,26 +489,16 @@ class TicketReportPDFGenerator
             $this->pdf->SetTextColor(0, 0, 0); // Reset to black
             $this->pdf->SetFont('helvetica', '', 12);
         }
-
     }
 
     private function addDetailedSuggestion()
     {
-        $this->pdf->SetTextColor(0, 0, 0);
-        
-        // Only add content if user has provided custom data
         if (!empty($this->detailed_suggestion_title) || !empty($this->detailed_suggestion_description) || 
             !empty($this->before_image_path) || !empty($this->after_image_path) || !empty($this->additional_comments)) {
             
             if (!empty($this->detailed_suggestion_title)) {
                 $this->pdf->SetFont('helvetica', 'B', 16);
                 $this->pdf->Cell(0, 10, $this->detailed_suggestion_title, 0, 1, 'L');
-            } else {
-                // Use a generic title if only description is provided
-                if (!empty($this->detailed_suggestion_description)) {
-                    $this->pdf->SetFont('helvetica', 'B', 16);
-                    $this->pdf->Cell(0, 10, 'Detailed Suggestion', 0, 1, 'L');
-                }
             }
     
             if (!empty($this->detailed_suggestion_description)) {
@@ -518,51 +506,65 @@ class TicketReportPDFGenerator
                 $this->pdf->MultiCell(0, 5, $this->detailed_suggestion_description, 0, 'L');
             }
     
-            // Add descriptions and image placeholders (use user uploaded images if available)
             $this->pdf->Ln(5);
             
             if (!empty($this->before_image_path)) {
+                $this->pdf->SetFont('helvetica', 'B', 12);
                 $this->pdf->Cell(0, 5, 'Current State', 0, 1, 'L');
+                $this->pdf->SetFont('helvetica', '', 10);
                 $this->pdf->MultiCell(0, 5, 'Current situation showing the issue that needs to be addressed.', 0, 'L');
                 
-                // Add uploaded before image
                 $imagePath = __DIR__ . $this->before_image_path;
                 if (file_exists($imagePath)) {
-                    $this->pdf->Image($imagePath, 20, $this->pdf->GetY(), 60, 40);
+                    // Get image dimensions
+                    $imgSize = getimagesize($imagePath);
+                    if ($imgSize !== false) {
+                        $imgWidth = min(80, $imgSize[0] / 4); // Scale down if needed
+                        $imgHeight = ($imgSize[1] / $imgSize[0]) * $imgWidth; // Maintain aspect ratio
+                        $this->pdf->Image($imagePath, $this->pdf->GetX(), $this->pdf->GetY(), $imgWidth, $imgHeight);
+                        $this->pdf->Ln($imgHeight + 5); // Add space after image
+                    }
+                } else {
+                    // Log the missing image path for debugging
+                    error_log("Missing image file: $imagePath");
                 }
-                
-                $this->pdf->Ln(50); // Space for image
             }
             
             if (!empty($this->after_image_path)) {
-                $this->pdf->Cell(0, 5, 'Desired State', 0, 1, 'L');
+                $this->pdf->SetFont('helvetica', 'B', 12);
+                $this->pdf->Cell(0, 5, 'How should be ?', 0, 1, 'L');
+                $this->pdf->SetFont('helvetica', '', 10);
                 $this->pdf->MultiCell(0, 5, 'The recommended solution or improvement.', 0, 'L');
                 
-                // Add uploaded after image
                 $imagePath = __DIR__ . $this->after_image_path;
                 if (file_exists($imagePath)) {
-                    $this->pdf->Image($imagePath, 20, $this->pdf->GetY(), 60, 40);
+                    // Get image dimensions
+                    $imgSize = getimagesize($imagePath);
+                    if ($imgSize !== false) {
+                        $imgWidth = min(80, $imgSize[0] / 4); // Scale down if needed
+                        $imgHeight = ($imgSize[1] / $imgSize[0]) * $imgWidth; // Maintain aspect ratio
+                        $this->pdf->Image($imagePath, $this->pdf->GetX(), $this->pdf->GetY(), $imgWidth, $imgHeight);
+                        $this->pdf->Ln($imgHeight + 5); // Add space after image
+                    }
+                } else {
+                    // Log the missing image path for debugging
+                    error_log("Missing image file: $imagePath");
                 }
-                
-                $this->pdf->Ln(50); // Space for image
             }
             
-            // Add additional comments if provided
             if (!empty($this->additional_comments)) {
-                $this->pdf->Ln(10);
                 $this->pdf->SetFont('helvetica', 'B', 14);
                 $this->pdf->Cell(0, 10, 'Additional Notes', 0, 1, 'L');
                 $this->pdf->SetFont('helvetica', '', 12);
                 $this->pdf->MultiCell(0, 5, $this->additional_comments, 0, 'L');
             }
         } else {
-            // If no custom data provided, indicate that
             $this->pdf->SetFont('helvetica', 'B', 16);
             $this->pdf->Cell(0, 10, 'Detailed Suggestion', 0, 1, 'L');
             $this->pdf->SetFont('helvetica', 'I', 12);
-            $this->pdf->SetTextColor(128, 128, 128); // Gray color
+            $this->pdf->SetTextColor(128, 128, 128);
             $this->pdf->Cell(0, 5, 'No detailed suggestions provided', 0, 1, 'L');
-            $this->pdf->SetTextColor(0, 0, 0); // Reset to black
+            $this->pdf->SetTextColor(0, 0, 0);
             $this->pdf->SetFont('helvetica', '', 12);
         }
     }
@@ -589,7 +591,6 @@ class TicketReportPDFGenerator
 
     private function calculateHealthScore()
     {
-        // Keep if needed, but not used in new structure
         $stats = $this->report_data['stats'] ?? [];
         $total_tickets = $stats['total_tickets'] ?? 0;
 
@@ -597,9 +598,9 @@ class TicketReportPDFGenerator
             return 100;
         }
 
-        $resolved_rate = ($stats['resolved_tickets'] + $stats['closed_tickets']) / $total_tickets;
-        $critical_rate = $stats['critical_tickets'] / $total_tickets;
-        $open_rate = $stats['open_tickets'] / $total_tickets;
+        $resolved_rate = (($stats['resolved_tickets'] ?? 0) + ($stats['closed_tickets'] ?? 0)) / $total_tickets;
+        $critical_rate = ($stats['critical_tickets'] ?? 0) / $total_tickets;
+        $open_rate = ($stats['open_tickets'] ?? 0) / $total_tickets;
 
         $health_score = round((($resolved_rate * 100) - ($critical_rate * 30) - ($open_rate * 40)) * 1.5, 0);
         $health_score = max(0, min(100, $health_score));
