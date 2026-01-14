@@ -127,20 +127,52 @@ class TicketReportPDFGenerator
         ========================== */
         $logoPath = __DIR__ . '/../assets/flashnet_logo.png';  // Assume path
         if (file_exists($logoPath)) {
-            $logoWidth  = 80;
-            $logoHeight = 40;
+            // Get image dimensions to preserve aspect ratio
+            $imgSize = getimagesize($logoPath);
+            if ($imgSize !== false) {
+                $imgWidth = $imgSize[0];
+                $imgHeight = $imgSize[1];
+                
+                // Calculate dimensions to fit within a max size while preserving aspect ratio
+                $maxLogoWidth = 80;
+                $maxLogoHeight = 40;
+                
+                // Calculate scaling factor to fit within max dimensions
+                $widthRatio = $maxLogoWidth / $imgWidth;
+                $heightRatio = $maxLogoHeight / $imgHeight;
+                $scaleRatio = min($widthRatio, $heightRatio); // Use the smaller ratio to fit
+                
+                $logoWidth = $imgWidth * $scaleRatio;
+                $logoHeight = $imgHeight * $scaleRatio;
     
-            $logoX = ($pageWidth - $logoWidth) / 2; // Center the logo
-            $logoY = 20; // Position at the top
+                $logoX = ($pageWidth - $logoWidth) / 2; // Center the logo
+                $logoY = 20; // Position at the top
     
-            $this->pdf->Image(
-                $logoPath,
-                $logoX,
-                $logoY,
-                $logoWidth,
-                $logoHeight,
-                'PNG'
-            );
+                $this->pdf->Image(
+                    $logoPath,
+                    $logoX,
+                    $logoY,
+                    $logoWidth,
+                    $logoHeight,
+                    'PNG'
+                );
+            } else {
+                // Fallback to original sizing if getimagesize fails
+                $logoWidth  = 80;
+                $logoHeight = 40;
+        
+                $logoX = ($pageWidth - $logoWidth) / 2; // Center the logo
+                $logoY = 20; // Position at the top
+        
+                $this->pdf->Image(
+                    $logoPath,
+                    $logoX,
+                    $logoY,
+                    $logoWidth,
+                    $logoHeight,
+                    'PNG'
+                );
+            }
         } else {
             // If logo file doesn't exist, create a placeholder with text
             $this->pdf->SetTextColor(255, 102, 0); // Orange
@@ -158,7 +190,7 @@ class TicketReportPDFGenerator
         ========================== */
         $this->pdf->SetTextColor(0, 0, 0); // Dark gray
         $this->pdf->SetFont('helvetica', 'B', 30);
-        $this->pdf->SetXY($margin, 80); // Moved down from 60 to 80 to accommodate the larger logo
+        $this->pdf->SetXY($margin, 65); // Reduced from 80 to 65 to bring title closer to logo
         $this->pdf->Cell(
             $contentWidth,
             12,
@@ -184,7 +216,7 @@ class TicketReportPDFGenerator
         $this->pdf->SetTextColor(0, 0, 0);
         $this->pdf->Cell(
             $contentWidth,
-            10,
+            8,
             "Focus on your business. We'll do the rest",
             0,
             1,
@@ -192,16 +224,56 @@ class TicketReportPDFGenerator
         );
     
         /* =========================
-           CLIENT LOGO AND REPORT TITLE
+           CLIENT LOGO AND REPORT TITLE (GROUPED AND CENTERED)
         ========================== */
         // Get client logo from database
         $clientLogoPath = $this->getClientLogoPath();
+        
+        // Calculate positions for centered grouped content
+        $groupStartY = $this->pdf->GetY() + 15; // Reduced from 30 to 15 to bring it closer to tagline
+        
         if ($clientLogoPath && file_exists($clientLogoPath)) {
-            $clientLogoWidth  = 40;
-            $clientLogoHeight = 40;
-            $clientLogoX = ($pageWidth - $clientLogoWidth) / 2 - 30; // Slightly left
-            $clientLogoY = $this->pdf->GetY() + 20;
-    
+            // Get image dimensions to preserve aspect ratio
+            $imgSize = getimagesize($clientLogoPath);
+            if ($imgSize !== false) {
+                $imgWidth = $imgSize[0];
+                $imgHeight = $imgSize[1];
+                
+                // Calculate dimensions to fit within a max size while preserving aspect ratio
+                $maxClientLogoWidth = 40;
+                $maxClientLogoHeight = 40;
+                
+                // Calculate scaling factor to fit within max dimensions
+                $widthRatio = $maxClientLogoWidth / $imgWidth;
+                $heightRatio = $maxClientLogoHeight / $imgHeight;
+                $scaleRatio = min($widthRatio, $heightRatio); // Use the smaller ratio to fit
+                
+                $clientLogoWidth = $imgWidth * $scaleRatio;
+                $clientLogoHeight = $imgHeight * $scaleRatio;
+            } else {
+                // Fallback to original sizing if getimagesize fails
+                $clientLogoWidth  = 40;
+                $clientLogoHeight = 40;
+            }
+            
+            // Calculate total width needed for logo + title
+            $startDate = new DateTime($this->filters['start_date'] ?? date('Y-m-d'));
+            $reportTitle = 'AMC ' . $startDate->format('F Y') . ' Report.';
+            
+            // Get text width
+            $this->pdf->SetFont('helvetica', 'B', 24);
+            $textWidth = $this->pdf->GetStringWidth($reportTitle);
+            
+            // Total group width
+            $totalGroupWidth = $clientLogoWidth + 10 + $textWidth; // 10px spacing
+            
+            // Calculate starting X position to center the whole group
+            $groupStartX = ($pageWidth - $totalGroupWidth) / 2;
+            
+            // Draw client logo
+            $clientLogoX = $groupStartX;
+            $clientLogoY = $groupStartY;
+            
             $this->pdf->Image(
                 $clientLogoPath,
                 $clientLogoX,
@@ -210,26 +282,41 @@ class TicketReportPDFGenerator
                 $clientLogoHeight,
                 'PNG'
             );
+            
+            // Draw report title next to the logo
+            $titleX = $clientLogoX + $clientLogoWidth + 10; // 10px spacing
+            $this->pdf->SetXY($titleX, $clientLogoY + ($clientLogoHeight - 8) / 2); // Vertically center align
+            $this->pdf->SetFont('helvetica', 'B', 24);
+            $this->pdf->SetTextColor(0, 128, 0); // Green for report title
+            $this->pdf->Cell(
+                $textWidth,
+                12,
+                $reportTitle,
+                0,
+                0,
+                'L'
+            );
+        } else {
+            // If no client logo, just center the title
+            $this->pdf->SetXY(($pageWidth / 2) - 50, $groupStartY + 10);
+            $this->pdf->SetFont('helvetica', 'B', 24);
+            $this->pdf->SetTextColor(0, 128, 0); // Green for report title
+            $startDate = new DateTime($this->filters['start_date'] ?? date('Y-m-d'));
+            $reportTitle = 'AMC ' . $startDate->format('F Y') . ' Report.';
+            $this->pdf->Cell(
+                100,
+                12,
+                $reportTitle,
+                0,
+                0,
+                'C'
+            );
         }
-    
-        $this->pdf->SetXY(($pageWidth / 2) + 10, $this->pdf->GetY() + 30);
-        $this->pdf->SetFont('helvetica', 'B', 24);
-        $this->pdf->SetTextColor(0, 128, 0); // Green for report title
-        $startDate = new DateTime($this->filters['start_date'] ?? date('Y-m-d'));
-        $reportTitle = 'AMC ' . $startDate->format('F Y') . ' Report.';
-        $this->pdf->Cell(
-            $contentWidth / 2,
-            12,
-            $reportTitle,
-            0,
-            1,
-            'L'
-        );
     
         /* =========================
            WEBSITE
         ========================== */
-        $this->pdf->Ln(10);
+        $this->pdf->Ln(15); // Reduced spacing to keep website on cover page
         $this->pdf->SetFont('helvetica', 'B', 16);
         $this->pdf->SetTextColor(0, 0, 0);
         $this->pdf->Cell(
