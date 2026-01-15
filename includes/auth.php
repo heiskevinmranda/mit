@@ -14,9 +14,14 @@ if (!headers_sent()) {
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/error_handler.php';
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
+// Start session if not already started and headers not sent
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
+} elseif (session_status() === PHP_SESSION_NONE) {
+    // If headers are already sent, we can't start session properly
+    // This typically happens during PDF generation or AJAX requests
+    // We'll continue without session for these cases
+    error_log('Session could not be started - headers already sent. This is normal for PDF exports.');
 }
 
 // ========== AUTHENTICATION FUNCTIONS ==========

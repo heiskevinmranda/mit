@@ -9,6 +9,8 @@ class TicketReportPDFGenerator
     private $report_data;
     private $filters;
     private $client_name;
+    private $year;
+    private $category_colors;
     private $custom_suggestions;
     private $detailed_suggestion_title;
     private $detailed_suggestion_description;
@@ -18,6 +20,9 @@ class TicketReportPDFGenerator
 
     public function __construct($report_data, $filters)
     {
+        error_log("TicketReportPDFGenerator: Constructor called with data keys: " . json_encode(array_keys($report_data ?? [])) . 
+                  " and filter keys: " . json_encode(array_keys($filters ?? [])));
+        
         $this->report_data = $report_data;
         $this->filters = $filters;
         $this->client_name = $this->getClientNameById($filters['client_id'] ?? null) ?? 'All Clients';
@@ -27,10 +32,13 @@ class TicketReportPDFGenerator
         $this->additional_comments = $filters['additional_comments'] ?? '';
         $this->before_image_path = $filters['before_image_path'] ?? '';
         $this->after_image_path = $filters['after_image_path'] ?? '';
-
-        // Determine report title based on dates
+        
+        // Extract dates from filters
         $startDate = new DateTime($this->filters['start_date'] ?? date('Y-m-d'));
         $endDate = new DateTime($this->filters['end_date'] ?? date('Y-m-d'));
+        
+        // Extract year from start date for calendar
+        $this->year = $startDate->format('Y');
         if ($startDate->format('Y-m') === $endDate->format('Y-m')) {
             $report_title = 'AMC ' . $startDate->format('F Y') . ' Report';
         } elseif ($startDate->format('Y') === $endDate->format('Y')) {
@@ -38,6 +46,8 @@ class TicketReportPDFGenerator
         } else {
             $report_title = 'AMC ' . $startDate->format('M Y') . ' - ' . $endDate->format('M Y') . ' Report';
         }
+
+        error_log("TicketReportPDFGenerator: Initializing TCPDF with title: $report_title and client: {$this->client_name}");
 
         // Initialize TCPDF with standard A4 landscape format for better report layout
         $this->pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
@@ -57,61 +67,113 @@ class TicketReportPDFGenerator
 
         // Add a page
         $this->pdf->AddPage();
+        
+        // Initialize category colors for calendar and statistics
+        $this->initializeCategoryColors();
+        
+        error_log("TicketReportPDFGenerator: Constructor completed successfully");
+    }
+
+    private function initializeCategoryColors()
+    {
+        // Initialize category colors for use in calendar and statistics
+        $this->category_colors = [
+            'General' => [[255, 165, 0], [0, 0, 0]], // Orange
+            'Hardware' => [[144, 238, 144], [0, 0, 0]], // Light green
+            'Network' => [[173, 216, 230], [0, 0, 0]], // Light blue
+            'Server' => [[255, 102, 0], [0, 0, 0]], // Orange-red
+            'Firewall' => [[255, 0, 0], [255, 255, 255]], // Red
+            'Email' => [[0, 0, 139], [255, 255, 255]], // Dark blue
+            'Security' => [[75, 0, 130], [255, 255, 255]], // Indigo
+            'CCTV' => [[128, 0, 128], [255, 255, 255]], // Purple
+            'Biometric' => [[255, 20, 147], [0, 0, 0]], // Deep pink
+            'Software' => [[60, 179, 113], [0, 0, 0]], // Medium sea green
+        ];
     }
 
     public function generate()
     {
-        // 1. Cover / Header Section
-        $this->addHeaderSection();
-
-        // Add page break to separate sections
-        $this->pdf->AddPage();
-
-        // 2. Services Introduction
-        $this->addServicesIntroduction();
-
-        // Add page break to separate sections
-        $this->pdf->AddPage();
-
-        // 3. Audit Numbers / KPI Metrics
-        $this->addAuditNumbers();
-
-        // Add page break to separate sections
-        $this->pdf->AddPage();
-
-        // 4. Our Agenda
-        $this->addOurAgenda();
-
-        // Add page break to separate sections
-        $this->pdf->AddPage();
-
-        // 5. Activities Calendar
-        $this->addActivitiesCalendar();
-
-        // Add page break to separate sections
-        $this->pdf->AddPage();
-
-        // 6. Activities Tickets (Detailed Tickets Table)
-        $this->addActivitiesTickets();
-
-        // Add page break to separate sections
-        $this->pdf->AddPage();
-
-        // 7. Suggestion Ideas / Recommendations
-        $this->addSuggestionIdeas();
-
-        // Add page break to separate sections
-        $this->pdf->AddPage();
-
-        // 8. Detailed Suggestion Example (e.g., Server Rack Cleanup with images)
-        $this->addDetailedSuggestion();
-
-        // Add page break to separate sections
-        $this->pdf->AddPage();
-
-        // 9. Thank You / Footer Section
-        $this->addThankYouSection();
-
+        error_log("TicketReportPDFGenerator: Starting PDF generation");
+        
+        try {
+            // 1. Cover / Header Section
+            error_log("TicketReportPDFGenerator: Adding header section");
+            $this->addHeaderSection();
+            
+            // Add page break to separate sections
+            error_log("TicketReportPDFGenerator: Adding page break after header");
+            $this->pdf->AddPage();
+            
+            // 2. Services Introduction
+            error_log("TicketReportPDFGenerator: Adding services introduction");
+            $this->addServicesIntroduction();
+            
+            // Add page break to separate sections
+            error_log("TicketReportPDFGenerator: Adding page break after services intro");
+            $this->pdf->AddPage();
+            
+            // 3. Audit Numbers / KPI Metrics
+            error_log("TicketReportPDFGenerator: Adding audit numbers");
+            $this->addAuditNumbers();
+            
+            // Add page break to separate sections
+            error_log("TicketReportPDFGenerator: Adding page break after audit numbers");
+            $this->pdf->AddPage();
+            
+            // 4. Our Agenda
+            error_log("TicketReportPDFGenerator: Adding our agenda");
+            $this->addOurAgenda();
+            
+            // Add page break to separate sections
+            error_log("TicketReportPDFGenerator: Adding page break after agenda");
+            $this->pdf->AddPage();
+            
+            // 5. Activities Calendar
+            error_log("TicketReportPDFGenerator: Adding activities calendar");
+            $this->addActivitiesCalendar();
+            
+            // Add page break to separate sections
+            error_log("TicketReportPDFGenerator: Adding page break after calendar");
+            $this->pdf->AddPage();
+            
+            // 6. Activities Tickets (Detailed Tickets Table)
+            error_log("TicketReportPDFGenerator: Adding activities tickets");
+            $this->addActivitiesTickets();
+            
+            // Add page break to separate sections
+            error_log("TicketReportPDFGenerator: Adding page break after tickets");
+            $this->pdf->AddPage();
+            
+            // 7. Suggestion Ideas / Recommendations
+            error_log("TicketReportPDFGenerator: Adding suggestion ideas");
+            $this->addSuggestionIdeas();
+            
+            // Add page break to separate sections
+            error_log("TicketReportPDFGenerator: Adding page break after suggestions");
+            $this->pdf->AddPage();
+            
+            // 8. Detailed Suggestion Example (e.g., Server Rack Cleanup with images)
+            error_log("TicketReportPDFGenerator: Adding detailed suggestion");
+            $this->addDetailedSuggestion();
+            
+            // Add page break to separate sections
+            error_log("TicketReportPDFGenerator: Adding page break after detailed suggestion");
+            $this->pdf->AddPage();
+            
+            // 9. Thank You / Footer Section
+            error_log("TicketReportPDFGenerator: Adding thank you section");
+            $this->addThankYouSection();
+            
+            error_log("TicketReportPDFGenerator: PDF generation completed successfully");
+            
+        } catch (Exception $e) {
+            error_log("TicketReportPDFGenerator ERROR: " . $e->getMessage() . 
+                      " | File: " . $e->getFile() . 
+                      " | Line: " . $e->getLine() . 
+                      " | Trace: " . $e->getTraceAsString());
+            throw $e; // Re-throw to be caught by caller
+        }
+        
         return $this->pdf;
     }
 
@@ -121,7 +183,7 @@ class TicketReportPDFGenerator
         $pageHeight = $this->pdf->getPageHeight();
         $margin     = 20;
         $contentWidth = $pageWidth - ($margin * 2);
-    
+
         /* =========================
            FLASHNET LOGO (POSITIONED CLEARLY ABOVE TEXT)
         ========================== */
@@ -132,22 +194,22 @@ class TicketReportPDFGenerator
             if ($imgSize !== false) {
                 $imgWidth = $imgSize[0];
                 $imgHeight = $imgSize[1];
-                
+
                 // Calculate dimensions to fit within a max size while preserving aspect ratio
                 $maxLogoWidth = 80;
                 $maxLogoHeight = 40;
-                
+
                 // Calculate scaling factor to fit within max dimensions
                 $widthRatio = $maxLogoWidth / $imgWidth;
                 $heightRatio = $maxLogoHeight / $imgHeight;
                 $scaleRatio = min($widthRatio, $heightRatio); // Use the smaller ratio to fit
-                
+
                 $logoWidth = $imgWidth * $scaleRatio;
                 $logoHeight = $imgHeight * $scaleRatio;
-    
+
                 $logoX = ($pageWidth - $logoWidth) / 2; // Center the logo
                 $logoY = 20; // Position at the top
-    
+
                 $this->pdf->Image(
                     $logoPath,
                     $logoX,
@@ -160,10 +222,10 @@ class TicketReportPDFGenerator
                 // Fallback to original sizing if getimagesize fails
                 $logoWidth  = 80;
                 $logoHeight = 40;
-        
+
                 $logoX = ($pageWidth - $logoWidth) / 2; // Center the logo
                 $logoY = 20; // Position at the top
-        
+
                 $this->pdf->Image(
                     $logoPath,
                     $logoX,
@@ -184,7 +246,7 @@ class TicketReportPDFGenerator
             $this->pdf->SetFont('helvetica', '', 12);
             $this->pdf->Cell(100, 5, 'Managed IT Solutions', 0, 1, 'C');
         }
-    
+
         /* =========================
            MAIN TITLE (MOVED DOWN TO APPEAR BELOW LOGO)
         ========================== */
@@ -208,7 +270,7 @@ class TicketReportPDFGenerator
             1,
             'C'
         );
-    
+
         /* =========================
            TAGLINE
         ========================== */
@@ -222,32 +284,32 @@ class TicketReportPDFGenerator
             1,
             'C'
         );
-    
+
         /* =========================
            CLIENT LOGO AND REPORT TITLE (GROUPED AND CENTERED)
         ========================== */
         // Get client logo from database
         $clientLogoPath = $this->getClientLogoPath();
-        
+
         // Calculate positions for centered grouped content
         $groupStartY = $this->pdf->GetY() + 15; // Reduced from 30 to 15 to bring it closer to tagline
-        
+
         if ($clientLogoPath && file_exists($clientLogoPath)) {
             // Get image dimensions to preserve aspect ratio
             $imgSize = getimagesize($clientLogoPath);
             if ($imgSize !== false) {
                 $imgWidth = $imgSize[0];
                 $imgHeight = $imgSize[1];
-                
+
                 // Calculate dimensions to fit within a max size while preserving aspect ratio
                 $maxClientLogoWidth = 40;
                 $maxClientLogoHeight = 40;
-                
+
                 // Calculate scaling factor to fit within max dimensions
                 $widthRatio = $maxClientLogoWidth / $imgWidth;
                 $heightRatio = $maxClientLogoHeight / $imgHeight;
                 $scaleRatio = min($widthRatio, $heightRatio); // Use the smaller ratio to fit
-                
+
                 $clientLogoWidth = $imgWidth * $scaleRatio;
                 $clientLogoHeight = $imgHeight * $scaleRatio;
             } else {
@@ -255,25 +317,25 @@ class TicketReportPDFGenerator
                 $clientLogoWidth  = 40;
                 $clientLogoHeight = 40;
             }
-            
+
             // Calculate total width needed for logo + title
             $startDate = new DateTime($this->filters['start_date'] ?? date('Y-m-d'));
             $reportTitle = 'AMC ' . $startDate->format('F Y') . ' Report.';
-            
+
             // Get text width
             $this->pdf->SetFont('helvetica', 'B', 24);
             $textWidth = $this->pdf->GetStringWidth($reportTitle);
-            
+
             // Total group width
             $totalGroupWidth = $clientLogoWidth + 10 + $textWidth; // 10px spacing
-            
+
             // Calculate starting X position to center the whole group
             $groupStartX = ($pageWidth - $totalGroupWidth) / 2;
-            
+
             // Draw client logo
             $clientLogoX = $groupStartX;
             $clientLogoY = $groupStartY;
-            
+
             $this->pdf->Image(
                 $clientLogoPath,
                 $clientLogoX,
@@ -282,7 +344,7 @@ class TicketReportPDFGenerator
                 $clientLogoHeight,
                 'PNG'
             );
-            
+
             // Draw report title next to the logo
             $titleX = $clientLogoX + $clientLogoWidth + 10; // 10px spacing
             $this->pdf->SetXY($titleX, $clientLogoY + ($clientLogoHeight - 8) / 2); // Vertically center align
@@ -312,7 +374,7 @@ class TicketReportPDFGenerator
                 'C'
             );
         }
-    
+
         /* =========================
            WEBSITE
         ========================== */
@@ -468,51 +530,247 @@ class TicketReportPDFGenerator
         $this->pdf->SetFont('helvetica', '', 12);
         $this->pdf->Cell(0, 5, "It's about visual representation of our commitments, Tasks and services provided to customer.", 0, 1, 'L');
 
-        // Generate calendar table based on start_date month
-        // For simplicity, simulate a monthly calendar with dummy data or count tickets per day
-        $startDate = new DateTime($this->filters['start_date'] ?? date('Y-m-01'));
-        $month = $startDate->format('F');
-        $year = $startDate->format('Y');
         $this->pdf->Ln(10);
         $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->Cell(0, 5, 'FLASHNET AMC CLIENT RECORD - ' . $this->client_name . ' - Enter Year: ' . $year, 0, 1, 'L');
+        $this->pdf->Cell(0, 5, 'FLASHNET AMC CLIENT RECORD', 0, 1, 'L');
+        $this->pdf->Cell(0, 5, 'Client: ' . $this->client_name, 0, 1, 'L');
+        $this->pdf->Cell(0, 5, 'Year: ' . $this->year, 0, 1, 'L');
+        $this->pdf->SetTextColor(128, 128, 128); // Gray for certification note
+        $this->pdf->SetFont('helvetica', '', 8);
+        $this->pdf->Cell(0, 5, 'An ISO 9001:2015 Certified Company', 0, 1, 'R');
 
-        // Calendar header (days)
-        $days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        foreach ($days as $day) {
-            $this->pdf->Cell(20, 5, $day, 1, 0, 'C');
+        $this->pdf->Ln(5);
+
+        // Table header
+        $month_width = 35.625; // Original 30 + 25% - 5% = 35.625
+        $day_width = 6.175; // Original 5.2 + 25% - 5% = 6.175
+        $this->pdf->SetFillColor(0, 0, 128); // Dark navy for header
+        $this->pdf->SetTextColor(255, 255, 255);
+        $this->pdf->SetFont('helvetica', 'B', 8);
+        $this->pdf->Cell($month_width, 5, 'Weekday/Month', 1, 0, 'C', true);
+
+        $weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        
+        // Calculate maximum columns needed for any month in the year
+        $max_cols_needed = 0;
+        for ($m = 1; $m <= 12; $m++) {
+            $dt = new DateTime($this->year . '-' . str_pad($m, 2, '0', STR_PAD_LEFT) . '-01');
+            $days_in_month = (int)$dt->format('t');
+            $start_wday = (int)$dt->format('w'); // 0 = SUN, 6 = SAT
+            $cols_needed = $start_wday + $days_in_month;
+            if ($cols_needed > $max_cols_needed) {
+                $max_cols_needed = $cols_needed;
+            }
         }
+        
+        // Ensure we have at least 35 columns (5 weeks) but expand as needed
+        $total_columns = max(35, $max_cols_needed);
+        
+        // Add weekday headers for calculated number of columns
+        for ($i = 0; $i < $total_columns; $i++) {
+            $weekday_index = $i % 7; // Cycle through SUN-SAT
+            $this->pdf->Cell($day_width, 5.9375, $weekdays[$weekday_index], 1, 0, 'C', true); // Height reduced by 5% from 6.25
+        }
+
+        // Calculate maximum columns needed for any month in the year
+        $max_cols_needed = 0;
+        for ($calc_m = 1; $calc_m <= 12; $calc_m++) {
+            $calc_dt = new DateTime($this->year . '-' . str_pad($calc_m, 2, '0', STR_PAD_LEFT) . '-01');
+            $calc_days_in_month = (int)$calc_dt->format('t');
+            $calc_start_wday = (int)$calc_dt->format('w'); // 0 = SUN, 6 = SAT
+            $calc_cols_needed = $calc_start_wday + $calc_days_in_month;
+            if ($calc_cols_needed > $max_cols_needed) {
+                $max_cols_needed = $calc_cols_needed;
+            }
+        }
+        
+        // Ensure we have at least 35 columns (5 weeks) but expand as needed
+        $total_columns = max(35, $max_cols_needed);
+        
         $this->pdf->Ln();
 
-        // Fill calendar rows (simplified, use actual date calculations in production)
-        // Group tickets by date for counts
-        $ticketCounts = [];
-        foreach ($this->report_data['recent_tickets'] ?? [] as $ticket) {
-            $date = date('Y-m-d', strtotime($ticket['created_at']));
-            $ticketCounts[$date] = ($ticketCounts[$date] ?? 0) + 1;
-        }
+        $this->pdf->SetTextColor(0, 0, 0);
+        $this->pdf->SetFont('helvetica', '', 8);
 
-        // Assume a 5-week calendar for the month
-        for ($week = 0; $week < 5; $week++) {
-            for ($day = 1; $day <= 7; $day++) {
-                $dayNum = ($week * 7) + $day;
-                if ($dayNum > 31) break; // Rough month end
-                $dateKey = $year . '-' . $startDate->format('m') . '-' . str_pad($dayNum, 2, '0', STR_PAD_LEFT);
-                $count = $ticketCounts[$dateKey] ?? 0;
-                $this->pdf->Cell(20, 5, $dayNum . ' (' . $count . ')', 1, 0, 'C');
+        // Get ticket data organized by date for calendar coloring
+        $ticket_dates = [];
+        foreach ($this->report_data['recent_tickets'] ?? [] as $ticket) {
+            if (isset($ticket['created_at'])) {
+                $ticket_date = date('Y-m-d', strtotime($ticket['created_at']));
+                $category = $ticket['category'] ?? 'General';
+                
+                if (!isset($ticket_dates[$ticket_date])) {
+                    $ticket_dates[$ticket_date] = [];
+                }
+                
+                if (!isset($ticket_dates[$ticket_date][$category])) {
+                    $ticket_dates[$ticket_date][$category] = 0;
+                }
+                $ticket_dates[$ticket_date][$category]++;
             }
+        }
+        
+        // Calendar rows for each month
+        for ($m = 1; $m <= 12; $m++) {
+            $dt = new DateTime($this->year . '-' . str_pad($m, 2, '0', STR_PAD_LEFT) . '-01');
+            $month_name = $dt->format('F');
+            $days_in_month = (int)$dt->format('t');
+            $start_wday = (int)$dt->format('w'); // 0 = SUN, 6 = SAT
+
+            $this->pdf->Cell($month_width, 5.9375, $month_name, 1, 0, 'L'); // Height reduced by 5% from 6.25
+
+            // Blanks before the first day
+            for ($b = 0; $b < $start_wday; $b++) {
+                $this->pdf->Cell($day_width, 5.9375, '', 1, 0, 'C'); // Height reduced by 5% from 6.25
+            }
+
+            // Day numbers with color coding
+            for ($d = 1; $d <= $days_in_month; $d++) {
+                $current_date = sprintf('%04d-%02d-%02d', $this->year, $m, $d);
+                $day_cell_value = $d;
+                
+                // Check if this date has tickets
+                if (isset($ticket_dates[$current_date]) && !empty($ticket_dates[$current_date])) {
+                    // Find the category with most tickets for this day
+                    $max_category = array_keys($ticket_dates[$current_date], max($ticket_dates[$current_date]))[0];
+                    
+                    // Set background color based on category
+                    if (isset($this->category_colors[$max_category])) {
+                        $bg_color = $this->category_colors[$max_category][0];
+                        $text_color = $this->category_colors[$max_category][1];
+                        
+                        // Set cell background color
+                        $this->pdf->SetFillColor($bg_color[0], $bg_color[1], $bg_color[2]);
+                        $this->pdf->SetTextColor($text_color[0], $text_color[1], $text_color[2]);
+                        $this->pdf->Cell($day_width, 5.9375, $day_cell_value, 1, 0, 'C', true); // Height reduced by 5% from 6.25
+                    } else {
+                        // Default gray for unknown categories
+                        $this->pdf->SetFillColor(169, 169, 169);
+                        $this->pdf->SetTextColor(0, 0, 0);
+                        $this->pdf->Cell($day_width, 5.9375, $day_cell_value, 1, 0, 'C', true); // Height reduced by 5% from 6.25
+                    }
+                } else {
+                    // No tickets - white background
+                    $this->pdf->SetFillColor(255, 255, 255);
+                    $this->pdf->SetTextColor(0, 0, 0);
+                    $this->pdf->Cell($day_width, 5.9375, $day_cell_value, 1, 0, 'C', true); // Height reduced by 5% from 6.25
+                }
+            }
+
+            // Calculate how many blank cells are needed for this month
+            $filled = $start_wday + $days_in_month;
+            $blanks_after = $total_columns - $filled;
+            for ($b = 0; $b < $blanks_after; $b++) {
+                $this->pdf->SetFillColor(255, 255, 255);
+                $this->pdf->SetTextColor(0, 0, 0);
+                $this->pdf->Cell($day_width, 5.9375, '', 1, 0, 'C', true); // Height reduced by 5% from 6.25
+            }
+
             $this->pdf->Ln();
         }
 
-        // Key statistics at bottom (colored boxes)
+        // Key Statistics
         $this->pdf->Ln(10);
         $this->pdf->SetFont('helvetica', 'B', 10);
+        $this->pdf->SetTextColor(0, 0, 0);
         $this->pdf->Cell(0, 5, 'KEY STATISTICS', 0, 1, 'L');
-        $keys = ['Total Tickets' => $this->report_data['stats']['total_tickets'] ?? 2, 'Auditing' => 0, 'Site Survey' => 0, /* add more */];
-        foreach ($keys as $label => $value) {
-            $this->pdf->SetFillColor(rand(0,255), rand(0,255), rand(0,255)); // Random colors for demo
-            $this->pdf->Cell(30, 10, $label . ': ' . $value, 1, 0, 'C', true);
+
+        // Calculate grouped ticket counts using actual categories from database
+        $category_counts = [];
+        
+        // Get actual categories from database
+        try {
+            $pdo = getDBConnection();
+            $stmt = $pdo->query("SELECT DISTINCT category FROM tickets WHERE category IS NOT NULL AND category != '' ORDER BY category");
+            $actual_categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            // Initialize counts for all actual categories
+            foreach ($actual_categories as $cat) {
+                $category_counts[$cat] = 0;
+            }
+        } catch (Exception $e) {
+            // Log error for debugging
+            error_log("TicketReportPDFGenerator: Error fetching categories: " . $e->getMessage());
+            // Fallback to common categories if database query fails
+            $category_counts = [
+                'General' => 0,
+                'Hardware' => 0,
+                'Network' => 0,
+                'Server' => 0,
+                'Firewall' => 0
+            ];
         }
+
+        // Count tickets by actual categories
+        foreach ($this->report_data['recent_tickets'] ?? [] as $ticket) {
+            $cat = $ticket['category'] ?? '';
+            if (array_key_exists($cat, $category_counts)) {
+                $category_counts[$cat]++;
+            }
+        }
+
+        $total_tickets = $this->report_data['stats']['total_tickets'] ?? count($this->report_data['recent_tickets'] ?? []);
+
+        // Define keys with colors for categories that exist in the system
+        $keys = [
+            'Total Tickets' => ['value' => $total_tickets, 'color' => [0, 0, 139], 'text_color' => [255, 255, 255]],
+        ];
+        
+        // Add dynamic categories with predefined colors
+        $category_colors = [
+            'General' => [[255, 165, 0], [0, 0, 0]], // Orange
+            'Hardware' => [[144, 238, 144], [0, 0, 0]], // Light green
+            'Network' => [[173, 216, 230], [0, 0, 0]], // Light blue
+            'Server' => [[255, 102, 0], [0, 0, 0]], // Orange-red
+            'Firewall' => [[255, 0, 0], [255, 255, 255]], // Red
+            'Email' => [[0, 0, 139], [255, 255, 255]], // Dark blue
+            'Security' => [[75, 0, 130], [255, 255, 255]], // Indigo
+            'CCTV' => [[128, 0, 128], [255, 255, 255]], // Purple
+            'Biometric' => [[255, 20, 147], [0, 0, 0]], // Deep pink
+            'Software' => [[60, 179, 113], [0, 0, 0]], // Medium sea green
+        ];
+        
+        // Category colors already initialized in constructor
+        // $this->category_colors = $category_colors;
+        
+        // Add existing categories to keys
+        foreach ($category_counts as $category => $count) {
+            if (isset($this->category_colors[$category])) {
+                $keys[$category] = [
+                    'value' => $count,
+                    'color' => $this->category_colors[$category][0],
+                    'text_color' => $this->category_colors[$category][1]
+                ];
+            } else {
+                // Use default color for unknown categories
+                $keys[$category] = [
+                    'value' => $count,
+                    'color' => [169, 169, 169], // Gray
+                    'text_color' => [0, 0, 0]
+                ];
+            }
+        }
+
+        $box_width = 25; // Adjust as needed to fit
+
+        // Draw the number boxes
+        $this->pdf->SetFont('helvetica', 'B', 14);
+        foreach ($keys as $label => $info) {
+            $this->pdf->SetFillColor($info['color'][0], $info['color'][1], $info['color'][2]);
+            $this->pdf->SetTextColor($info['text_color'][0], $info['text_color'][1], $info['text_color'][2]);
+            $this->pdf->Cell($box_width, 15, $info['value'], 1, 0, 'C', true);
+        }
+
+        $this->pdf->Ln();
+
+        // Draw the labels below
+        $this->pdf->SetFont('helvetica', '', 8);
+        $this->pdf->SetTextColor(0, 0, 0);
+        foreach ($keys as $label => $info) {
+            $this->pdf->Cell($box_width, 5, $label, 0, 0, 'C');
+        }
+
+        $this->pdf->Ln();
     }
 
     private function addActivitiesTickets()
@@ -547,7 +805,7 @@ class TicketReportPDFGenerator
             $this->pdf->Cell(50, 10, $ticket['company_name'] ?? $this->client_name, 1, 0, 'L', true);
             $this->pdf->Cell(60, 10, substr($ticket['title'] ?? 'No Subject', 0, 30), 1, 0, 'L', true);
             $this->pdf->Cell(40, 10, $ticket['category'] ?? 'System', 1, 0, 'C', true);
-            $this->pdf->Cell(30, 10, $ticket['status'], 1, 0, 'C', true);
+            $this->pdf->Cell(30, 10, $ticket['status'] ?? 'Unknown', 1, 0, 'C', true);
             $this->pdf->Cell(40, 10, $ticket['assigned_to'] ?? 'Unassigned', 1, 1, 'C', true);
             $fill = !$fill;
         }
@@ -580,27 +838,29 @@ class TicketReportPDFGenerator
 
     private function addDetailedSuggestion()
     {
-        if (!empty($this->detailed_suggestion_title) || !empty($this->detailed_suggestion_description) || 
-            !empty($this->before_image_path) || !empty($this->after_image_path) || !empty($this->additional_comments)) {
-            
+        if (
+            !empty($this->detailed_suggestion_title) || !empty($this->detailed_suggestion_description) ||
+            !empty($this->before_image_path) || !empty($this->after_image_path) || !empty($this->additional_comments)
+        ) {
+
             if (!empty($this->detailed_suggestion_title)) {
                 $this->pdf->SetFont('helvetica', 'B', 16);
                 $this->pdf->Cell(0, 10, $this->detailed_suggestion_title, 0, 1, 'L');
             }
-    
+
             if (!empty($this->detailed_suggestion_description)) {
                 $this->pdf->SetFont('helvetica', '', 12);
                 $this->pdf->MultiCell(0, 5, $this->detailed_suggestion_description, 0, 'L');
             }
-    
+
             $this->pdf->Ln(5);
-            
+
             if (!empty($this->before_image_path)) {
                 $this->pdf->SetFont('helvetica', 'B', 12);
                 $this->pdf->Cell(0, 5, 'Current State', 0, 1, 'L');
                 $this->pdf->SetFont('helvetica', '', 10);
                 $this->pdf->MultiCell(0, 5, 'Current situation showing the issue that needs to be addressed.', 0, 'L');
-                
+
                 $imagePath = __DIR__ . $this->before_image_path;
                 if (file_exists($imagePath)) {
                     // Get image dimensions
@@ -616,13 +876,13 @@ class TicketReportPDFGenerator
                     error_log("Missing image file: $imagePath");
                 }
             }
-            
+
             if (!empty($this->after_image_path)) {
                 $this->pdf->SetFont('helvetica', 'B', 12);
                 $this->pdf->Cell(0, 5, 'How should be ?', 0, 1, 'L');
                 $this->pdf->SetFont('helvetica', '', 10);
                 $this->pdf->MultiCell(0, 5, 'The recommended solution or improvement.', 0, 'L');
-                
+
                 $imagePath = __DIR__ . $this->after_image_path;
                 if (file_exists($imagePath)) {
                     // Get image dimensions
@@ -638,7 +898,7 @@ class TicketReportPDFGenerator
                     error_log("Missing image file: $imagePath");
                 }
             }
-            
+
             if (!empty($this->additional_comments)) {
                 $this->pdf->SetFont('helvetica', 'B', 14);
                 $this->pdf->Cell(0, 10, 'Additional Notes', 0, 1, 'L');
@@ -717,7 +977,7 @@ class TicketReportPDFGenerator
             $stmt = $pdo->prepare("SELECT logo_path FROM clients WHERE id = ?");
             $stmt->execute([$this->filters['client_id']]);
             $client = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if ($client && !empty($client['logo_path'])) {
                 return __DIR__ . '/../' . $client['logo_path'];
             }
