@@ -539,7 +539,7 @@ function getRoleBadge($role) {
                 <span class="text-white me-3">
                     <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
                 </span>
-                <a href="/mit/logout.php" class="btn btn-sm btn-outline-light">
+                <?php require_once '../../../includes/routes.php'; ?><a href="<?php echo route('logout'); ?>" class="btn btn-sm btn-outline-light">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>
@@ -558,7 +558,7 @@ function getRoleBadge($role) {
                     <li><a href="../assets/index.php"><i class="fas fa-server"></i> Assets</a></li>
                     <li><a href="../reports/index.php"><i class="fas fa-chart-bar"></i> Reports</a></li>
                     <li><a href="../staff/profile.php"><i class="fas fa-user-circle"></i> My Profile</a></li>
-                    <li><a href="/mit/logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    <?php require_once '../../../includes/routes.php'; ?><li><a href="<?php echo route('logout'); ?>"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                 </ul>
             </div>
         </div>

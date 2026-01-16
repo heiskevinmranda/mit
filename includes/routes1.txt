@@ -77,47 +77,6 @@ class RouteManager
         'contracts.delete' => '/contracts/delete/{id}',
         'contracts.renewals' => '/contracts/renewals',
         
-        // ===========================================
-        // DAILY STANDUP / MEETING ROUTES - NEW SECTION
-        // ===========================================
-        'daily_standups.index' => '/daily-standups',
-        'daily_standups.create' => '/daily-standups/create',
-        'daily_standups.view' => '/daily-standups/view/{id}',
-        'daily_standups.edit' => '/daily-standups/edit/{id}',
-        'daily_standups.delete' => '/daily-standups/delete/{id}',
-        'daily_standups.response_form' => '/daily-standups/response/{standup_id}',
-        'daily_standups.response_edit' => '/daily-standups/response/edit/{id}',
-        'daily_standups.submit' => '/daily-standups/submit',
-        'daily_standups.update' => '/daily-standups/update',
-        'daily_standups.calendar' => '/daily-standups/calendar',
-        'daily_standups.reports' => '/daily-standups/reports',
-        'daily_standups.export' => '/daily-standups/export/{id}',
-        'daily_standups.attachments' => '/daily-standups/attachments/{id}',
-        
-        // Action Items routes
-        'standup_actions.create' => '/standup-actions/create',
-        'standup_actions.edit' => '/standup-actions/edit/{id}',
-        'standup_actions.delete' => '/standup-actions/delete/{id}',
-        'standup_actions.complete' => '/standup-actions/complete/{id}',
-        'standup_actions.list' => '/standup-actions',
-        'standup_actions.mine' => '/standup-actions/mine',
-        
-        // Meeting Notes & Minutes
-        'meeting_notes.create' => '/meeting-notes/create',
-        'meeting_notes.edit' => '/meeting-notes/edit/{id}',
-        'meeting_notes.view' => '/meeting-notes/view/{id}',
-        'meeting_notes.download' => '/meeting-notes/download/{id}',
-        
-        // Meeting Templates
-        'meeting_templates.index' => '/meeting-templates',
-        'meeting_templates.create' => '/meeting-templates/create',
-        'meeting_templates.edit' => '/meeting-templates/edit/{id}',
-        'meeting_templates.apply' => '/meeting-templates/apply/{id}',
-        
-        // ===========================================
-        // END OF DAILY STANDUP ROUTES
-        // ===========================================
-        
         // Report routes
         'reports.index' => '/reports',
         'reports.ticket' => '/reports/ticket_report',
@@ -132,16 +91,6 @@ class RouteManager
         // API routes
         'api.get_locations' => '/api/get-locations',
         'api.get_next_asset_number' => '/api/get-next-asset-number',
-        
-        // DAILY STANDUP API ROUTES
-        'api.daily_standups.list' => '/api/daily-standups/list',
-        'api.daily_standups.stats' => '/api/daily-standups/stats',
-        'api.daily_standups.create' => '/api/daily-standups/create',
-        'api.daily_standups.update' => '/api/daily-standups/update/{id}',
-        'api.daily_standups.response' => '/api/daily-standups/response',
-        'api.daily_standups.attendance' => '/api/daily-standups/attendance/{id}',
-        'api.daily_standups.reminder' => '/api/daily-standups/send-reminder',
-        'api.daily_standups.auto_save' => '/api/daily-standups/auto-save',
         
         // File download routes
         'attachments.download' => '/attachments/download',
@@ -159,11 +108,7 @@ class RouteManager
     public static function getUrl($routeName, $params = []) 
     {
         if (!isset(self::$routes[$routeName])) {
-            // Log missing route for debugging
-            error_log("Route not found: $routeName");
-            
-            // Return a safe fallback URL instead of throwing exception
-            return self::$base_path . '/errors/404';
+            throw new Exception("Route not found: $routeName");
         }
         
         $url = self::$routes[$routeName];
@@ -232,60 +177,6 @@ class RouteManager
     {
         return isset(self::$routes[$routeName]);
     }
-    
-    /**
-     * Get route name from current URL
-     */
-    public static function getCurrentRoute()
-    {
-        $request_uri = $_SERVER['REQUEST_URI'] ?? '/';
-        $base_path_length = strlen(self::$base_path);
-        
-        // Remove base path from request URI
-        if (str_starts_with($request_uri, self::$base_path)) {
-            $path = substr($request_uri, $base_path_length);
-        } else {
-            $path = $request_uri;
-        }
-        
-        // Remove query string
-        $path = strtok($path, '?');
-        
-        // Normalize path
-        $path = '/' . ltrim($path, '/');
-        
-        // Find matching route
-        foreach (self::$routes as $name => $route) {
-            $pattern = preg_replace('/\{[^}]+\}/', '([^/]+)', $route);
-            $pattern = '#^' . str_replace('/', '\/', $pattern) . '$#';
-            
-            if (preg_match($pattern, $path)) {
-                return $name;
-            }
-        }
-        
-        return null;
-    }
-    
-    /**
-     * Check if current route matches given pattern
-     */
-    public static function isCurrentRoute($routeName)
-    {
-        $current = self::getCurrentRoute();
-        return $current === $routeName;
-    }
-    
-    /**
-     * Check if current route starts with given prefix
-     */
-    public static function isRoutePrefix($prefix)
-    {
-        $current = self::getCurrentRoute();
-        if ($current === null) return false;
-        
-        return str_starts_with($current, $prefix);
-    }
 }
 
 // Helper functions for easier access
@@ -297,14 +188,4 @@ function route($name, $params = [])
 function url($name, $params = []) 
 {
     return RouteManager::getUrl($name, $params);
-}
-
-function is_current_route($routeName)
-{
-    return RouteManager::isCurrentRoute($routeName);
-}
-
-function is_route_prefix($prefix)
-{
-    return RouteManager::isRoutePrefix($prefix);
 }

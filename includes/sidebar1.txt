@@ -86,7 +86,7 @@ $user_type = $current_user['user_type'] ?? 'client';
                 <i class="fas fa-user"></i> My Profile
             </a></li>
             
-            <li><a href="<?php echo route('logout'); ?>">
+            <li><a href="/mit/logout.php">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </a></li>
         </ul>

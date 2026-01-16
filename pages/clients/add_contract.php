@@ -665,7 +665,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span class="text-white me-3 d-none d-md-inline">
                     <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
                 </span>
-                <a href="/mit/logout.php" class="btn btn-outline-light btn-sm">
+                <?php require_once '../../../includes/routes.php'; ?><a href="<?php echo route('logout'); ?>" class="btn btn-outline-light btn-sm">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>
