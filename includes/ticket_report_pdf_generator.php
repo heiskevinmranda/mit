@@ -895,9 +895,7 @@ class TicketReportPDFGenerator
         $this->pdf->SetTextColor(255, 255, 255);
         $this->pdf->SetFont('helvetica', 'B', 10);
         $this->pdf->Cell(30, 10, 'Date', 1, 0, 'C', true);
-        $this->pdf->Cell(50, 10, 'Client Name', 1, 0, 'C', true);
-        $this->pdf->Cell(60, 10, 'Subject', 1, 0, 'C', true);
-        $this->pdf->Cell(40, 10, 'Category', 1, 0, 'C', true);
+        $this->pdf->Cell(110, 10, 'Subject', 1, 0, 'C', true);  // Combined width of Client Name (50) + Subject (60)
         $this->pdf->Cell(30, 10, 'Status', 1, 0, 'C', true);
         $this->pdf->Cell(40, 10, 'Assigned to', 1, 1, 'C', true);
 
@@ -908,9 +906,7 @@ class TicketReportPDFGenerator
         foreach ($tickets as $ticket) {
             $this->pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
             $this->pdf->Cell(30, 10, date('d/m/Y', strtotime($ticket['created_at'])), 1, 0, 'C', true);
-            $this->pdf->Cell(50, 10, $ticket['company_name'] ?? $this->client_name, 1, 0, 'L', true);
-            $this->pdf->Cell(60, 10, substr($ticket['title'] ?? 'No Subject', 0, 30), 1, 0, 'L', true);
-            $this->pdf->Cell(40, 10, $ticket['category'] ?? 'System', 1, 0, 'C', true);
+            $this->pdf->Cell(110, 10, substr($ticket['title'] ?? 'No Subject', 0, 60), 1, 0, 'L', true);  // Increased width for subject
             $this->pdf->Cell(30, 10, $ticket['status'] ?? 'Unknown', 1, 0, 'C', true);
             $this->pdf->Cell(40, 10, $ticket['assigned_to'] ?? 'Unassigned', 1, 1, 'C', true);
             $fill = !$fill;
