@@ -342,73 +342,184 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
+            --primary-color: #FF6B35;
+            --secondary-color: #004E89;
+            --light-color: #F8F9FA;
+            --dark-color: #343A40;
+            --success-color: #28A745;
+            --warning-color: #FFC107;
+            --danger-color: #DC3545;
+            --info-color: #17A2B8;
+            --sidebar-width: 250px;
+            --header-height: 60px;
             --primary: #667eea;
             --secondary: #764ba2;
             --success: #28a745;
             --warning: #ffc107;
             --danger: #dc3545;
             --info: #17a2b8;
-            --light: #f8f9fa;
             --dark: #343a40;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+            --glass-backdrop: backdrop-filter: blur(10px);
+            --gradient-primary: linear-gradient(135deg, var(--primary), var(--secondary));
+            --gradient-success: linear-gradient(135deg, var(--success), #20c997);
+            --gradient-info: linear-gradient(135deg, var(--info), #0dcaf0);
+            --gradient-warning: linear-gradient(135deg, var(--warning), #e0a800);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            background-color: #f5f7fb;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark);
+            overflow-x: hidden;
         }
 
         .dashboard-container {
+            display: flex;
             min-height: 100vh;
         }
 
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--secondary-color);
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
         .main-content {
-            padding: 20px;
-            background: #f5f7fb;
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #f5f7fb 0%, #e4e7f1 100%);
+            min-height: 100vh;
         }
 
-        .dashboard-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .user-avatar {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            border: 1px solid #eef2f7;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        /* Hero Header */
+        .hero-header {
             position: relative;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 16px;
+            padding: 1.8rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--glass-shadow);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
             overflow: hidden;
         }
 
+        .hero-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+
+        .hero-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.4rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .hero-subtitle {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 0.8rem;
+        }
+
+        .hero-text-content {
+            flex: 1;
+        }
+
+        .hero-user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-left: auto;
+        }
+
+        .hero-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-user-details h4 {
+            color: white;
+            margin-bottom: 0.25rem;
+        }
+
+        .hero-user-details p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 0.9rem;
+            box-shadow: 0 4px 16px rgba(31, 38, 135, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+        }
+
         .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2);
         }
 
         .stat-card::before {
@@ -416,133 +527,255 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
             position: absolute;
             top: 0;
             left: 0;
-            width: 5px;
-            height: 100%;
-            background: var(--primary);
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
         }
 
         .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
-            font-size: 24px;
+            margin-bottom: 0.4rem;
+            font-size: 1rem;
             color: white;
+            background: var(--gradient-primary);
+            box-shadow: 0 3px 15px rgba(102, 126, 234, 0.4);
         }
 
         .stat-number {
-            font-size: 32px;
+            font-size: 1.6rem;
             font-weight: 700;
-            margin: 10px 0;
-            color: var(--dark);
+            margin: 0.1rem 0;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-bottom: 0.2rem;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
         }
 
         .stat-trend {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: #6c757d;
+            gap: 0.3rem;
+            font-size: 0.7rem;
+            color: var(--gray);
+            flex-wrap: wrap;
+            margin-top: auto;
+        }
+
+        .stat-trend span {
+            white-space: nowrap;
+        }
+        
+        .trend-up, .trend-down {
+            font-size: 0.8rem;
+        }
+        
+        .ms-auto {
+            margin-left: auto;
         }
 
         .trend-up { color: var(--success); }
         .trend-down { color: var(--danger); }
 
-        /* Compact Charts Section */
-        .compact-charts {
+        /* KPI Cards */
+        .kpi-section {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
-        .chart-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            border: 1px solid #eef2f7;
+        .kpi-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 1.2rem;
+            box-shadow: 0 4px 16px rgba(31, 38, 135, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
         }
 
-        .chart-card-header {
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(31, 38, 135, 0.15);
+        }
+
+        .kpi-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 0.8rem;
         }
 
-        .chart-card-title {
-            font-size: 16px;
+        .kpi-title {
+            font-size: 1.1rem;
             font-weight: 600;
             color: var(--dark);
-            margin: 0;
         }
 
-        .chart-card-body {
-            position: relative;
-            height: 220px;
-        }
-
-        .chart-summary {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #eef2f7;
-        }
-
-        .summary-item {
-            text-align: center;
-            flex: 1;
-        }
-
-        .summary-value {
-            font-size: 18px;
+        .kpi-value {
+            font-size: 2.2rem;
             font-weight: 700;
-            color: var(--dark);
+            margin: 0.8rem 0;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .summary-label {
-            font-size: 12px;
-            color: #6c757d;
-            margin-top: 5px;
+        .progress-container {
+            margin: 0.7rem 0;
         }
 
-        /* Staff Performance Table */
-        .staff-performance-table {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 30px;
+        .progress-bar {
+            height: 8px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
         }
 
-        .performance-row {
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 4px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shine 2s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-text {
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-top: 0.5rem;
+        }
+
+        /* Circular Progress */
+        .circular-progress {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: conic-gradient(var(--gradient-primary) var(--value, 0%), #e9ecef var(--value, 0%));
+            position: relative;
             display: flex;
             align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #eef2f7;
+            justify-content: center;
+            margin: 0 auto;
         }
 
-        .performance-row:last-child {
+        .circular-progress::before {
+            content: '';
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: white;
+        }
+
+        .circular-progress-text {
+            position: relative;
+            z-index: 2;
+            font-weight: 700;
+            font-size: 1.2rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Staff Performance */
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .staff-performance {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 1.2rem;
+            box-shadow: 0 4px 16px rgba(31, 38, 135, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            margin-bottom: 1.5rem;
+        }
+
+        .performance-item {
+            display: flex;
+            align-items: center;
+            padding: 0.7rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .performance-item:last-child {
             border-bottom: none;
         }
 
-        .staff-avatar {
-            width: 40px;
-            height: 40px;
+        .staff-avatar-large {
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: var(--gradient-primary);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
-            margin-right: 15px;
-            flex-shrink: 0;
+            font-size: 1rem;
+            margin-right: 0.8rem;
+            box-shadow: 0 3px 12px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .staff-avatar-large::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: avatar-shine 3s infinite;
+        }
+
+        @keyframes avatar-shine {
+            0% { transform: rotate(45deg) translateX(-100%); }
+            100% { transform: rotate(45deg) translateX(100%); }
         }
 
         .staff-info {
@@ -552,288 +785,366 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
         .staff-name {
             font-weight: 600;
             color: var(--dark);
-            margin-bottom: 2px;
+            margin-bottom: 0.25rem;
         }
 
-        .staff-details {
-            font-size: 12px;
-            color: #6c757d;
+        .staff-role {
+            font-size: 0.9rem;
+            color: var(--gray);
         }
 
         .performance-stats {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 1rem;
         }
 
-        .ticket-count {
-            text-align: center;
-            min-width: 100px;
+        .stat-badge {
+            background: var(--light);
+            padding: 0.4rem 0.8rem;
+            border-radius: 18px;
+            font-size: 0.8rem;
+            font-weight: 500;
         }
 
-        .ticket-count .number {
-            font-size: 18px;
+        .performance-rank {
+            background: linear-gradient(135deg, var(--warning), var(--danger));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             font-weight: 700;
         }
 
-        .ticket-count .label {
-            font-size: 11px;
-            color: #6c757d;
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
-        .performance-bar-container {
-            width: 150px;
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 1.2rem;
+            box-shadow: 0 4px 16px rgba(31, 38, 135, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            height: 270px;
         }
 
-        .performance-bar-label {
+        .chart-header {
             display: flex;
             justify-content: space-between;
-            font-size: 11px;
-            color: #6c757d;
-            margin-bottom: 3px;
+            align-items: center;
+            margin-bottom: 0.8rem;
         }
 
-        .performance-bar {
-            height: 10px;
-            background: #e9ecef;
-            border-radius: 5px;
-            overflow: hidden;
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark);
         }
 
-        .performance-bar-fill {
-            height: 100%;
-            border-radius: 5px;
-            transition: width 0.5s ease;
+        .chart-container {
+            height: calc(100% - 2rem);
+            position: relative;
         }
 
-        .performance-percentage {
-            width: 60px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 14px;
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
         }
 
-        .performance-excellent { color: #28a745; }
-        .performance-good { color: #17a2b8; }
-        .performance-average { color: #ffc107; }
-        .performance-poor { color: #dc3545; }
+        /* Recent Tables */
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
 
-        .recent-table {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 30px;
+        .table-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 1.2rem;
+            box-shadow: 0 4px 16px rgba(31, 38, 135, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
         }
 
         .table-responsive {
-            border-radius: 10px;
+            border-radius: 12px;
             overflow: hidden;
+            margin-top: 1rem;
         }
 
-        .data-table {
+        table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .data-table th {
-            background-color: #f8f9fa;
-            padding: 15px;
+        th {
+            background: rgba(0,0,0,0.02);
+            padding: 0.8rem;
             text-align: left;
             font-weight: 600;
-            color: #495057;
-            border-bottom: 2px solid #dee2e6;
+            color: var(--dark);
+            border-bottom: 2px solid rgba(0,0,0,0.05);
         }
 
-        .data-table td {
-            padding: 15px;
-            border-bottom: 1px solid #eef2f7;
+        td {
+            padding: 0.8rem;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
 
-        .data-table tr:hover {
-            background-color: #f8f9fa;
+        tr:hover {
+            background: rgba(0,0,0,0.02);
         }
 
         .badge {
-            padding: 6px 12px;
+            padding: 0.5rem 1rem;
             border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 0.8rem;
+            font-weight: 500;
         }
 
-        .badge-success { background-color: #d4edda; color: #155724; }
-        .badge-warning { background-color: #fff3cd; color: #856404; }
-        .badge-danger { background-color: #f8d7da; color: #721c24; }
-        .badge-info { background-color: #d1ecf1; color: #0c5460; }
-        .badge-primary { background-color: #d6e4ff; color: #0d6efd; }
-
-        .priority-high { background-color: #f8d7da; color: #721c24; }
-        .priority-medium { background-color: #fff3cd; color: #856404; }
-        .priority-low { background-color: #d1ecf1; color: #0c5460; }
-
-        .status-open { background-color: #d6e4ff; color: #0d6efd; }
-        .status-in-progress { background-color: #fff3cd; color: #856404; }
-        .status-closed { background-color: #d4edda; color: #155724; }
-        .status-waiting { background-color: #e2e3e5; color: #383d41; }
-
-        .kpi-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        /* Activity Timeline */
+        .timeline-card {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 1.2rem;
+            box-shadow: 0 4px 16px rgba(31, 38, 135, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            margin-bottom: 1.5rem;
         }
 
-        .kpi-value {
-            font-size: 36px;
-            font-weight: 700;
-            margin: 10px 0;
-            color: var(--primary);
+        .timeline {
+            position: relative;
+            padding-left: 1.5rem;
         }
 
-        .kpi-progress {
-            height: 10px;
-            background: #e9ecef;
-            border-radius: 5px;
-            margin: 15px 0;
-            overflow: hidden;
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 1.5px;
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
         }
 
-        .kpi-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
-            border-radius: 5px;
-            transition: width 1s ease;
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.2rem;
+            padding-left: 1.2rem;
         }
 
-        .quick-actions {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -0.8rem;
+            top: 0.4rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px var(--primary);
         }
 
+        .timeline-content {
+            background: rgba(102, 126, 234, 0.05);
+            padding: 0.8rem;
+            border-radius: 10px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .timeline-time {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-top: 0.3rem;
+        }
+
+        /* Quick Actions */
         .actions-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .action-card {
-            display: flex;
-            align-items: center;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 1.2rem;
             text-decoration: none;
             color: inherit;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(31, 38, 135, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
         }
 
         .action-card:hover {
-            background: white;
-            border-color: var(--primary);
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 40px rgba(31, 38, 135, 0.2);
+            background: rgba(255, 255, 255, 0.95);
         }
 
         .action-icon {
             width: 50px;
             height: 50px;
-            border-radius: 10px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 15px;
+            font-size: 1.3rem;
             color: white;
-            font-size: 20px;
+            margin-bottom: 0.7rem;
+            background: var(--gradient-primary);
+            box-shadow: 0 3px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .activity-timeline {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 30px;
-        }
-
-        .activity-item {
-            display: flex;
-            align-items: flex-start;
-            padding: 15px 0;
-            border-bottom: 1px solid #eef2f7;
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-
-        .activity-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            color: white;
-            font-size: 16px;
-            flex-shrink: 0;
-        }
-
-        .activity-content {
-            flex: 1;
-        }
-
-        .activity-time {
-            font-size: 12px;
-            color: #6c757d;
-        }
-
-        /* Staff specific styles */
-        .staff-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
+        .action-title {
             font-weight: 600;
-            margin-left: 5px;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+        }
+
+        .action-desc {
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        /* Animations */
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .hero-header {
+                padding: 1.2rem;
+            }
+
+            .hero-title {
+                font-size: 1.6rem;
+            }
+
+            .hero-subtitle {
+                font-size: 0.9rem;
+            }
+
+            .stats-grid,
+            .kpi-section,
+            .charts-grid,
+            .tables-grid,
+            .timeline-card,
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-user-info {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .actions-grid {
+                grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            }
+            
+            .stat-card {
+                min-height: 140px;
+                padding: 0.8rem;
+            }
+            
+            .chart-card {
+                height: 250px;
+                padding: 1rem;
+            }
         }
         
-        .staff-badge-admin { background: #dc3545; color: white; }
-        .staff-badge-manager { background: #fd7e14; color: white; }
-        .staff-badge-engineer { background: #17a2b8; color: white; }
-        .staff-badge-tech { background: #28a745; color: white; }
-        .staff-badge-staff { background: #6c757d; color: white; }
-
-        @media (max-width: 768px) {
+        @media (max-width: 576px) {
+            .main-content {
+                padding: 0.8rem;
+            }
+            
+            .hero-header {
+                padding: 1rem;
+            }
+            
+            .hero-title {
+                font-size: 1.4rem;
+            }
+            
             .stats-grid {
                 grid-template-columns: 1fr;
             }
             
-            .compact-charts {
+            .stat-card {
+                min-height: 130px;
+                padding: 0.7rem;
+            }
+            
+            .kpi-section {
                 grid-template-columns: 1fr;
             }
             
-            .actions-grid {
-                grid-template-columns: 1fr;
+            .chart-card {
+                height: 220px;
             }
             
-            .chart-card-body {
-                height: 200px;
+            .table-card {
+                padding: 1rem;
             }
             
-            .performance-stats {
-                flex-direction: column;
-                gap: 10px;
-                align-items: flex-end;
+            .action-card {
+                padding: 1rem;
             }
             
-            .performance-bar-container {
-                width: 120px;
+            .action-icon {
+                width: 45px;
+                height: 45px;
+                font-size: 1.1rem;
             }
+        }
+
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
     </style>
 </head>
@@ -844,24 +1155,19 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
         
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Header -->
-            <div class="dashboard-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
-                        <p class="mb-0">Welcome back, <?php echo htmlspecialchars($staff_profile['full_name'] ?? 'User'); ?>!</p>
-                        <small class="opacity-75">
-                            <?php echo htmlspecialchars(ucfirst($user_type)); ?> • 
-                            Last login: <?php echo date('M j, Y g:i A'); ?>
-                        </small>
+            <!-- Hero Header -->
+            <div class="hero-header fade-in-up">
+                <div class="hero-content">
+                    <div class="hero-text-content">
+                        <h1 class="hero-title">
+                            <i class="fas fa-rocket me-3"></i>Welcome Back!
+                        </h1>
+                        <p class="hero-subtitle">
+                            Hello <?php echo htmlspecialchars($staff_profile['full_name'] ?? 'User'); ?>, here's your dashboard overview
+                        </p>
                     </div>
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="text-end">
-                            <div class="fw-bold"><?php echo htmlspecialchars($staff_profile['full_name'] ?? 'User'); ?></div>
-                            <div class="small"><?php echo htmlspecialchars($staff_profile['designation'] ?? ucfirst($user_type)); ?></div>
-                            <div class="small opacity-75"><?php echo htmlspecialchars($staff_profile['department'] ?? ''); ?></div>
-                        </div>
-                        <div class="user-avatar">
+                    <div class="hero-user-info">
+                        <div class="hero-avatar">
                             <?php 
                             $avatarInitial = 'U';
                             if (!empty($current_user['email'])) {
@@ -870,158 +1176,176 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                             echo $avatarInitial;
                             ?>
                         </div>
+                        <div class="hero-user-details">
+                            <h4><?php echo htmlspecialchars($staff_profile['full_name'] ?? 'User'); ?></h4>
+                            <p><?php echo htmlspecialchars($staff_profile['designation'] ?? ucfirst($user_type)); ?> • <?php echo htmlspecialchars($staff_profile['department'] ?? ''); ?></p>
+                            <small>Last login: <?php echo date('M j, Y g:i A'); ?></small>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- User-specific KPIs for support staff -->
             <?php if (in_array($user_type, ['support_tech', 'engineer']) && !empty($user_stats)): ?>
-            <div class="row mb-4">
-                <div class="col-md-3 mb-3">
-                    <div class="kpi-card">
-                        <div class="kpi-label fw-bold">My Assigned Tickets</div>
-                        <div class="kpi-value"><?php echo $user_stats['assigned_tickets'] ?? 0; ?></div>
-                        <div class="kpi-progress">
-                            <div class="kpi-progress-bar" style="width: <?php 
-                                $open_percent = ($user_stats['assigned_tickets'] ?? 0) > 0 ? 
-                                    round((($user_stats['open_assigned_tickets'] ?? 0) / ($user_stats['assigned_tickets'] ?? 1)) * 100) : 0;
-                                echo $open_percent;
-                            ?>%"></div>
+            <div class="kpi-section fade-in-up delay-1">
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <h3 class="kpi-title">My Assigned Tickets</h3>
+                        <div class="circular-progress" style="--value: <?php 
+                            $open_percent = ($user_stats['assigned_tickets'] ?? 0) > 0 ? 
+                                round((($user_stats['open_assigned_tickets'] ?? 0) / ($user_stats['assigned_tickets'] ?? 1)) * 100) : 0;
+                            echo $open_percent;
+                        ?>%;">
+                            <span class="circular-progress-text"><?php echo $open_percent; ?>%</span>
                         </div>
-                        <div class="text-muted small"><?php echo $user_stats['open_assigned_tickets'] ?? 0; ?> open</div>
+                    </div>
+                    <div class="kpi-value"><?php echo $user_stats['assigned_tickets'] ?? 0; ?></div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: <?php echo $open_percent; ?>%;"></div>
+                        </div>
+                        <div class="progress-text"><?php echo $user_stats['open_assigned_tickets'] ?? 0; ?> open tickets</div>
                     </div>
                 </div>
                 
-                <div class="col-md-3 mb-3">
-                    <div class="kpi-card">
-                        <div class="kpi-label fw-bold">Work Hours (30d)</div>
-                        <div class="kpi-value"><?php echo $user_stats['total_hours'] ?? 0; ?></div>
-                        <div class="kpi-progress">
-                            <div class="kpi-progress-bar" style="width: <?php 
-                                $hours_percent = min(($user_stats['total_hours'] ?? 0) * 10, 100);
-                                echo $hours_percent;
-                            ?>%"></div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <h3 class="kpi-title">Work Hours (30d)</h3>
+                        <div class="circular-progress" style="--value: <?php 
+                            $hours_percent = min(($user_stats['total_hours'] ?? 0) * 5, 100);
+                            echo $hours_percent;
+                        ?>%;">
+                            <span class="circular-progress-text"><?php echo $user_stats['total_hours'] ?? 0; ?>h</span>
                         </div>
-                        <div class="text-muted small"><?php echo $user_stats['total_work_logs'] ?? 0; ?> work logs</div>
+                    </div>
+                    <div class="kpi-value"><?php echo $user_stats['total_hours'] ?? 0; ?></div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: <?php echo $hours_percent; ?>%;"></div>
+                        </div>
+                        <div class="progress-text"><?php echo $user_stats['total_work_logs'] ?? 0; ?> work logs</div>
                     </div>
                 </div>
                 
-                <div class="col-md-3 mb-3">
-                    <div class="kpi-card">
-                        <div class="kpi-label fw-bold">Completion Rate</div>
-                        <div class="kpi-value">
-                            <?php 
-                                $assigned = $user_stats['assigned_tickets'] ?? 0;
-                                $open = $user_stats['open_assigned_tickets'] ?? 0;
-                                $completion_rate = $assigned > 0 ? 
-                                    round((($assigned - $open) / $assigned) * 100) : 0;
-                                echo $completion_rate;
-                            ?>%
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <h3 class="kpi-title">Completion Rate</h3>
+                        <div class="circular-progress" style="--value: <?php 
+                            $assigned = $user_stats['assigned_tickets'] ?? 0;
+                            $open = $user_stats['open_assigned_tickets'] ?? 0;
+                            $completion_rate = $assigned > 0 ? 
+                                round((($assigned - $open) / $assigned) * 100) : 0;
+                            echo $completion_rate;
+                        ?>%;">
+                            <span class="circular-progress-text"><?php echo $completion_rate; ?>%</span>
                         </div>
-                        <div class="kpi-progress">
-                            <div class="kpi-progress-bar" style="width: <?php echo $completion_rate; ?>%"></div>
-                        </div>
-                        <div class="text-muted small">Personal performance</div>
                     </div>
-                </div>
-                
-                <div class="col-md-3 mb-3">
-                    <div class="kpi-card">
-                        <div class="kpi-label fw-bold">Avg. Resolution</div>
-                        <div class="kpi-value">24h</div>
-                        <div class="kpi-progress">
-                            <div class="kpi-progress-bar" style="width: 75%"></div>
+                    <div class="kpi-value"><?php echo $completion_rate; ?>%</div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: <?php echo $completion_rate; ?>%;"></div>
                         </div>
-                        <div class="text-muted small">Average ticket resolution time</div>
+                        <div class="progress-text">Personal performance</div>
                     </div>
                 </div>
             </div>
             <?php endif; ?>
 
             <!-- System KPIs -->
-            <div class="row mb-4">
-                <div class="col-md-4 mb-3">
-                    <div class="kpi-card">
-                        <div class="kpi-label fw-bold">Ticket Resolution Rate</div>
-                        <div class="kpi-value"><?php echo $resolution_rate; ?>%</div>
-                        <div class="kpi-progress">
-                            <div class="kpi-progress-bar" style="width: <?php echo $resolution_rate; ?>%"></div>
+            <div class="kpi-section fade-in-up delay-2">
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <h3 class="kpi-title">Ticket Resolution Rate</h3>
+                        <div class="circular-progress" style="--value: <?php echo $resolution_rate; ?>%;">
+                            <span class="circular-progress-text"><?php echo $resolution_rate; ?>%</span>
                         </div>
-                        <div class="text-muted small"><?php echo $stats['closed_tickets']; ?> of <?php echo $stats['total_tickets']; ?> tickets resolved</div>
+                    </div>
+                    <div class="kpi-value"><?php echo $resolution_rate; ?>%</div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: <?php echo $resolution_rate; ?>%;"></div>
+                        </div>
+                        <div class="progress-text"><?php echo $stats['closed_tickets']; ?> of <?php echo $stats['total_tickets']; ?> tickets resolved</div>
                     </div>
                 </div>
                 
-                <div class="col-md-4 mb-3">
-                    <div class="kpi-card">
-                        <div class="kpi-label fw-bold">Active Assets</div>
-                        <div class="kpi-value"><?php echo $active_asset_percentage; ?>%</div>
-                        <div class="kpi-progress">
-                            <div class="kpi-progress-bar" style="width: <?php echo $active_asset_percentage; ?>%"></div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <h3 class="kpi-title">Active Assets</h3>
+                        <div class="circular-progress" style="--value: <?php echo $active_asset_percentage; ?>%;">
+                            <span class="circular-progress-text"><?php echo $active_asset_percentage; ?>%</span>
                         </div>
-                        <div class="text-muted small"><?php echo $stats['active_assets']; ?> of <?php echo $stats['total_assets']; ?> assets active</div>
+                    </div>
+                    <div class="kpi-value"><?php echo $active_asset_percentage; ?>%</div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: <?php echo $active_asset_percentage; ?>%;"></div>
+                        </div>
+                        <div class="progress-text"><?php echo $stats['active_assets']; ?> of <?php echo $stats['total_assets']; ?> assets active</div>
                     </div>
                 </div>
                 
-                <div class="col-md-4 mb-3">
-                    <div class="kpi-card">
-                        <div class="kpi-label fw-bold">Staff Performance</div>
-                        <div class="kpi-value"><?php echo $staff_closed_ratio; ?>%</div>
-                        <div class="kpi-progress">
-                            <div class="kpi-progress-bar" style="width: <?php echo $staff_closed_ratio; ?>%"></div>
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <h3 class="kpi-title">Staff Performance</h3>
+                        <div class="circular-progress" style="--value: <?php echo $staff_closed_ratio; ?>%;">
+                            <span class="circular-progress-text"><?php echo $staff_closed_ratio; ?>%</span>
                         </div>
-                        <div class="text-muted small"><?php echo $staff_with_closed_tickets; ?> of <?php echo $stats['active_staff']; ?> staff closed tickets</div>
+                    </div>
+                    <div class="kpi-value"><?php echo $staff_closed_ratio; ?>%</div>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: <?php echo $staff_closed_ratio; ?>%;"></div>
+                        </div>
+                        <div class="progress-text"><?php echo $staff_with_closed_tickets; ?> of <?php echo $stats['active_staff']; ?> staff closed tickets</div>
                     </div>
                 </div>
             </div>
 
             <!-- Stats Cards -->
-            <div class="stats-grid">
-                <!-- Tickets Card -->
+            <div class="stats-grid fade-in-up delay-3">
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);">
+                    <div class="stat-icon">
                         <i class="fas fa-ticket-alt"></i>
                     </div>
                     <div class="stat-number"><?php echo $stats['total_tickets']; ?></div>
-                    <h4>Total Tickets</h4>
+                    <div class="stat-label">Total Tickets</div>
                     <div class="stat-trend">
                         <span class="trend-up"><i class="fas fa-arrow-up"></i> <?php echo $stats['open_tickets']; ?> open</span>
                         <span class="ms-auto"><?php echo $stats['closed_tickets']; ?> closed</span>
                     </div>
                 </div>
                 
-                <!-- Clients Card -->
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: linear-gradient(135deg, var(--success) 0%, #20c997 100%);">
+                    <div class="stat-icon" style="background: var(--gradient-success);">
                         <i class="fas fa-building"></i>
                     </div>
                     <div class="stat-number"><?php echo $stats['active_clients']; ?></div>
-                    <h4>Active Clients</h4>
+                    <div class="stat-label">Active Clients</div>
                     <div class="stat-trend">
                         <span><i class="fas fa-users"></i> Total: <?php echo $stats['total_clients']; ?></span>
                         <span class="ms-auto"><?php echo $stats['services']; ?> services</span>
                     </div>
                 </div>
                 
-                <!-- Assets Card -->
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: linear-gradient(135deg, var(--info) 0%, #0dcaf0 100%);">
+                    <div class="stat-icon" style="background: var(--gradient-info);">
                         <i class="fas fa-server"></i>
                     </div>
                     <div class="stat-number"><?php echo $stats['total_assets']; ?></div>
-                    <h4>IT Assets</h4>
+                    <div class="stat-label">IT Assets</div>
                     <div class="stat-trend">
                         <span class="trend-up"><i class="fas fa-check-circle"></i> <?php echo $stats['active_assets']; ?> active</span>
                         <span class="ms-auto"><?php echo $stats['site_visits']; ?> site visits</span>
                     </div>
                 </div>
                 
-                <!-- MODIFIED: Staff Card with Closed Tickets Ratio -->
                 <div class="stat-card">
-                    <div class="stat-icon" style="background: linear-gradient(135deg, var(--warning) 0%, #ffc107 100%);">
+                    <div class="stat-icon" style="background: var(--gradient-warning);">
                         <i class="fas fa-user-tie"></i>
                     </div>
                     <div class="stat-number"><?php echo $stats['active_staff']; ?></div>
-                    <h4>Staff Members</h4>
+                    <div class="stat-label">Staff Members</div>
                     <div class="stat-trend">
                         <span><i class="fas fa-check-circle text-success"></i> <?php echo $staff_with_closed_tickets; ?> closed tickets</span>
                         <span class="ms-auto"><?php echo $staff_closed_ratio; ?>% performance</span>
@@ -1029,24 +1353,13 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                 </div>
             </div>
 
-
-
-
-
-
-
-
-            <!-- Staff Performance Table -->
+            <!-- Staff Performance -->
             <?php if (!empty($staff_performance_data)): ?>
-            <div class="staff-performance-table">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4><i class="fas fa-user-chart me-2"></i>Staff Performance</h4>
-                    <span class="badge bg-light text-dark">Top <?php echo count($staff_performance_data); ?> performers</span>
-                </div>
-                
-                <?php foreach ($staff_performance_data as $staff): ?>
-                    <div class="performance-row">
-                        <div class="staff-avatar">
+            <div class="staff-performance fade-in-up delay-4">
+                <h3 class="section-title"><i class="fas fa-users"></i> Top Performers</h3>
+                <?php foreach ($staff_performance_data as $index => $staff): ?>
+                    <div class="performance-item">
+                        <div class="staff-avatar-large">
                             <?php 
                             $initials = '?';
                             $full_name = $staff['full_name'] ?? '';
@@ -1060,10 +1373,8 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                             ?>
                         </div>
                         <div class="staff-info">
-                            <div class="staff-name">
-                                <?php echo htmlspecialchars($full_name); ?>
-                            </div>
-                            <div class="staff-details">
+                            <div class="staff-name"><?php echo htmlspecialchars($full_name); ?></div>
+                            <div class="staff-role">
                                 <?php 
                                 $details = [];
                                 $designation = $staff['designation'] ?? '';
@@ -1080,338 +1391,223 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                             </div>
                         </div>
                         <div class="performance-stats">
-                            <div class="ticket-count">
-                                <div class="number text-primary"><?php echo $staff['closed_tickets'] ?? 0; ?></div>
-                                <div class="label">Closed</div>
+                            <div class="stat-badge">
+                                <i class="fas fa-check-circle text-success me-1"></i>
+                                <?php echo $staff['closed_tickets'] ?? 0; ?> closed
                             </div>
-                            <div class="ticket-count">
-                                <div class="number"><?php echo $staff['total_tickets'] ?? 0; ?></div>
-                                <div class="label">Total</div>
+                            <div class="stat-badge">
+                                <i class="fas fa-tasks text-primary me-1"></i>
+                                <?php echo $staff['total_tickets'] ?? 0; ?> total
                             </div>
-                            <div class="performance-bar-container">
-                                <div class="performance-bar-label">
-                                    <span>Progress</span>
-                                    <span><?php echo $staff['performance_percentage'] ?? 0; ?>%</span>
-                                </div>
-                                <div class="performance-bar">
-                                    <div class="performance-bar-fill" 
-                                         style="width: <?php echo $staff['performance_percentage'] ?? 0; ?>%;
-                                                background: <?php 
-                                                    $percentage = $staff['performance_percentage'] ?? 0;
-                                                    if ($percentage >= 80) echo '#28a745';
-                                                    elseif ($percentage >= 60) echo '#17a2b8';
-                                                    elseif ($percentage >= 40) echo '#ffc107';
-                                                    else echo '#dc3545';
-                                                ?>;">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="performance-percentage 
-                                <?php 
-                                    $percentage = $staff['performance_percentage'] ?? 0;
-                                    if ($percentage >= 80) echo 'performance-excellent';
-                                    elseif ($percentage >= 60) echo 'performance-good';
-                                    elseif ($percentage >= 40) echo 'performance-average';
-                                    else echo 'performance-poor';
-                                ?>">
-                                <?php echo $percentage; ?>%
+                            <div class="stat-badge performance-rank">
+                                <?php echo $staff['performance_percentage'] ?? 0; ?>%
                             </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
-                
-                <?php if (count($staff_performance_data) < 10): ?>
-                    <div class="text-center mt-3">
-                        <small class="text-muted">
-                            Showing <?php echo count($staff_performance_data); ?> staff with ticket assignments
-                        </small>
-                    </div>
-                <?php endif; ?>
             </div>
             <?php endif; ?>
 
-            <!-- Compact Charts Section -->
-            <div class="compact-charts">
-                <!-- Ticket Status Chart -->
+            <!-- Charts -->
+            <div class="charts-grid fade-in-up delay-5">
                 <div class="chart-card">
-                    <div class="chart-card-header">
-                        <h3 class="chart-card-title"><i class="fas fa-chart-bar me-2"></i>Ticket Status</h3>
-                        <span class="badge bg-light text-dark"><?php echo $stats['total_tickets']; ?> total</span>
+                    <div class="chart-header">
+                        <h3 class="chart-title"><i class="fas fa-chart-bar me-2"></i>Ticket Status</h3>
                     </div>
-                    <div class="chart-card-body">
+                    <div class="chart-container">
                         <canvas id="ticketStatusChart"></canvas>
                     </div>
-                    <div class="chart-summary">
-                        <?php 
-                        $open_count = 0;
-                        $closed_count = 0;
-                        foreach ($ticket_status_data as $status) {
-                            $status_name = strtolower($status['status'] ?? '');
-                            if ($status_name === 'open' || $status_name === 'in progress') {
-                                $open_count += $status['count'];
-                            } elseif ($status_name === 'closed') {
-                                $closed_count = $status['count'];
-                            }
-                        }
-                        ?>
-                        <div class="summary-item">
-                            <div class="summary-value text-primary"><?php echo $open_count; ?></div>
-                            <div class="summary-label">Open</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-value text-success"><?php echo $closed_count; ?></div>
-                            <div class="summary-label">Closed</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-value text-info"><?php echo $stats['total_tickets'] - $open_count - $closed_count; ?></div>
-                            <div class="summary-label">Other</div>
-                        </div>
-                    </div>
                 </div>
                 
-                <!-- Ticket Priority Chart -->
                 <div class="chart-card">
-                    <div class="chart-card-header">
-                        <h3 class="chart-card-title"><i class="fas fa-chart-pie me-2"></i>Ticket Priority</h3>
-                        <span class="badge bg-light text-dark">By priority</span>
+                    <div class="chart-header">
+                        <h3 class="chart-title"><i class="fas fa-chart-pie me-2"></i>Ticket Priority</h3>
                     </div>
-                    <div class="chart-card-body">
+                    <div class="chart-container">
                         <canvas id="ticketPriorityChart"></canvas>
                     </div>
-                    <div class="chart-summary">
-                        <div class="summary-item">
-                            <div class="summary-value text-danger"><?php echo $stats['high_priority']; ?></div>
-                            <div class="summary-label">High</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-value text-warning"><?php echo $stats['medium_priority']; ?></div>
-                            <div class="summary-label">Medium</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-value text-info"><?php echo $stats['low_priority']; ?></div>
-                            <div class="summary-label">Low</div>
-                        </div>
-                    </div>
                 </div>
                 
-                <!-- Asset Types Chart -->
                 <div class="chart-card">
-                    <div class="chart-card-header">
-                        <h3 class="chart-card-title"><i class="fas fa-server me-2"></i>Asset Types</h3>
-                        <span class="badge bg-light text-dark"><?php echo $stats['total_assets']; ?> assets</span>
+                    <div class="chart-header">
+                        <h3 class="chart-title"><i class="fas fa-server me-2"></i>Asset Types</h3>
                     </div>
-                    <div class="chart-card-body">
+                    <div class="chart-container">
                         <canvas id="assetTypeChart"></canvas>
-                    </div>
-                    <div class="chart-summary">
-                        <div class="summary-item">
-                            <div class="summary-value text-success"><?php echo $stats['active_assets']; ?></div>
-                            <div class="summary-label">Active</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-value text-warning"><?php echo $stats['total_assets'] - $stats['active_assets']; ?></div>
-                            <div class="summary-label">Inactive</div>
-                        </div>
-                        <div class="summary-item">
-                            <div class="summary-value text-info"><?php echo count($asset_type_data); ?></div>
-                            <div class="summary-label">Types</div>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Recent Data Tables -->
-            <div class="row mb-4">
-                <div class="col-lg-6 mb-3">
-                    <div class="recent-table">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4><i class="fas fa-ticket-alt me-2"></i>Recent Tickets</h4>
-                            <a href="<?php echo route('tickets.index'); ?>" class="btn btn-sm btn-primary">
-                                View All <i class="fas fa-arrow-right ms-1"></i>
-                            </a>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="data-table">
-                                <thead>
+            <!-- Recent Tables -->
+            <div class="tables-grid fade-in-up delay-5">
+                <div class="table-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="section-title mb-0"><i class="fas fa-ticket-alt"></i> Recent Tickets</h3>
+                        <a href="<?php echo route('tickets.index'); ?>" class="btn btn-sm btn-primary">
+                            View All <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Ticket #</th>
+                                    <th>Title</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($recent_tickets)): ?>
                                     <tr>
-                                        <th>Ticket #</th>
-                                        <th>Title</th>
-                                        <th>Priority</th>
-                                        <th>Status</th>
+                                        <td colspan="4" class="text-center py-4">
+                                            <i class="fas fa-inbox fa-2x text-muted mb-3"></i>
+                                            <p class="text-muted mb-0">No tickets found</p>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (empty($recent_tickets)): ?>
+                                <?php else: ?>
+                                    <?php foreach ($recent_tickets as $ticket): ?>
                                         <tr>
-                                            <td colspan="4" class="text-center py-4">
-                                                <i class="fas fa-inbox fa-2x text-muted mb-3"></i>
-                                                <p class="text-muted mb-0">No tickets found</p>
+                                            <td><strong><?php echo htmlspecialchars($ticket['ticket_number'] ?? 'N/A'); ?></strong></td>
+                                            <td>
+                                                <?php 
+                                                $title = $ticket['title'] ?? '';
+                                                echo htmlspecialchars(substr($title, 0, 30)) . (strlen($title) > 30 ? '...' : '');
+                                                if (!empty($ticket['company_name'])): ?>
+                                                    <br><small class="text-muted"><?php echo htmlspecialchars($ticket['company_name']); ?></small>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php $priority = strtolower($ticket['priority'] ?? 'unknown'); ?>
+                                                <span class="badge priority-<?php echo $priority; ?>">
+                                                    <?php echo htmlspecialchars(ucfirst($priority)); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <?php $status = strtolower(str_replace(' ', '-', $ticket['status'] ?? 'unknown')); ?>
+                                                <span class="badge status-<?php echo $status; ?>">
+                                                    <?php echo htmlspecialchars(ucfirst($ticket['status'] ?? 'Unknown')); ?>
+                                                </span>
                                             </td>
                                         </tr>
-                                    <?php else: ?>
-                                        <?php foreach ($recent_tickets as $ticket): ?>
-                                            <tr>
-                                                <td><strong><?php echo htmlspecialchars($ticket['ticket_number'] ?? 'N/A'); ?></strong></td>
-                                                <td>
-                                                    <?php 
-                                                    $title = $ticket['title'] ?? '';
-                                                    echo htmlspecialchars(substr($title, 0, 30)) . (strlen($title) > 30 ? '...' : '');
-                                                    if (!empty($ticket['company_name'])): ?>
-                                                        <br><small class="text-muted"><?php echo htmlspecialchars($ticket['company_name']); ?></small>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td>
-                                                    <?php $priority = strtolower($ticket['priority'] ?? 'unknown'); ?>
-                                                    <span class="badge priority-<?php echo $priority; ?>">
-                                                        <?php echo htmlspecialchars(ucfirst($priority)); ?>
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <?php $status = strtolower(str_replace(' ', '-', $ticket['status'] ?? 'unknown')); ?>
-                                                    <span class="badge status-<?php echo $status; ?>">
-                                                        <?php echo htmlspecialchars(ucfirst($ticket['status'] ?? 'Unknown')); ?>
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
                 
-                <div class="col-lg-6 mb-3">
-                    <div class="recent-table">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h4><i class="fas fa-building me-2"></i>Recent Clients</h4>
-                            <a href="<?php echo route('clients.index'); ?>" class="btn btn-sm btn-primary">
-                                View All <i class="fas fa-arrow-right ms-1"></i>
-                            </a>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="data-table">
-                                <thead>
+                <div class="table-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="section-title mb-0"><i class="fas fa-building"></i> Recent Clients</h3>
+                        <a href="<?php echo route('clients.index'); ?>" class="btn btn-sm btn-primary">
+                            View All <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th>Contact</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($recent_clients)): ?>
                                     <tr>
-                                        <th>Company</th>
-                                        <th>Contact</th>
-                                        <th>Email</th>
-                                        <th>Status</th>
+                                        <td colspan="4" class="text-center py-4">
+                                            <i class="fas fa-users fa-2x text-muted mb-3"></i>
+                                            <p class="text-muted mb-0">No clients found</p>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (empty($recent_clients)): ?>
+                                <?php else: ?>
+                                    <?php foreach ($recent_clients as $client): ?>
                                         <tr>
-                                            <td colspan="4" class="text-center py-4">
-                                                <i class="fas fa-users fa-2x text-muted mb-3"></i>
-                                                <p class="text-muted mb-0">No clients found</p>
+                                            <td><strong><?php echo htmlspecialchars($client['company_name'] ?? 'N/A'); ?></strong></td>
+                                            <td><?php echo htmlspecialchars($client['contact_person'] ?? 'N/A'); ?></td>
+                                            <td><?php echo htmlspecialchars($client['email'] ?? 'N/A'); ?></td>
+                                            <td>
+                                                <?php $status = $client['status'] ?? 'Unknown'; ?>
+                                                <span class="badge <?php echo $status == 'Active' ? 'badge-success' : 'badge-secondary'; ?>">
+                                                    <?php echo htmlspecialchars($status); ?>
+                                                </span>
                                             </td>
                                         </tr>
-                                    <?php else: ?>
-                                        <?php foreach ($recent_clients as $client): ?>
-                                            <tr>
-                                                <td><strong><?php echo htmlspecialchars($client['company_name'] ?? 'N/A'); ?></strong></td>
-                                                <td><?php echo htmlspecialchars($client['contact_person'] ?? 'N/A'); ?></td>
-                                                <td><?php echo htmlspecialchars($client['email'] ?? 'N/A'); ?></td>
-                                                <td>
-                                                    <?php $status = $client['status'] ?? 'Unknown'; ?>
-                                                    <span class="badge <?php echo $status == 'Active' ? 'badge-success' : 'badge-secondary'; ?>">
-                                                        <?php echo htmlspecialchars($status); ?>
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
 
             <!-- Recent Activities -->
             <?php if (!empty($recent_activities)): ?>
-            <div class="activity-timeline">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4><i class="fas fa-history me-2"></i>Recent Activities</h4>
-                </div>
-                <?php foreach ($recent_activities as $activity): ?>
-                    <div class="activity-item">
-                        <div class="activity-icon" style="background: <?php 
-                            $color = $activity['color'] ?? 'primary';
-                            echo $color == 'primary' ? '#667eea' : 
-                                 ($color == 'success' ? '#28a745' : 
-                                 ($color == 'warning' ? '#ffc107' : '#6c757d'));
-                        ?>;">
-                            <i class="fas fa-<?php 
-                                $type = $activity['type'] ?? 'ticket';
-                                echo $type == 'ticket' ? 'ticket-alt' : 
-                                     ($type == 'client' ? 'building' : 'server');
-                            ?>"></i>
-                        </div>
-                        <div class="activity-content">
-                            <div class="fw-bold"><?php echo htmlspecialchars($activity['action'] ?? 'Activity'); ?></div>
-                            <div class="text-muted mb-1"><?php echo htmlspecialchars($activity['description'] ?? 'No description'); ?></div>
-                            <div class="activity-time">
-                                <i class="far fa-clock me-1"></i>
-                                <?php 
-                                $created_at = $activity['created_at'] ?? date('Y-m-d H:i:s');
-                                echo date('M j, Y g:i A', strtotime($created_at)); 
-                                ?>
+            <div class="timeline-card fade-in-up delay-5">
+                <h3 class="section-title mb-4"><i class="fas fa-history"></i> Recent Activities</h3>
+                <div class="timeline">
+                    <?php foreach ($recent_activities as $activity): ?>
+                        <div class="timeline-item">
+                            <div class="timeline-content">
+                                <div class="fw-bold"><?php echo htmlspecialchars($activity['action'] ?? 'Activity'); ?></div>
+                                <div class="text-muted small mb-1"><?php echo htmlspecialchars($activity['description'] ?? 'No description'); ?></div>
+                                <div class="timeline-time">
+                                    <i class="far fa-clock me-1"></i>
+                                    <?php 
+                                    $created_at = $activity['created_at'] ?? date('Y-m-d H:i:s');
+                                    echo date('M j, Y g:i A', strtotime($created_at)); 
+                                    ?>
+                                </div>
                             </div>
                         </div>
-                        <div class="text-end">
-                            <span class="badge bg-light text-dark"><?php echo htmlspecialchars($activity['identifier'] ?? 'N/A'); ?></span>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                </div>
             </div>
             <?php endif; ?>
 
             <!-- Quick Actions -->
-            <div class="quick-actions">
-                <h4><i class="fas fa-bolt me-2"></i>Quick Actions</h4>
-                <div class="actions-grid">
-                    <a href="<?php echo route('tickets.create'); ?>" class="action-card">
-                        <div class="action-icon" style="background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);">
-                            <i class="fas fa-plus-circle"></i>
-                        </div>
-                        <div>
-                            <h5 class="mb-1">New Ticket</h5>
-                            <p class="text-muted mb-0 small">Create support ticket</p>
-                        </div>
-                    </a>
-                    
-                    <a href="<?php echo route('clients.create'); ?>" class="action-card">
-                        <div class="action-icon" style="background: linear-gradient(135deg, var(--success) 0%, #20c997 100%);">
-                            <i class="fas fa-user-plus"></i>
-                        </div>
-                        <div>
-                            <h5 class="mb-1">Add Client</h5>
-                            <p class="text-muted mb-0 small">Register new client</p>
-                        </div>
-                    </a>
-                    
-                    <a href="<?php echo route('assets.create'); ?>" class="action-card">
-                        <div class="action-icon" style="background: linear-gradient(135deg, var(--info) 0%, #0dcaf0 100%);">
-                            <i class="fas fa-server"></i>
-                        </div>
-                        <div>
-                            <h5 class="mb-1">Add Asset</h5>
-                            <p class="text-muted mb-0 small">Register IT asset</p>
-                        </div>
-                    </a>
-                    
-                    <a href="<?php echo route('reports.index'); ?>" class="action-card">
-                        <div class="action-icon" style="background: linear-gradient(135deg, var(--warning) 0%, #ffc107 100%);">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <div>
-                            <h5 class="mb-1">Reports</h5>
-                            <p class="text-muted mb-0 small">View analytics</p>
-                        </div>
-                    </a>
-                </div>
+            <div class="actions-grid fade-in-up delay-5">
+                <a href="<?php echo route('tickets.create'); ?>" class="action-card">
+                    <div class="action-icon" style="background: var(--gradient-primary);">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <div class="action-content">
+                        <h5 class="action-title">New Ticket</h5>
+                        <p class="action-desc">Create support ticket</p>
+                    </div>
+                </a>
+                
+                <a href="<?php echo route('clients.create'); ?>" class="action-card">
+                    <div class="action-icon" style="background: var(--gradient-success);">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div class="action-content">
+                        <h5 class="action-title">Add Client</h5>
+                        <p class="action-desc">Register new client</p>
+                    </div>
+                </a>
+                
+                <a href="<?php echo route('assets.create'); ?>" class="action-card">
+                    <div class="action-icon" style="background: var(--gradient-info);">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="action-content">
+                        <h5 class="action-title">Add Asset</h5>
+                        <p class="action-desc">Register IT asset</p>
+                    </div>
+                </a>
+                
+                <a href="<?php echo route('reports.index'); ?>" class="action-card">
+                    <div class="action-icon" style="background: var(--gradient-warning);">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="action-content">
+                        <h5 class="action-title">Reports</h5>
+                        <p class="action-desc">View analytics</p>
+                    </div>
+                </a>
             </div>
         </main>
     </div>
@@ -1419,12 +1615,12 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
     <script>
         // Initialize Charts
         document.addEventListener('DOMContentLoaded', function() {
-            // Ticket Status Chart - Small Bar Chart
+            // Ticket Status Chart - Enhanced Bar Chart
             const statusCtx = document.getElementById('ticketStatusChart').getContext('2d');
             const statusLabels = <?php echo json_encode(array_column($ticket_status_data, 'status')); ?>;
             const statusData = <?php echo json_encode(array_column($ticket_status_data, 'count')); ?>;
             
-            // Define colors based on status
+            // Define enhanced colors based on status
             const statusColors = statusLabels.map(label => {
                 const labelLower = (label || '').toLowerCase();
                 switch(labelLower) {
@@ -1442,11 +1638,13 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                 data: {
                     labels: statusLabels,
                     datasets: [{
+                        label: 'Tickets',
                         data: statusData,
-                        backgroundColor: statusColors,
-                        borderColor: statusColors.map(color => color.replace('0.8', '1')),
-                        borderWidth: 1,
-                        borderRadius: 5
+                        backgroundColor: statusColors.map(color => color + '80'), // Add transparency
+                        borderColor: statusColors,
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
                     }]
                 },
                 options: {
@@ -1457,6 +1655,12 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                             display: false
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#343a40',
+                            bodyColor: '#495057',
+                            borderColor: '#dee2e6',
+                            borderWidth: 1,
+                            padding: 12,
                             callbacks: {
                                 label: function(context) {
                                     return `${context.label}: ${context.raw}`;
@@ -1468,7 +1672,8 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                         y: {
                             beginAtZero: true,
                             grid: {
-                                drawBorder: false
+                                drawBorder: false,
+                                color: 'rgba(0, 0, 0, 0.05)'
                             },
                             ticks: {
                                 stepSize: 1
@@ -1479,19 +1684,24 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                                 display: false
                             },
                             ticks: {
-                                maxRotation: 45
+                                maxRotation: 45,
+                                color: '#6c757d'
                             }
                         }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
                     }
                 }
             });
 
-            // Ticket Priority Chart - Small Doughnut Chart
+            // Ticket Priority Chart - Enhanced Doughnut Chart
             const priorityCtx = document.getElementById('ticketPriorityChart').getContext('2d');
             const priorityLabels = <?php echo json_encode(array_column($ticket_priority_data, 'priority')); ?>;
             const priorityData = <?php echo json_encode(array_column($ticket_priority_data, 'count')); ?>;
             
-            // Define colors based on priority
+            // Define enhanced colors based on priority
             const priorityColors = priorityLabels.map(label => {
                 const labelLower = (label || '').toLowerCase();
                 switch(labelLower) {
@@ -1510,63 +1720,84 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                     labels: priorityLabels,
                     datasets: [{
                         data: priorityData,
-                        backgroundColor: priorityColors,
-                        borderColor: 'white',
+                        backgroundColor: priorityColors.map(color => color + '80'),
+                        borderColor: priorityColors,
                         borderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '70%',
+                    cutout: '60%',
                     plugins: {
                         legend: {
-                            position: 'right',
+                            position: 'bottom',
                             labels: {
                                 padding: 15,
                                 usePointStyle: true,
                                 font: {
-                                    size: 10
-                                }
+                                    size: 11
+                                },
+                                color: '#6c757d'
                             }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#343a40',
+                            bodyColor: '#495057',
+                            borderColor: '#dee2e6',
+                            borderWidth: 1,
+                            padding: 12
                         }
+                    },
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1000
                     }
                 }
             });
 
-            // Asset Type Chart - Small Horizontal Bar Chart
+            // Asset Type Chart - Enhanced Horizontal Bar Chart
             const assetTypeCtx = document.getElementById('assetTypeChart').getContext('2d');
             const assetLabels = <?php echo json_encode(array_column($asset_type_data, 'asset_type')); ?>;
             const assetData = <?php echo json_encode(array_column($asset_type_data, 'count')); ?>;
             
-            // Generate colors for assets
+            // Generate enhanced colors for assets
             const assetColors = [
                 '#667eea', '#764ba2', '#28a745', '#ffc107', 
                 '#dc3545', '#17a2b8', '#6c757d', '#fd7e14',
                 '#20c997', '#0dcaf0'
-            ];
+            ].map(color => color + '80');
 
             new Chart(assetTypeCtx, {
-                type: 'horizontalBar',
+                type: 'bar',
                 data: {
                     labels: assetLabels,
                     datasets: [{
+                        label: 'Assets',
                         data: assetData,
                         backgroundColor: assetColors.slice(0, assetLabels.length),
-                        borderColor: assetColors.slice(0, assetLabels.length).map(color => color.replace('0.8', '1')),
-                        borderWidth: 1,
-                        borderRadius: 5
+                        borderColor: assetColors.slice(0, assetLabels.length).map(color => color.replace('80', '')),
+                        borderWidth: 2,
+                        borderRadius: 8
                     }]
                 },
                 options: {
+                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
-                    indexAxis: 'y',
                     plugins: {
                         legend: {
                             display: false
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#343a40',
+                            bodyColor: '#495057',
+                            borderColor: '#dee2e6',
+                            borderWidth: 1,
+                            padding: 12,
                             callbacks: {
                                 label: function(context) {
                                     return `${context.label}: ${context.raw}`;
@@ -1578,40 +1809,47 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                         x: {
                             beginAtZero: true,
                             grid: {
-                                drawBorder: false
+                                drawBorder: false,
+                                color: 'rgba(0, 0, 0, 0.05)'
                             },
                             ticks: {
-                                stepSize: 1
+                                stepSize: 1,
+                                color: '#6c757d'
                             }
                         },
                         y: {
                             grid: {
                                 display: false
+                            },
+                            ticks: {
+                                color: '#6c757d'
                             }
                         }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
                     }
                 }
             });
-
-            // Animate performance bars
-            document.querySelectorAll('.performance-bar-fill').forEach(bar => {
-                const width = bar.style.width;
-                bar.style.width = '0%';
-                setTimeout(() => {
-                    bar.style.width = width;
-                }, 300);
-            });
-
-            // Auto-refresh dashboard every 2 minutes
-            setInterval(() => {
-                window.location.reload();
-            }, 120000);
         });
 
-        // Mobile menu toggle
-        document.querySelector('.mobile-menu-toggle')?.addEventListener('click', function() {
-            document.querySelector('.sidebar').classList.toggle('active');
-            this.classList.toggle('active');
+        // Add scroll animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationPlayState = 'running';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in-up').forEach(el => {
+            observer.observe(el);
         });
     </script>
 </body>

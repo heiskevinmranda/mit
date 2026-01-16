@@ -20,9 +20,9 @@ class TicketReportPDFGenerator
 
     public function __construct($report_data, $filters)
     {
-        error_log("TicketReportPDFGenerator: Constructor called with data keys: " . json_encode(array_keys($report_data ?? [])) . 
-                  " and filter keys: " . json_encode(array_keys($filters ?? [])));
-        
+        error_log("TicketReportPDFGenerator: Constructor called with data keys: " . json_encode(array_keys($report_data ?? [])) .
+            " and filter keys: " . json_encode(array_keys($filters ?? [])));
+
         $this->report_data = $report_data;
         $this->filters = $filters;
         $this->client_name = $this->getClientNameById($filters['client_id'] ?? null) ?? 'All Clients';
@@ -32,11 +32,11 @@ class TicketReportPDFGenerator
         $this->additional_comments = $filters['additional_comments'] ?? '';
         $this->before_image_path = $filters['before_image_path'] ?? '';
         $this->after_image_path = $filters['after_image_path'] ?? '';
-        
+
         // Extract dates from filters
         $startDate = new DateTime($this->filters['start_date'] ?? date('Y-m-d'));
         $endDate = new DateTime($this->filters['end_date'] ?? date('Y-m-d'));
-        
+
         // Extract year from start date for calendar
         $this->year = $startDate->format('Y');
         if ($startDate->format('Y-m') === $endDate->format('Y-m')) {
@@ -67,10 +67,10 @@ class TicketReportPDFGenerator
 
         // Add a page
         $this->pdf->AddPage();
-        
+
         // Initialize category colors for calendar and statistics
         $this->initializeCategoryColors();
-        
+
         error_log("TicketReportPDFGenerator: Constructor completed successfully");
     }
 
@@ -94,86 +94,79 @@ class TicketReportPDFGenerator
     public function generate()
     {
         error_log("TicketReportPDFGenerator: Starting PDF generation");
-        
+
         try {
             // 1. Cover / Header Section
             error_log("TicketReportPDFGenerator: Adding header section");
             $this->addHeaderSection();
-            
+
             // Add page break to separate sections
             error_log("TicketReportPDFGenerator: Adding page break after header");
             $this->pdf->AddPage();
-            
+
             // 2. Services Introduction
             error_log("TicketReportPDFGenerator: Adding services introduction");
             $this->addServicesIntroduction();
-            
+
             // Add page break to separate sections
             error_log("TicketReportPDFGenerator: Adding page break after services intro");
             $this->pdf->AddPage();
-            
-            // 3. Audit Numbers / KPI Metrics
-            error_log("TicketReportPDFGenerator: Adding audit numbers");
-            $this->addAuditNumbers();
-            
-            // Add page break to separate sections
-            error_log("TicketReportPDFGenerator: Adding page break after audit numbers");
-            $this->pdf->AddPage();
-            
+
+            // Audit Numbers section removed as per user request
+
             // 4. Our Agenda
             error_log("TicketReportPDFGenerator: Adding our agenda");
             $this->addOurAgenda();
-            
+
             // Add page break to separate sections
             error_log("TicketReportPDFGenerator: Adding page break after agenda");
             $this->pdf->AddPage();
-            
+
             // 5. Activities Calendar
             error_log("TicketReportPDFGenerator: Adding activities calendar");
             $this->addActivitiesCalendar();
-            
+
             // Add page break to separate sections
             error_log("TicketReportPDFGenerator: Adding page break after calendar");
             $this->pdf->AddPage();
-            
+
             // 6. Activities Tickets (Detailed Tickets Table)
             error_log("TicketReportPDFGenerator: Adding activities tickets");
             $this->addActivitiesTickets();
-            
+
             // Add page break to separate sections
             error_log("TicketReportPDFGenerator: Adding page break after tickets");
             $this->pdf->AddPage();
-            
+
             // 7. Suggestion Ideas / Recommendations
             error_log("TicketReportPDFGenerator: Adding suggestion ideas");
             $this->addSuggestionIdeas();
-            
+
             // Add page break to separate sections
             error_log("TicketReportPDFGenerator: Adding page break after suggestions");
             $this->pdf->AddPage();
-            
+
             // 8. Detailed Suggestion Example (e.g., Server Rack Cleanup with images)
             error_log("TicketReportPDFGenerator: Adding detailed suggestion");
             $this->addDetailedSuggestion();
-            
+
             // Add page break to separate sections
             error_log("TicketReportPDFGenerator: Adding page break after detailed suggestion");
             $this->pdf->AddPage();
-            
+
             // 9. Thank You / Footer Section
             error_log("TicketReportPDFGenerator: Adding thank you section");
             $this->addThankYouSection();
-            
+
             error_log("TicketReportPDFGenerator: PDF generation completed successfully");
-            
         } catch (Exception $e) {
-            error_log("TicketReportPDFGenerator ERROR: " . $e->getMessage() . 
-                      " | File: " . $e->getFile() . 
-                      " | Line: " . $e->getLine() . 
-                      " | Trace: " . $e->getTraceAsString());
+            error_log("TicketReportPDFGenerator ERROR: " . $e->getMessage() .
+                " | File: " . $e->getFile() .
+                " | Line: " . $e->getLine() .
+                " | Trace: " . $e->getTraceAsString());
             throw $e; // Re-throw to be caught by caller
         }
-        
+
         return $this->pdf;
     }
 
@@ -393,60 +386,122 @@ class TicketReportPDFGenerator
 
     private function addServicesIntroduction()
     {
-        $this->pdf->SetTextColor(255, 102, 0); // Orange
-        $this->pdf->SetFont('helvetica', 'B', 24);
-        $this->pdf->Cell(0, 10, 'Flashnet - The best Managed IT service provider in Tanzania', 0, 1, 'L');
+        $pdf = $this->pdf;
 
-        $this->pdf->SetTextColor(0, 0, 0); // Black
-        $this->pdf->SetFont('helvetica', '', 12);
-        $this->pdf->MultiCell(0, 5, 'As a leading Managed IT Service Provider in Tanzania, Flashnet offers a wide range of comprehensive IT services to meet your business needs. Our services include Remote IT Support Services, Computer and Network Support, Server Support Services, Server Monitoring Services, Network and Server Administration, Backup and Disaster Recovery Services, and Managed Wi-Fi Service.', 0, 'L');
+        // Page & layout settings
+        $pageWidth   = $pdf->getPageWidth();
+        $leftMargin  = 15;
+        $rightMargin = 15;
+        $colGap      = 10;
+        $startY      = 25;
 
-        // Service boxes
-        $this->pdf->Ln(10);
-        $this->pdf->SetFillColor(255, 102, 0); // Orange
-        $this->pdf->SetTextColor(255, 255, 255);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(10, 10, '01', 1, 0, 'C', true);
-        $this->pdf->SetTextColor(0, 0, 0);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(0, 10, ' Remote IT Support Services', 0, 1, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $this->pdf->MultiCell(0, 5, 'Our Remote IT Support Services provide quick and efficient troubleshooting and resolution of computer system issues, no matter where you are located in Tanzania.', 0, 'L');
+        // Column widths (≈35% / 65%)
+        $leftColWidth  = 70;
+        $rightColWidth = $pageWidth - $leftMargin - $rightMargin - $leftColWidth - $colGap;
 
-        $this->pdf->Ln(5);
-        $this->pdf->SetFillColor(255, 102, 0);
-        $this->pdf->SetTextColor(255, 255, 255);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(10, 10, '02', 1, 0, 'C', true);
-        $this->pdf->SetTextColor(0, 0, 0);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(0, 10, ' Server Support Services', 0, 1, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $this->pdf->MultiCell(0, 5, 'With our Server Support Services, we ensure your servers run smoothly and minimize downtime, ensuring your business operations are always running.', 0, 'L');
+        // Track Y positions separately
+        $leftY  = $startY + 40;
+        $rightY = $startY;
 
-        // Add more similarly for 03 and 04
-        $this->pdf->Ln(5);
-        $this->pdf->SetFillColor(255, 102, 0);
-        $this->pdf->SetTextColor(255, 255, 255);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(10, 10, '03', 1, 0, 'C', true);
-        $this->pdf->SetTextColor(0, 0, 0);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(0, 10, ' Computer and Network Support', 0, 1, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $this->pdf->MultiCell(0, 5, 'Our experienced IT professionals provide comprehensive Computer and Network Support to ensure your systems run efficiently and effectively.', 0, 'L');
+        /* =====================================================
+     * LEFT COLUMN – Services overview
+     * ===================================================== */
+        $leftServices = [
+            [
+                'title' => 'Cloud & Cyber Security',
+                'desc'  => 'Benefit from cloud computing power for your applications and data.'
+            ],
+            [
+                'title' => 'Data Center Solutions in Tanzania',
+                'desc'  => 'Migrate now to collaborate in real-time, reduce on-premise hardware and operational costs.'
+            ],
+            [
+                'title' => 'Hosting',
+                'desc'  => 'Secure and dedicated hosting solutions with expert technical support.'
+            ],
+        ];
 
-        $this->pdf->Ln(5);
-        $this->pdf->SetFillColor(255, 102, 0);
-        $this->pdf->SetTextColor(255, 255, 255);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(10, 10, '04', 1, 0, 'C', true);
-        $this->pdf->SetTextColor(0, 0, 0);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(0, 10, ' Server Monitoring Services', 0, 1, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $this->pdf->MultiCell(0, 5, 'Our 24/7 Server Monitoring Services proactively detect and address issues before they become major problems, ensuring your systems operate at peak performance levels.', 0, 'L');
+        foreach ($leftServices as $item) {
+
+            // Icon (orange circle placeholder)
+            $pdf->SetFillColor(255, 102, 0);
+            $pdf->Circle($leftMargin + 6, $leftY + 6, 6, 0, 360, 'F');
+
+            // Title
+            $pdf->SetXY($leftMargin + 18, $leftY);
+            $pdf->SetFont('helvetica', 'B', 13);
+            $pdf->SetTextColor(255, 102, 0);
+            $pdf->MultiCell($leftColWidth - 18, 6, $item['title'], 0, 'L');
+
+            // Description
+            $leftY = $pdf->GetY();
+            $pdf->SetX($leftMargin + 18);
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->MultiCell($leftColWidth - 18, 5, $item['desc'], 0, 'L');
+
+            $leftY = $pdf->GetY() + 10;
+        }
+
+        /* =====================================================
+     * RIGHT COLUMN – Main content
+     * ===================================================== */
+        $rightX = $leftMargin + $leftColWidth + $colGap;
+
+        // Big title
+        $pdf->SetXY($rightX, $rightY);
+        $pdf->SetFont('helvetica', 'B', 24);
+        $pdf->SetTextColor(255, 102, 0);
+        $pdf->MultiCell($rightColWidth, 12, 'Flashnet - The Best Managed IT Service Provider in Tanzania', 0, 'L');
+
+        // Intro text
+        $rightY = $pdf->GetY() + 6;
+        $pdf->SetXY($rightX, $rightY);
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->MultiCell(
+            $rightColWidth,
+            6,
+            'As a leading Managed IT Service Provider in Tanzania, Flashnet offers comprehensive IT services including Remote IT Support, Network & Server Support, Server Monitoring, Backup & Disaster Recovery, and Managed Wi-Fi Services.',
+            0,
+            'L'
+        );
+
+        $rightY = $pdf->GetY() + 10;
+
+        // Numbered services
+        $services = [
+            ['01', 'Remote IT Support Services', 'Fast and efficient troubleshooting and resolution of IT issues across Tanzania.'],
+            ['02', 'Server Support Services', 'Reliable server maintenance ensuring minimal downtime and business continuity.'],
+            ['03', 'Computer & Network Support', 'End-to-end support to keep your systems secure and optimized.'],
+            ['04', 'Server Monitoring Services', '24/7 proactive monitoring to detect and resolve issues before impact.'],
+        ];
+
+        foreach ($services as $s) {
+
+            // Number box
+            $pdf->SetXY($rightX, $rightY);
+            $pdf->SetFillColor(255, 102, 0);
+            $pdf->SetTextColor(255, 255, 255);
+            $pdf->SetFont('helvetica', 'B', 12);
+            $pdf->Cell(12, 12, $s[0], 0, 0, 'C', true);
+
+            // Title
+            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetFont('helvetica', 'B', 13);
+            $pdf->SetXY($rightX + 16, $rightY);
+            $pdf->MultiCell($rightColWidth - 16, 12, $s[1], 0, 'L');
+
+            // Description
+            $rightY = max($pdf->GetY(), $rightY + 12);
+            $pdf->SetXY($rightX + 16, $rightY);
+            $pdf->SetFont('helvetica', '', 10);
+            $pdf->MultiCell($rightColWidth - 16, 5.2, $s[2], 0, 'L');
+
+            $rightY = $pdf->GetY() + 8;
+        }
     }
+
 
     private function addAuditNumbers()
     {
@@ -483,41 +538,92 @@ class TicketReportPDFGenerator
 
     private function addOurAgenda()
     {
+        // Calculate page dimensions for centering
+        $pageWidth = $this->pdf->getPageWidth();
+        $pageHeight = $this->pdf->getPageHeight();
+        $margins = $this->pdf->getMargins();
+        $marginLeft = $margins['left'];
+        $marginRight = $margins['right'];
+        $contentWidth = $pageWidth - $marginLeft - $marginRight;
+
+        // Title - already centered
         $this->pdf->SetTextColor(255, 102, 0); // Orange
-        $this->pdf->SetFont('helvetica', 'B', 24);
-        $this->pdf->Cell(0, 10, 'Our Agenda', 0, 1, 'L');
+        $this->pdf->SetFont('helvetica', 'B', 28);
+        $this->pdf->Cell(0, 12, 'Our Agenda', 0, 1, 'C'); // Centered looks better for hero title
 
+        // Subtitle - already centered
+        $this->pdf->Ln(4);
         $this->pdf->SetTextColor(0, 0, 0);
-        $this->pdf->SetFont('helvetica', '', 12);
-        $this->pdf->Cell(0, 5, 'We are committed to providing the best services to grow your business.', 0, 1, 'L');
+        $this->pdf->SetFont('helvetica', 'I', 13);
+        $this->pdf->MultiCell(0, 7, "We are committed to providing the best services to grow your business.", 0, 'C');
 
-        // Agenda boxes
-        $this->pdf->Ln(10);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(60, 10, 'Activities Calendar', 0, 1, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $this->pdf->MultiCell(60, 5, "It's about visual representation of our commitments, Tasks and services provided to customer.", 0, 'L');
+        $this->pdf->Ln(12);
 
-        $this->pdf->SetY($this->pdf->GetY() - 30); // Move up for next column
-        $this->pdf->SetX(100);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(60, 10, 'Statistics', 0, 1, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $this->pdf->MultiCell(60, 5, "It's about tracking progress, measure performance, analyze problems and prioritize.", 0, 'L');
+        // === Centered four columns layout ===
+        $boxWidth = 45;           // width of each column
+        $totalBoxesWidth = ($boxWidth * 4) + (18 * 3); // 4 boxes + 3 spacings
+        $startX = ($pageWidth - $totalBoxesWidth) / 2; // Center the entire block horizontally
+        $spacing = 18;           // space between columns
+        $iconY = $this->pdf->GetY();
+        $textY = $iconY + 28;  // where text starts under icons
 
-        $this->pdf->SetY($this->pdf->GetY() - 30);
-        $this->pdf->SetX(160);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(60, 10, 'Tickets', 0, 1, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $this->pdf->MultiCell(60, 5, "It's combination of practices, strategies and technologies to manage and analyze data through customer lifecycle.", 0, 'L');
+        $items = [
+            [
+                'title' => 'Activities Calendar',
+                'desc'  => "It's about visual representation of our commitments, Tasks and services provided to customer.",
+                'icon'  => 'calendar'   // for reference
+            ],
+            [
+                'title' => 'Statistics',
+                'desc'  => "It's about tracking progress, measure performance, analyze problems and prioritize.",
+                'icon'  => 'chart'
+            ],
+            [
+                'title' => 'Tickets',
+                'desc'  => "It's combination of practices, strategies and technologies to manage and analyze data through customer lifecycle.",
+                'icon'  => 'ticket'
+            ],
+            [
+                'title' => 'Support',
+                'desc'  => "It's ultimately about making sure customers are successful in solving whatever issues they came to your business to help solve.",
+                'icon'  => 'support'
+            ]
+        ];
 
-        $this->pdf->SetY($this->pdf->GetY() - 30);
-        $this->pdf->SetX(220);
-        $this->pdf->SetFont('helvetica', 'B', 12);
-        $this->pdf->Cell(60, 10, 'Support', 0, 1, 'L');
-        $this->pdf->SetFont('helvetica', '', 10);
-        $this->pdf->MultiCell(60, 5, "It's ultimately about making sure customers are successful in solving whatever issues they came to your business to help solve.", 0, 'L');
+        foreach ($items as $i => $item) {
+            $x = $startX + ($i * ($boxWidth + $spacing));
+
+            // 1. Draw orange circle (icon placeholder)
+            $this->pdf->SetFillColor(255, 102, 0);
+            $this->pdf->SetDrawColor(255, 102, 0);
+            $this->pdf->Circle($x + $boxWidth / 2, $iconY + 12, 12, 0, 360, 'F'); // filled circle
+
+            // Optional: white icon symbol (simple text approximation)
+            $this->pdf->SetTextColor(255, 255, 255);
+            $this->pdf->SetFont('helvetica', 'B', 20);
+
+            $symbol = '📅'; // Activities Calendar
+            if ($i === 1) $symbol = '📊';
+            if ($i === 2) $symbol = '🎟';
+            if ($i === 3) $symbol = '🛠';
+
+            $this->pdf->Text($x + $boxWidth / 2 - 5, $iconY + 8, $symbol);
+
+            // 2. Title under icon
+            $this->pdf->SetXY($x, $textY);
+            $this->pdf->SetTextColor(255, 102, 0);
+            $this->pdf->SetFont('helvetica', 'B', 12);
+            $this->pdf->Cell($boxWidth, 8, $item['title'], 0, 1, 'C');
+
+            // 3. Description
+            $this->pdf->SetXY($x, $textY + 10);
+            $this->pdf->SetTextColor(0, 0, 0);
+            $this->pdf->SetFont('helvetica', '', 9.5);
+            $this->pdf->MultiCell($boxWidth, 5, $item['desc'], 0, 'C');
+        }
+
+        // Final spacing before next section
+        $this->pdf->Ln(45);
     }
 
     private function addActivitiesCalendar()
@@ -550,7 +656,7 @@ class TicketReportPDFGenerator
         $this->pdf->Cell($month_width, 5, 'Weekday/Month', 1, 0, 'C', true);
 
         $weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-        
+
         // Calculate maximum columns needed for any month in the year
         $max_cols_needed = 0;
         for ($m = 1; $m <= 12; $m++) {
@@ -562,10 +668,10 @@ class TicketReportPDFGenerator
                 $max_cols_needed = $cols_needed;
             }
         }
-        
+
         // Ensure we have at least 35 columns (5 weeks) but expand as needed
         $total_columns = max(35, $max_cols_needed);
-        
+
         // Add weekday headers for calculated number of columns
         for ($i = 0; $i < $total_columns; $i++) {
             $weekday_index = $i % 7; // Cycle through SUN-SAT
@@ -583,10 +689,10 @@ class TicketReportPDFGenerator
                 $max_cols_needed = $calc_cols_needed;
             }
         }
-        
+
         // Ensure we have at least 35 columns (5 weeks) but expand as needed
         $total_columns = max(35, $max_cols_needed);
-        
+
         $this->pdf->Ln();
 
         $this->pdf->SetTextColor(0, 0, 0);
@@ -598,18 +704,18 @@ class TicketReportPDFGenerator
             if (isset($ticket['created_at'])) {
                 $ticket_date = date('Y-m-d', strtotime($ticket['created_at']));
                 $category = $ticket['category'] ?? 'General';
-                
+
                 if (!isset($ticket_dates[$ticket_date])) {
                     $ticket_dates[$ticket_date] = [];
                 }
-                
+
                 if (!isset($ticket_dates[$ticket_date][$category])) {
                     $ticket_dates[$ticket_date][$category] = 0;
                 }
                 $ticket_dates[$ticket_date][$category]++;
             }
         }
-        
+
         // Calendar rows for each month
         for ($m = 1; $m <= 12; $m++) {
             $dt = new DateTime($this->year . '-' . str_pad($m, 2, '0', STR_PAD_LEFT) . '-01');
@@ -628,17 +734,17 @@ class TicketReportPDFGenerator
             for ($d = 1; $d <= $days_in_month; $d++) {
                 $current_date = sprintf('%04d-%02d-%02d', $this->year, $m, $d);
                 $day_cell_value = $d;
-                
+
                 // Check if this date has tickets
                 if (isset($ticket_dates[$current_date]) && !empty($ticket_dates[$current_date])) {
                     // Find the category with most tickets for this day
                     $max_category = array_keys($ticket_dates[$current_date], max($ticket_dates[$current_date]))[0];
-                    
+
                     // Set background color based on category
                     if (isset($this->category_colors[$max_category])) {
                         $bg_color = $this->category_colors[$max_category][0];
                         $text_color = $this->category_colors[$max_category][1];
-                        
+
                         // Set cell background color
                         $this->pdf->SetFillColor($bg_color[0], $bg_color[1], $bg_color[2]);
                         $this->pdf->SetTextColor($text_color[0], $text_color[1], $text_color[2]);
@@ -677,13 +783,13 @@ class TicketReportPDFGenerator
 
         // Calculate grouped ticket counts using actual categories from database
         $category_counts = [];
-        
+
         // Get actual categories from database
         try {
             $pdo = getDBConnection();
             $stmt = $pdo->query("SELECT DISTINCT category FROM tickets WHERE category IS NOT NULL AND category != '' ORDER BY category");
             $actual_categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            
+
             // Initialize counts for all actual categories
             foreach ($actual_categories as $cat) {
                 $category_counts[$cat] = 0;
@@ -715,7 +821,7 @@ class TicketReportPDFGenerator
         $keys = [
             'Total Tickets' => ['value' => $total_tickets, 'color' => [0, 0, 139], 'text_color' => [255, 255, 255]],
         ];
-        
+
         // Add dynamic categories with predefined colors
         $category_colors = [
             'General' => [[255, 165, 0], [0, 0, 0]], // Orange
@@ -729,10 +835,10 @@ class TicketReportPDFGenerator
             'Biometric' => [[255, 20, 147], [0, 0, 0]], // Deep pink
             'Software' => [[60, 179, 113], [0, 0, 0]], // Medium sea green
         ];
-        
+
         // Category colors already initialized in constructor
         // $this->category_colors = $category_colors;
-        
+
         // Add existing categories to keys
         foreach ($category_counts as $category => $count) {
             if (isset($this->category_colors[$category])) {

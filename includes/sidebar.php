@@ -47,14 +47,7 @@ $user_type = $current_user['user_type'] ?? 'client';
                 <i class="fas fa-concierge-bell"></i> Services
             </a></li>
             
-            <li><a href="<?php echo route('services.renewals'); ?>" <?php 
-                $current_page = basename($_SERVER['SCRIPT_NAME']);
-                $is_renewals_page = strpos($_SERVER['SCRIPT_NAME'], '/services/renewals') !== false || 
-                                   strpos($_SERVER['SCRIPT_NAME'], 'renewals') !== false;
-                echo $is_renewals_page ? 'class="active"' : ''; ?>>
-                <i class="fas fa-calendar-check"></i> Contract Renewals
-            </a></li>
-            <?php endif; ?>
+<?php endif; ?>
             
             <li><a href="<?php echo route('tickets.index'); ?>" <?php 
                 $current_page = basename($_SERVER['SCRIPT_NAME']);
