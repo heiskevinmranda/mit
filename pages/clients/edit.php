@@ -174,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'address' => trim($_POST['address'] ?? ''),
         'city' => trim($_POST['city'] ?? ''),
         'state' => trim($_POST['state'] ?? ''),
-        'country' => 'Tanzania',
+        'country' => 'TZ', // Tanzania ISO country code
         'notes' => trim($_POST['notes'] ?? ''),
         'client_region' => trim($_POST['client_region'] ?? ''),
         'service_type' => trim($_POST['service_type'] ?? ''),

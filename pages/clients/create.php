@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'address' => trim($_POST['address'] ?? ''),
         'city' => trim($_POST['city'] ?? ''),
         'state' => trim($_POST['state'] ?? ''),
-        'country' => 'Tanzania', // Always Tanzania
+        'country' => 'TZ', // Tanzania ISO country code
         'notes' => trim($_POST['notes'] ?? ''),
         'client_region' => trim($_POST['client_region'] ?? ''), // Will store in client_locations
         'service_type' => trim($_POST['service_type'] ?? ''), // Will store in contracts or notes
@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'address' => trim($_POST['location_address'] ?? $form_data['address']),
                     'city' => trim($_POST['location_city'] ?? $form_data['city']),
                     'state' => trim($_POST['location_state'] ?? $form_data['state']),
-                    'country' => 'Tanzania',
+                    'country' => 'TZ', // Tanzania ISO country code
                     'primary_contact' => trim($_POST['location_contact_person'] ?? $form_data['contact_person']),
                     'phone' => trim($_POST['location_phone'] ?? $form_data['phone']),
                     'email' => trim($_POST['location_email'] ?? $form_data['email'])

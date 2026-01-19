@@ -281,8 +281,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
         
         // Then add new assignees
         if (!empty($new_assignees) && is_array($new_assignees)) {
+            // Use assignee_order if provided and valid, otherwise fall back to default order
+            $decoded_order = !empty($_POST['assignee_order']) ? json_decode($_POST['assignee_order'], true) : null;
+            $assignee_ids = (is_array($decoded_order) && !empty($decoded_order)) 
+                ? $decoded_order 
+                : $new_assignees;
+            
             $primary_set = false;
-            foreach ($new_assignees as $staff_id) {
+            foreach ($assignee_ids as $staff_id) {
                 if (!empty($staff_id)) {
                     $is_primary = (!$primary_set) ? 1 : 0;
                     $primary_set = true;
@@ -2035,6 +2041,9 @@ function calculateHours($start_time, $end_time) {
             }
         }
         
+        // Track assignee selection order
+        let assigneeSelectionOrder = [];
+        
         // Update selected assignees display
         function updateSelectedAssignees() {
             const select = document.getElementById('assigned_to');
@@ -2116,6 +2125,17 @@ function calculateHours($start_time, $end_time) {
                 alert(`Please fill in all fields for Work Day ${emptyDay} (date, start time, end time, and description).`);
                 return;
             }
+            
+            // Add assignee order as hidden input
+            let orderInput = document.getElementById('assignee_order_input');
+            if (!orderInput) {
+                orderInput = document.createElement('input');
+                orderInput.type = 'hidden';
+                orderInput.name = 'assignee_order';
+                orderInput.id = 'assignee_order_input';
+                document.getElementById('ticketForm').appendChild(orderInput);
+            }
+            orderInput.value = JSON.stringify(assigneeSelectionOrder);
             
             // Show loading state
             const submitBtn = document.getElementById('submitBtn');
@@ -2221,8 +2241,14 @@ function calculateHours($start_time, $end_time) {
         // Update selected assignees display on page load
         updateSelectedAssignees();
         
-        // Listen for changes in assignee selection
-        document.getElementById('assigned_to').addEventListener('change', updateSelectedAssignees);
+        // Track assignee selection order and update display
+        document.getElementById('assigned_to').addEventListener('change', function(e) {
+            const selectedOptions = Array.from(e.target.selectedOptions);
+            assigneeSelectionOrder = selectedOptions.map(option => option.value).filter(value => value);
+            
+            // Update display to show correct primary/secondary based on selection order
+            updateSelectedAssignees();
+        });
         
         // Initialize work day hours calculation
         document.querySelectorAll('.work-day-form').forEach(dayForm => {

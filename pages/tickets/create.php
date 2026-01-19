@@ -73,6 +73,7 @@ $form_data = [
     'category' => $_POST['category'] ?? 'General',
     'priority' => $_POST['priority'] ?? 'Medium',
     'assigned_to' => $_POST['assigned_to'] ?? [],
+    'assignee_order' => !empty($_POST['assignee_order']) ? json_decode($_POST['assignee_order'], true) : [],
     'estimated_hours' => $_POST['estimated_hours'] ?? '',
     'work_start_time' => $_POST['work_start_time'] ?? '',
     'work_pattern' => $_POST['work_pattern'] ?? 'single',
@@ -82,6 +83,11 @@ $form_data = [
     'requested_by_email' => $_POST['requested_by_email'] ?? '',
     'csr_sn' => $_POST['csr_sn'] ?? ''
 ];
+
+// Debug: Log received data
+error_log('DEBUG: assigned_to: ' . print_r($_POST['assigned_to'] ?? 'NULL', true));
+error_log('DEBUG: assignee_order raw: ' . ($_POST['assignee_order'] ?? 'NULL'));
+error_log('DEBUG: assignee_order decoded: ' . print_r(!empty($_POST['assignee_order']) ? json_decode($_POST['assignee_order'], true) : 'NULL', true));
 
 // Get clients for dropdown
 $clients = [];
@@ -201,10 +207,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $assigned_staff = [];
         if (!empty($_POST['assigned_to']) && is_array($_POST['assigned_to'])) {
             try {
+                // Use assignee_order if provided and valid, otherwise fall back to default order
+                $decoded_order = !empty($_POST['assignee_order']) ? json_decode($_POST['assignee_order'], true) : null;
+                $assignee_ids = (is_array($decoded_order) && !empty($decoded_order)) 
+                    ? $decoded_order 
+                    : $_POST['assigned_to'];
+                
+                // Debug: Log what we're using for assignee IDs
+                error_log('DEBUG: Using assignee_ids: ' . print_r($assignee_ids, true));
+                error_log('DEBUG: Original assigned_to: ' . print_r($_POST['assigned_to'], true));
+                error_log('DEBUG: Decoded order: ' . print_r($decoded_order, true));
+                
                 $primary_set = false;
-                foreach ($_POST['assigned_to'] as $index => $staff_id) {
+                foreach ($assignee_ids as $index => $staff_id) {
                     if (!empty($staff_id)) {
-                        $is_primary = (!$primary_set) ? 1 : 0; // First one is primary
+                        $is_primary = (!$primary_set) ? 1 : 0; // First selected is primary
                         $primary_set = true;
 
                         $stmt = $pdo->prepare("
@@ -2032,6 +2049,9 @@ function calculateHours($start_time, $end_time)
             }
         }
 
+        // Track assignee selection order
+        let assigneeSelectionOrder = [];
+        
         // Update selected assignees display
         function updateSelectedAssignees() {
             const select = document.getElementById('assigned_to');
@@ -2054,6 +2074,15 @@ function calculateHours($start_time, $end_time)
             });
         }
 
+        // Track assignee selection order and update display
+        document.getElementById('assigned_to').addEventListener('change', function(e) {
+            const selectedOptions = Array.from(e.target.selectedOptions);
+            assigneeSelectionOrder = selectedOptions.map(option => option.value).filter(value => value);
+            
+            // Update display to show correct primary/secondary based on selection order
+            updateSelectedAssignees();
+        });
+        
         // Form submission
         document.getElementById('ticketForm').addEventListener('submit', function(e) {
             // Basic validation
@@ -2115,6 +2144,21 @@ function calculateHours($start_time, $end_time)
                 }
             }
 
+            // Add assignee order as hidden input
+            let orderInput = document.getElementById('assignee_order_input');
+            if (!orderInput) {
+                orderInput = document.createElement('input');
+                orderInput.type = 'hidden';
+                orderInput.name = 'assignee_order';
+                orderInput.id = 'assignee_order_input';
+                document.getElementById('ticketForm').appendChild(orderInput);
+            }
+            orderInput.value = JSON.stringify(assigneeSelectionOrder);
+            
+            // Debug: Log what we're sending
+            console.log('Sending assignee order:', assigneeSelectionOrder);
+            console.log('JSON string:', orderInput.value);
+            
             // Show loading state
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Ticket...';
