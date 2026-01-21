@@ -1,4 +1,5 @@
 <?php
+ob_start(); // Start output buffering to prevent any output before PDF headers
 require_once '../../includes/auth.php';
 require_once '../../includes/ticket_report_pdf_generator.php';
 requireLogin();
@@ -246,6 +247,9 @@ try {
     $pdf = $pdf_generator->generate();
     error_log("Ticket Report Export: PDF generated successfully, size: " . ($pdf ? strlen($pdf->Output('', 'S')) : 'unknown') . " bytes");
     
+    // Clean any previous output before sending PDF headers
+    ob_end_clean();
+    
     // Output PDF
     $pdf_filename = 'ticket_report_' . date('Y-m-d_H-i-s') . '.pdf';
     error_log("Ticket Report Export: Attempting to output PDF as: $pdf_filename");
@@ -296,6 +300,9 @@ try {
         // If we can't write to the dedicated log, at least log to PHP error log
         error_log("Could not write to dedicated error log. Error details: " . json_encode($error_details));
     }
+    
+    // Clean the output buffer before redirecting
+    ob_end_clean();
     
     // Redirect to 500 error page
     header('Location: ../errors/500.php');

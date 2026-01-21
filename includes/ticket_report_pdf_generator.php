@@ -1,4 +1,6 @@
 <?php
+// Prevent any output from this file
+ob_start();
 require_once __DIR__ . '/../vendor/autoload.php';  // Autoloader for TCPDF
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/auth.php';  // Include auth functions to get current user info
@@ -1088,4 +1090,8 @@ class TicketReportPDFGenerator
             return null;
         }
     }
+}
+// Clean the output buffer if it was started in this file
+if (ob_get_level() > 0) {
+    ob_end_clean();
 }
