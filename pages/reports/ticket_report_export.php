@@ -191,6 +191,7 @@ $recent_tickets_sql = "SELECT
     t.*,
     t.ticket_number,
     t.title,
+    t.requested_by,
     c.company_name,
     sp.full_name as assigned_to
 FROM tickets t

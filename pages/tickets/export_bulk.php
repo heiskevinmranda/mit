@@ -174,6 +174,7 @@ if ($export_type === 'excel' || $export_type === 'csv') {
         echo "<th>Estimated Hours</th>";
         echo "<th>Actual Hours</th>";
         echo "<th>Attachment Count</th>";
+        echo "<th>PI Number</th>";
         echo "</tr>";
         
         foreach ($tickets as $ticket) {
@@ -190,6 +191,7 @@ if ($export_type === 'excel' || $export_type === 'csv') {
             echo "<td>" . ($ticket['estimated_hours'] ? number_format($ticket['estimated_hours'], 2) : '0.00') . "</td>";
             echo "<td>" . ($ticket['actual_hours'] ? number_format($ticket['actual_hours'], 2) : '0.00') . "</td>";
             echo "<td>" . ($ticket['attachment_count'] ?? 0) . "</td>";
+            echo "<td>" . htmlspecialchars($ticket['pi_number'] ?? '') . "</td>";
             echo "</tr>";
         }
         
@@ -218,7 +220,8 @@ if ($export_type === 'excel' || $export_type === 'csv') {
             'Updated Date',
             'Estimated Hours',
             'Actual Hours',
-            'Attachment Count'
+            'Attachment Count',
+            'PI Number'
         ]);
         
         // Data rows
@@ -235,7 +238,8 @@ if ($export_type === 'excel' || $export_type === 'csv') {
                 date('M j, Y g:i A', strtotime($ticket['updated_at'])),
                 $ticket['estimated_hours'] ? number_format($ticket['estimated_hours'], 2) : '0.00',
                 $ticket['actual_hours'] ? number_format($ticket['actual_hours'], 2) : '0.00',
-                $ticket['attachment_count'] ?? 0
+                $ticket['attachment_count'] ?? 0,
+                $ticket['pi_number'] ?? ''
             ]);
         }
         

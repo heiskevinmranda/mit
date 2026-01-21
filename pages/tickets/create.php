@@ -81,7 +81,8 @@ $form_data = [
     'work_days' => $_POST['work_days'] ?? [['date' => date('Y-m-d'), 'start' => '09:00', 'end' => '17:00', 'desc' => '', 'staff_id' => '']],
     'requested_by' => $_POST['requested_by'] ?? '',
     'requested_by_email' => $_POST['requested_by_email'] ?? '',
-    'csr_sn' => $_POST['csr_sn'] ?? ''
+    'csr_sn' => $_POST['csr_sn'] ?? '',
+    'pi_number' => $_POST['pi_number'] ?? ''
 ];
 
 // Debug: Log received data
@@ -162,7 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'work_start_time' => !empty($_POST['work_start_time']) ? $_POST['work_start_time'] : null,
             'requested_by' => !empty($_POST['requested_by']) ? $_POST['requested_by'] : null,
             'requested_by_email' => !empty($_POST['requested_by_email']) ? $_POST['requested_by_email'] : null,
-            'csr_sn' => !empty($_POST['csr_sn']) ? $_POST['csr_sn'] : null
+            'csr_sn' => !empty($_POST['csr_sn']) ? $_POST['csr_sn'] : null,
+            'pi_number' => !empty($_POST['pi_number']) ? $_POST['pi_number'] : null
         ];
 
         // Start transaction
@@ -173,8 +175,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "INSERT INTO tickets (
                 ticket_number, title, description, client_id, location_id, location_manual,
                 category, priority, status, created_by, estimated_hours, work_start_time,
-                requested_by, requested_by_email, csr_sn
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                requested_by, requested_by_email, csr_sn, pi_number
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING id"
         );
 
@@ -193,7 +195,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ticket_data['work_start_time'],
             $ticket_data['requested_by'],
             $ticket_data['requested_by_email'],
-            $ticket_data['csr_sn']
+            $ticket_data['csr_sn'],
+            $ticket_data['pi_number']
         ]);
 
         // Get the UUID from the RETURNING clause
@@ -1099,6 +1102,14 @@ function calculateHours($start_time, $end_time)
                                     <input type="text" class="form-control" id="csr_sn" name="csr_sn"
                                         value="<?php echo htmlspecialchars($form_data['csr_sn'] ?? ''); ?>"
                                         placeholder="Enter CSR Serial Number (optional)">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="pi_number" class="form-label">Proforma Invoice (PI) Number</label>
+                                    <input type="text" class="form-control" id="pi_number" name="pi_number"
+                                        value="<?php echo htmlspecialchars($form_data['pi_number'] ?? ''); ?>"
+                                        placeholder="Enter Proforma Invoice Number (optional)">
                                 </div>
                             </div>
                         </div>

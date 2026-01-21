@@ -156,7 +156,8 @@ $form_data = [
     'work_pattern' => 'existing', // For edit, we show existing work logs
     'expected_days' => $_POST['expected_days'] ?? count($existing_work_logs) ?: 1,
     'work_days' => $_POST['work_days'] ?? [],
-    'csr_sn' => $_POST['csr_sn'] ?? $ticket['csr_sn'] ?? ''
+    'csr_sn' => $_POST['csr_sn'] ?? $ticket['csr_sn'] ?? '',
+    'pi_number' => $_POST['pi_number'] ?? $ticket['pi_number'] ?? ''
 ];
 
 // If no work_days in POST and we have existing work logs, populate them
@@ -244,7 +245,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
             'status' => $_POST['status'] ?? $ticket['status'],
             'estimated_hours' => !empty($_POST['estimated_hours']) ? $_POST['estimated_hours'] : null,
             'work_start_time' => !empty($_POST['work_start_time']) ? $_POST['work_start_time'] : null,
-            'csr_sn' => !empty($_POST['csr_sn']) ? $_POST['csr_sn'] : null
+            'csr_sn' => !empty($_POST['csr_sn']) ? $_POST['csr_sn'] : null,
+            'pi_number' => !empty($_POST['pi_number']) ? $_POST['pi_number'] : null
         ];
         
         // Update ticket
@@ -252,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
             "UPDATE tickets 
             SET title = ?, description = ?, client_id = ?, location_id = ?, location_manual = ?,
                 category = ?, priority = ?, status = ?, 
-                estimated_hours = ?, work_start_time = ?, csr_sn = ?, updated_at = CURRENT_TIMESTAMP
+                estimated_hours = ?, work_start_time = ?, csr_sn = ?, pi_number = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?"
         );
         
@@ -268,6 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket) {
             $update_data['estimated_hours'],
             $update_data['work_start_time'],
             $update_data['csr_sn'],
+            $update_data['pi_number'],
             $ticket_id
         ]);
         
@@ -1168,6 +1171,14 @@ function calculateHours($start_time, $end_time) {
                                 <input type="text" class="form-control" id="csr_sn" name="csr_sn" 
                                        value="<?php echo htmlspecialchars($form_data['csr_sn']); ?>"
                                        placeholder="Enter CSR Serial Number (optional)">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="pi_number" class="form-label">Proforma Invoice (PI) Number</label>
+                                <input type="text" class="form-control" id="pi_number" name="pi_number" 
+                                       value="<?php echo htmlspecialchars($form_data['pi_number']); ?>"
+                                       placeholder="Enter Proforma Invoice Number (optional)">
                             </div>
                         </div>
                     </div>

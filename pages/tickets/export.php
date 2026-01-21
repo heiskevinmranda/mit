@@ -605,6 +605,10 @@ elseif ($export_type === 'csv') {
         fputcsv($output, ['CSR S/N', $ticket['csr_sn']]);
     }
 
+    if ($ticket['pi_number']) {
+        fputcsv($output, ['Proforma Invoice (PI)', $ticket['pi_number']]);
+    }
+
     if ($ticket['work_start_time']) {
         fputcsv($output, ['Scheduled Start', date('M j, Y g:i A', strtotime($ticket['work_start_time']))]);
     }

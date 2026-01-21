@@ -752,6 +752,7 @@ $export_filters = !empty($export_filter_params) ? '?' . http_build_query($export
                                     <th>Details</th>
                                     <th>Client & Category</th>
                                     <th>Priority & SLA</th>
+                                    <th>PI Number</th>
                                     <th>Assignees</th>
                                     <th>Time Tracking</th>
                                     <th>Created</th>
@@ -828,6 +829,15 @@ $export_filters = !empty($export_filter_params) ? '?' . http_build_query($export
                                             </span>
                                             <?php endif; ?>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <?php if ($ticket['pi_number']): ?>
+                                        <div class="d-block mb-1">
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-file-invoice"></i> <?php echo htmlspecialchars($ticket['pi_number']); ?>
+                                            </span>
+                                        </div>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <?php if ($ticket['primary_assignee_name']): ?>

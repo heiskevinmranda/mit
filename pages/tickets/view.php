@@ -732,6 +732,13 @@ function formatDuration($minutes) {
                     <span class="info-value"><?php echo htmlspecialchars($ticket['csr_sn']); ?></span>
                 </div>
                 <?php endif; ?>
+                
+                <?php if ($ticket['pi_number']): ?>
+                <div class="info-item">
+                    <span class="info-label">Proforma Invoice (PI)</span>
+                    <span class="info-value"><?php echo htmlspecialchars($ticket['pi_number']); ?></span>
+                </div>
+                <?php endif; ?>
             </div>
             
             <!-- Two Column Layout -->
