@@ -13,6 +13,7 @@ if (!headers_sent()) {
 // Include database configuration
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/error_handler.php';
+require_once __DIR__ . '/permissions.php';
 
 // Start session if not already started and headers not sent
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {

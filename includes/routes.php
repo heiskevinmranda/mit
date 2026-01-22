@@ -137,6 +137,11 @@ class RouteManager
         'staff.profile' => '/staff/profile',
         'staff.edit_profile' => '/staff/edit-profile',
         
+        // Certificate management routes
+        'certificates.manage' => '/certificates/manage',
+        'certificates.admin' => '/certificates/admin',
+        'certificates.export' => '/certificates/export',
+        
         // API routes
         'api.get_locations' => '/api/get-locations',
         'api.get_next_asset_number' => '/api/get-next-asset-number',

@@ -108,6 +108,14 @@ RewriteRule ^staff/profile/$ pages/staff/profile.php [L]
 RewriteRule ^staff/profile$ pages/staff/profile.php [L]
 RewriteRule ^staff/edit-profile$ pages/staff/edit_profile.php [L]
 
+# Certificate management routes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^certificates/manage$ pages/certificates/index.php [L]
+RewriteRule ^certificates/admin$ pages/certificates/admin_manage.php [L]
+RewriteRule ^certificates/export$ pages/certificates/export.php [L]
+RewriteRule ^certificates/$ pages/certificates/index.php [L]
+RewriteRule ^certificates$ pages/certificates/index.php [L]
+
 # Daily Tasks routes
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^daily-tasks/$ pages/daily_tasks/index.php [L]

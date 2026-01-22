@@ -1,0 +1,12 @@
+RewriteEngine On
+RewriteBase /mit/pages/certificates/
+
+# Direct access to specific PHP files
+RewriteRule ^admin_manage\.php$ admin_manage.php [L]
+RewriteRule ^export\.php$ export.php [L]
+RewriteRule ^index\.php$ index.php [L]
+
+# For pretty URLs, redirect to index.php to handle routing
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]

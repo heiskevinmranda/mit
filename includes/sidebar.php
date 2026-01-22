@@ -75,6 +75,12 @@ $user_type = $current_user['user_type'] ?? 'client';
                     </a></li>
             <?php endif; ?>
 
+            <?php if (function_exists('canViewCertificateManagement') && canViewCertificateManagement()): ?>
+                <li><a href="<?php echo route('certificates.admin'); ?>">
+                        <i class="fas fa-certificate"></i> Certificate Management
+                    </a></li>
+            <?php endif; ?>
+            
             <li><a href="<?php echo route('staff.profile'); ?>">
                     <i class="fas fa-user"></i> My Profile
                 </a></li>

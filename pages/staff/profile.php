@@ -181,7 +181,7 @@ if ($is_profile_complete && isset($staff['id'])) {
         }
     </style>
 </head>
-<body>
+<body data-current-user-id="<?php echo $current_user['id'] ?? ''; ?>" data-current-user-role="<?php echo $current_user['user_type'] ?? ''; ?>">
 
 
     <div class="dashboard-container">
@@ -236,7 +236,7 @@ if ($is_profile_complete && isset($staff['id'])) {
             
             <div class="profile-content">
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-6" data-user-role="<?php echo $current_user['user_type'] ?? ''; ?>">
                         <!-- Basic Information -->
                         <div class="info-card">
                             <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
@@ -296,7 +296,24 @@ if ($is_profile_complete && isset($staff['id'])) {
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Certifications:</div>
-                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['certifications'] ?? '') : 'N/A'; ?></div>
+                                <div class="info-value">
+                                    <?php if ($is_profile_complete): ?>
+                                        <?php if (!empty($staff['certifications'])): ?>
+                                            <?php echo htmlspecialchars($staff['certifications']); ?>
+                                        <?php else: ?>
+                                            N/A
+                                        <?php endif; ?>
+                                        
+                                        <!-- Certificate Management Button -->
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="initCertificateUpload('<?php echo $current_user['id']; ?>')">
+                                                <i class="fas fa-certificate me-1"></i>Manage Certificates
+                                            </button>
+                                        </div>
+                                    <?php else: ?>
+                                        N/A
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">Service Area:</div>
@@ -305,6 +322,17 @@ if ($is_profile_complete && isset($staff['id'])) {
                             <div class="info-row">
                                 <div class="info-label">On-call Support:</div>
                                 <div class="info-value"><?php echo $is_profile_complete ? ($staff['on_call_support'] ? 'Yes' : 'No') : 'N/A'; ?></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Certificates Section -->
+                        <div class="info-card">
+                            <h3><i class="fas fa-certificate"></i> Certificates</h3>
+                            <div id="certificatesContainer" data-certificates-container>
+                                <!-- Certificates will be loaded dynamically -->
+                                <div class="text-center py-3">
+                                    <i class="fas fa-spinner fa-spin text-muted"></i> Loading certificates...
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -393,10 +421,25 @@ if ($is_profile_complete && isset($staff['id'])) {
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../js/main.js"></script>
+    
+    <!-- Certificate Components -->
+    <?php include_once '../../includes/certificate_components.php'; ?>
+    
+    <!-- Certificate Management JavaScript -->
+    <script src="/mit/js/certificate_management.js"></script>
+    
     <script>
         // Mobile menu toggle
         document.querySelector('.mobile-menu-toggle')?.addEventListener('click', function() {
             document.querySelector('.sidebar').classList.toggle('active');
+        });
+        
+        // Initialize certificates after page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load certificates for the current user
+            if (typeof loadCertificates === 'function') {
+                loadCertificates('<?php echo $current_user['id']; ?>');
+            }
         });
     </script>
 </body>
