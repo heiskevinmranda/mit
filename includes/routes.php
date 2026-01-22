@@ -114,6 +114,14 @@ class RouteManager
         'meeting_templates.edit' => '/meeting-templates/edit/{id}',
         'meeting_templates.apply' => '/meeting-templates/apply/{id}',
         
+        // Daily Tasks & Meeting Minutes
+        'daily_tasks.index' => '/daily-tasks',
+        'daily_tasks.create' => '/daily-tasks/create',
+        'daily_tasks.view' => '/daily-tasks/view/{id}',
+        'daily_tasks.edit' => '/daily-tasks/edit/{id}',
+        'daily_tasks.delete' => '/daily-tasks/delete/{id}',
+        'daily_tasks.update_status' => '/daily-tasks/update-status',
+        
         // ===========================================
         // END OF DAILY STANDUP ROUTES
         // ===========================================

@@ -1,0 +1,67 @@
+MSP Application - Documentation Reference v1
+
+1. Project Overview
+   - MSP (Managed Service Provider) Application
+   - Comprehensive system for managing clients, tickets, assets, and services
+   - Role-based access control system
+   - Dashboard with KPIs and analytics
+
+2. Core Modules
+   - User Management: Super Admin, Admin, Manager, Support Tech, Client roles
+   - Client Management: Client profiles, contacts, locations
+   - Ticket Management: Issue tracking and resolution system
+   - Asset Management: IT asset inventory and tracking
+   - Service Management: Service catalogs and renewals
+   - Contract Management: Client contracts and SLAs
+   - Reporting: Analytics and performance metrics
+
+3. New Module: Daily Meeting Minutes & User Tasks
+   - Purpose: Track daily tasks/meeting minutes per user
+   - Allows managers to assign tasks to users
+   - Users see their own tasks for the day
+   - Tasks reset daily with automatic carry-forward of incomplete tasks
+   - Role-based access:
+     * Super Admin: Can see/edit all tasks for all users
+     * Admin: Can see/edit all tasks for all users
+     * Manager: Can create tasks for users, see all tasks of assigned users
+     * Support Tech: Can only see tasks assigned to them
+   - Integrated into user dashboards with visual indicators
+   - Includes priorities (Low, Medium, High, Urgent)
+   - Supports due times and status tracking
+   - Automatic cleanup of old completed tasks
+
+4. Technical Architecture
+   - Backend: PHP with PostgreSQL database
+   - Frontend: HTML, CSS, JavaScript with Bootstrap
+   - Authentication: Session-based with role-based permissions
+   - File Uploads: Secure file handling for attachments
+   - Reporting: PDF generation for reports
+
+5. Database Schema
+   - Users table: Stores user accounts and permissions
+   - Clients table: Client information and contact details
+   - Tickets table: Support tickets and issue tracking
+   - Assets table: IT asset inventory
+   - Services table: Service offerings and renewals
+   - Contracts table: Client contracts and SLAs
+   - Daily Tasks table: Daily tasks and meeting minutes (NEW)
+
+6. Security Features
+   - Role-based access control
+   - Input validation and sanitization
+   - Secure file upload handling
+   - Session management
+   - Password hashing
+
+7. Installation Requirements
+   - PHP 7.4 or higher
+   - PostgreSQL database
+   - Web server (Apache/Nginx)
+   - Composer for dependency management
+
+8. Customization Options
+   - Add new user roles and permissions
+   - Extend ticket fields and workflows
+   - Customize dashboard KPIs
+   - Add new report types
+   - Integrate with external systems

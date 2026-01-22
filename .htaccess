@@ -108,6 +108,19 @@ RewriteRule ^staff/profile/$ pages/staff/profile.php [L]
 RewriteRule ^staff/profile$ pages/staff/profile.php [L]
 RewriteRule ^staff/edit-profile$ pages/staff/edit_profile.php [L]
 
+# Daily Tasks routes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^daily-tasks/$ pages/daily_tasks/index.php [L]
+RewriteRule ^daily-tasks$ pages/daily_tasks/index.php [L]
+RewriteRule ^daily-tasks/create$ pages/daily_tasks/create.php [L]
+RewriteRule ^daily-tasks/edit$ pages/daily_tasks/edit.php [L]
+RewriteRule ^daily-tasks/edit/(.*)$ pages/daily_tasks/edit.php?id=$1 [L]
+RewriteRule ^daily-tasks/view$ pages/daily_tasks/view.php [L]
+RewriteRule ^daily-tasks/view/(.*)$ pages/daily_tasks/view.php?id=$1 [L]
+RewriteRule ^daily-tasks/delete$ pages/daily_tasks/delete.php [L]
+RewriteRule ^daily-tasks/delete/(.*)$ pages/daily_tasks/delete.php?id=$1 [L]
+RewriteRule ^daily-tasks/update-status$ pages/daily_tasks/update_status.php [L]
+
 # API routes
 RewriteRule ^api/get-locations$ api/get_locations.php [L]
 RewriteRule ^api/get-next-asset-number$ api/get_next_asset_number.php [L]

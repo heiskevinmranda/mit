@@ -64,6 +64,7 @@ $user_type = $current_user['user_type'] ?? 'client';
                     <i class="fas fa-server"></i> Assets
                 </a></li>
 
+
             <?php if (hasManagerLevel()): ?>
                 <li><a href="<?php echo route('reports.index'); ?>" <?php
                                                                     $current_page = basename($_SERVER['SCRIPT_NAME']);

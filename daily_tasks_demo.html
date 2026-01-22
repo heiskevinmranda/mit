@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Tasks Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">Daily Tasks Demo</h1>
+                
+                <div class="mb-3">
+                    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addDailyTaskModal">
+                        <i class="fas fa-plus me-2"></i>Add Daily Task
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="loadDailyTasks()">
+                        <i class="fas fa-list me-2"></i>View Today's Tasks
+                    </button>
+                </div>
+                
+                <div id="tasksDisplay"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Daily Task Modal -->
+    <div class="modal fade" id="addDailyTaskModal" tabindex="-1" aria-labelledby="addDailyTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addDailyTaskModalLabel">Add Daily Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="addDailyTaskForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="taskTitle" class="form-label">Task Title *</label>
+                            <input type="text" class="form-control" id="taskTitle" name="task_title" required maxlength="255">
+                        </div>
+                        <div class="mb-3">
+                            <label for="taskDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="taskDescription" name="task_description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="assignedToName" class="form-label">Assigned To</label>
+                            <input type="text" class="form-control" id="assignedToName" name="assigned_to_name" placeholder="Enter assignee name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="taskPriority" class="form-label">Priority</label>
+                            <select class="form-select" id="taskPriority" name="priority">
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Task</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Daily Tasks Modal -->
+    <div class="modal fade" id="viewDailyTasksModal" tabindex="-1" aria-labelledby="viewDailyTasksModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewDailyTasksModalLabel">Today's Daily Tasks</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="dailyTasksList">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Handle daily task form submission
+        document.getElementById('addDailyTaskForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Send AJAX request to create task
+            fetch('ajax/create_daily_task.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Task created successfully!');
+                    // Close the modal
+                    const modalElement = document.getElementById('addDailyTaskModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        modal.hide();
+                    }
+                    
+                    // Reset form
+                    this.reset();
+                    
+                    // Refresh the task list if it's visible
+                    if (document.getElementById('viewDailyTasksModal').classList.contains('show')) {
+                        loadDailyTasks();
+                    }
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to create task'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while creating the task.');
+            });
+        });
+
+        // Function to load and display daily tasks
+        function loadDailyTasks() {
+            // Show the modal first
+            const modal = new bootstrap.Modal(document.getElementById('viewDailyTasksModal'));
+            modal.show();
+            
+            // Load tasks via AJAX
+            fetch('ajax/get_daily_tasks.php')
+                .then(response => response.json())
+                .then(data => {
+                    const tasksContainer = document.getElementById('dailyTasksList');
+                    
+                    if (data.success && data.tasks.length > 0) {
+                        let html = `
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Task Title</th>
+                                            <th>Description</th>
+                                            <th>Assigned To</th>
+                                            <th>Priority</th>
+                                            <th>Status</th>
+                                            <th>Created</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                        
+                        data.tasks.forEach(task => {
+                            const priorityClass = {
+                                'urgent': 'bg-danger',
+                                'high': 'bg-warning text-dark',
+                                'medium': 'bg-info text-dark',
+                                'low': 'bg-secondary'
+                            }[task.priority] || 'bg-secondary';
+                            
+                            const statusClass = {
+                                'pending': 'bg-secondary',
+                                'in_progress': 'bg-warning text-dark',
+                                'completed': 'bg-success',
+                                'cancelled': 'bg-danger'
+                            }[task.task_status] || 'bg-secondary';
+                            
+                            html += `
+                                <tr>
+                                    <td><strong>${task.task_title}</strong></td>
+                                    <td>${task.task_description || 'No description'}</td>
+                                    <td>${task.assigned_to_name || 'Not assigned'}</td>
+                                    <td><span class="badge ${priorityClass}">${task.priority}</span></td>
+                                    <td><span class="badge ${statusClass}">${task.task_status}</span></td>
+                                    <td>${new Date(task.created_at).toLocaleTimeString()}</td>
+                                </tr>`;
+                        });
+                        
+                        html += `
+                                    </tbody>
+                                </table>
+                            </div>`;
+                        
+                        tasksContainer.innerHTML = html;
+                    } else {
+                        tasksContainer.innerHTML = `
+                            <div class="text-center py-5">
+                                <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No tasks for today</h5>
+                                <p class="text-muted">Click "Add Daily Task" to create your first task.</p>
+                            </div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('dailyTasksList').innerHTML = `
+                        <div class="alert alert-danger">
+                            Error loading tasks: ${error.message}
+                        </div>`;
+                });
+        }
+    </script>
+</body>
+</html>
