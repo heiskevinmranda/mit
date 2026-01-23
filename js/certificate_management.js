@@ -148,10 +148,10 @@ function displayCertificates(certificates) {
                                 <button class="btn btn-sm btn-outline-primary me-1" onclick="viewCertificate(${cert.id})">
                                     <i class="fas fa-eye me-1"></i>View
                                 </button>
-                                <a href="/mit/ajax/download_certificate.php?id=${cert.id}" class="btn btn-sm btn-outline-success me-1">
+                                <a href="/mit/ajax/download_certificate.php?id=${cert.id}&download=1" class="btn btn-sm btn-outline-success me-1">
                                     <i class="fas fa-download me-1"></i>Download
                                 </a>
-                                ${canManageCertificates() ? `
+                                ${canManageCertificate(cert.approval_status) && cert.approval_status === 'pending' ? `
                                     <button class="btn btn-sm btn-outline-warning" onclick="manageCertificate(${cert.id})">
                                         <i class="fas fa-edit me-1"></i>Manage
                                     </button>
@@ -171,19 +171,26 @@ function displayCertificates(certificates) {
 function viewCertificate(certificateId) {
     currentCertificateId = certificateId;
     
-    // Load certificate details
-    const currentUserId = document.body.getAttribute('data-current-user-id');
-    fetch(`/mit/ajax/upload_certificate.php?user_id=${currentUserId}&limit=1&offset=0`)
+    // Load specific certificate details
+    fetch(`/mit/ajax/upload_certificate.php?id=${certificateId}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                const cert = data.certificates.find(c => c.id == certificateId);
-                if (cert) {
-                    displayCertificateDetails(cert);
-                    var modal = new bootstrap.Modal(document.getElementById('certificateViewModal'));
-                    modal.show();
-                }
+            if (data.success && data.certificate) {
+                displayCertificateDetails(data.certificate);
+                
+                // Display the certificate preview if it's a supported file type
+                displayCertificatePreview(data.certificate);
+                
+                var modal = new bootstrap.Modal(document.getElementById('certificateViewModal'));
+                modal.show();
+            } else {
+                console.error('Error loading certificate:', data.message);
+                alert('Error loading certificate details.');
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while loading certificate details.');
         });
 }
 
@@ -230,39 +237,99 @@ function displayCertificateDetails(cert) {
     
     // Set download button
     document.getElementById('downloadCertificateBtn').onclick = () => {
-        window.open(`/mit/ajax/download_certificate.php?id=${cert.id}`, '_blank');
+        window.open(`/mit/ajax/download_certificate.php?id=${cert.id}&download=1`, '_blank');
     };
     
     document.getElementById('downloadCertificateModalBtn').onclick = () => {
-        window.open(`/mit/ajax/download_certificate.php?id=${cert.id}`, '_blank');
+        window.open(`/mit/ajax/download_certificate.php?id=${cert.id}&download=1`, '_blank');
     };
+}
+
+// Display certificate preview in modal
+function displayCertificatePreview(cert) {
+    const previewContainer = document.getElementById('certificatePreviewContainer');
+    if (!previewContainer) {
+        console.warn('Certificate preview container not found');
+        return;
+    }
+    
+    // Clear existing content
+    previewContainer.innerHTML = '';
+    
+    // Determine if the file can be previewed inline
+    const fileExtension = cert.file_name ? cert.file_name.split('.').pop().toLowerCase() : '';
+    const mimeType = cert.mime_type || '';
+    
+    // Build the preview URL for the certificate file (using inline disposition)
+    const previewUrl = `/mit/ajax/download_certificate.php?id=${cert.id}&preview=1`;
+    // Build the download URL for the certificate file (using attachment disposition)
+    const downloadUrl = `/mit/ajax/download_certificate.php?id=${cert.id}`;
+    
+    // Different handling based on file type
+    if (mimeType.startsWith('image/') || fileExtension === 'pdf') {
+        // For images and PDFs, create appropriate preview elements
+        if (mimeType.startsWith('image/')) {
+            // Image preview
+            const img = document.createElement('img');
+            img.src = previewUrl;
+            img.alt = cert.certificate_name;
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '400px';
+            img.style.objectFit = 'contain';
+            previewContainer.appendChild(img);
+        } else if (fileExtension === 'pdf') {
+            // PDF preview using iframe
+            const iframe = document.createElement('iframe');
+            iframe.src = previewUrl;
+            iframe.style.width = '100%';
+            iframe.style.height = '400px';
+            iframe.style.border = 'none';
+            previewContainer.appendChild(iframe);
+        }
+    } else {
+        // For other file types, show a placeholder with download button
+        previewContainer.innerHTML = `
+            <div class="d-flex flex-column align-items-center justify-content-center h-100">
+                <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Preview not available for this file type</p>
+                <p class="text-muted small">${escapeHtml(cert.file_name)}</p>
+                <a href="${downloadUrl}" class="btn btn-primary mt-2" target="_blank">
+                    <i class="fas fa-download me-1"></i>Download Certificate
+                </a>
+            </div>
+        `;
+    }
 }
 
 // Manage certificate (approve/reject)
 function manageCertificate(certificateId) {
     currentCertificateId = certificateId;
     
-    // Load certificate details for approval modal
-    const currentUserId = document.body.getAttribute('data-current-user-id');
-    fetch(`/mit/ajax/upload_certificate.php?user_id=${currentUserId}&limit=1&offset=0`)
+    // Load specific certificate details for approval modal
+    fetch(`/mit/ajax/upload_certificate.php?id=${certificateId}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                const cert = data.certificates.find(c => c.id == certificateId);
-                if (cert) {
-                    document.getElementById('approvalCertificateId').value = certificateId;
-                    document.getElementById('certificateDetailsPreview').innerHTML = `
-                        <strong>${escapeHtml(cert.certificate_name)}</strong><br>
-                        <small class="text-muted">
-                            Type: ${cert.certificate_type}<br>
-                            Organization: ${cert.issuing_organization || 'N/A'}<br>
-                            Issue Date: ${cert.issue_date ? formatDate(cert.issue_date) : 'N/A'}
-                        </small>
-                    `;
-                    var modal = new bootstrap.Modal(document.getElementById('certificateApprovalModal'));
-                    modal.show();
-                }
+            if (data.success && data.certificate) {
+                const cert = data.certificate;
+                document.getElementById('approvalCertificateId').value = certificateId;
+                document.getElementById('certificateDetailsPreview').innerHTML = `
+                    <strong>${escapeHtml(cert.certificate_name)}</strong><br>
+                    <small class="text-muted">
+                        Type: ${cert.certificate_type}<br>
+                        Organization: ${cert.issuing_organization || 'N/A'}<br>
+                        Issue Date: ${cert.issue_date ? formatDate(cert.issue_date) : 'N/A'}
+                    </small>
+                `;
+                var modal = new bootstrap.Modal(document.getElementById('certificateApprovalModal'));
+                modal.show();
+            } else {
+                console.error('Error loading certificate for approval:', data.message);
+                alert('Error loading certificate details for approval.');
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while loading certificate details for approval.');
         });
 }
 
@@ -378,6 +445,11 @@ function canManageCertificates() {
     return ['super_admin', 'admin', 'manager'].includes(userRole);
 }
 
+function canManageCertificate(status) {
+    const userRole = document.body.getAttribute('data-current-user-role');
+    return ['super_admin', 'admin', 'manager'].includes(userRole);
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Auto-load certificates if container exists
@@ -395,4 +467,6 @@ document.addEventListener('DOMContentLoaded', function() {
 window.initCertificateUpload = initCertificateUpload;
 window.loadCertificates = loadCertificates;
 window.viewCertificate = viewCertificate;
+window.displayCertificatePreview = displayCertificatePreview;
 window.manageCertificate = manageCertificate;
+window.escapeHtml = escapeHtml;

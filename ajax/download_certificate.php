@@ -50,10 +50,22 @@ try {
         throw new Exception('Certificate file not found');
     }
 
-    // Set headers for file download
+    // Check if preview mode is requested (default behavior is attachment/download)
+    $preview_mode = isset($_GET['preview']) && !isset($_GET['download']);
+    $download_mode = isset($_GET['download']); // Explicit download request
+    
+    // Set headers for file
     header('Content-Type: ' . $certificate['mime_type']);
     header('Content-Length: ' . $certificate['file_size']);
-    header('Content-Disposition: attachment; filename="' . basename($certificate['file_name']) . '"');
+    
+    if ($preview_mode) {
+        // For preview mode, use inline disposition to show in browser
+        header('Content-Disposition: inline; filename="' . basename($certificate['file_name']) . '"');
+    } else {
+        // For download mode (or default), use attachment disposition to prompt download
+        header('Content-Disposition: attachment; filename="' . basename($certificate['file_name']) . '"');
+    }
+    
     header('Cache-Control: private');
     header('Pragma: private');
 

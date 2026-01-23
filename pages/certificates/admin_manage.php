@@ -343,7 +343,7 @@ function displayCertificates(certificates) {
                         <button class="btn btn-sm btn-outline-primary me-1" onclick="viewCertificateDetail(${cert.id})">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <a href="/mit/ajax/download_certificate.php?id=${cert.id}" class="btn btn-sm btn-outline-success me-1">
+                        <a href="/mit/ajax/download_certificate.php?id=${cert.id}&download=1" class="btn btn-sm btn-outline-success me-1">
                             <i class="fas fa-download"></i>
                         </a>
                         ${canManage(cert.approval_status) ? `
@@ -396,87 +396,140 @@ function updateBulkActions() {
 function viewCertificateDetail(certId) {
     currentDetailView = certId;
     
-    fetch(`/mit/ajax/manage_certificates.php?user_id=${certId}`)
+    // Fetch specific certificate details using the correct endpoint
+    fetch(`/mit/ajax/upload_certificate.php?id=${certId}`)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                const cert = data.certificates.find(c => c.id == certId);
-                if (cert) {
-                    const html = `
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6>Certificate Information</h6>
-                                <dl class="row small">
-                                    <dt class="col-sm-5">Name:</dt>
-                                    <dd class="col-sm-7">${escapeHtml(cert.certificate_name)}</dd>
-                                    
-                                    <dt class="col-sm-5">Type:</dt>
-                                    <dd class="col-sm-7">${escapeHtml(cert.certificate_type)}</dd>
-                                    
-                                    <dt class="col-sm-5">Organization:</dt>
-                                    <dd class="col-sm-7">${escapeHtml(cert.issuing_organization || 'N/A')}</dd>
-                                    
-                                    <dt class="col-sm-5">Issue Date:</dt>
-                                    <dd class="col-sm-7">${cert.issue_date || 'N/A'}</dd>
-                                    
-                                    <dt class="col-sm-5">Expiry Date:</dt>
-                                    <dd class="col-sm-7">${cert.expiry_date || 'N/A'}</dd>
-                                    
-                                    <dt class="col-sm-5">Number:</dt>
-                                    <dd class="col-sm-7">${escapeHtml(cert.certificate_number || 'N/A')}</dd>
-                                </dl>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>User Information</h6>
-                                <dl class="row small">
-                                    <dt class="col-sm-5">User:</dt>
-                                    <dd class="col-sm-7">${escapeHtml(cert.user_name || cert.user_email)}</dd>
-                                    
-                                    <dt class="col-sm-5">Email:</dt>
-                                    <dd class="col-sm-7">${escapeHtml(cert.user_email)}</dd>
-                                    
-                                    <dt class="col-sm-5">Status:</dt>
-                                    <dd class="col-sm-7">
-                                        <span class="badge bg-${getStatusClass(cert.approval_status)}">
-                                            ${cert.approval_status}
-                                        </span>
-                                    </dd>
-                                    
-                                    <dt class="col-sm-5">Uploaded:</dt>
-                                    <dd class="col-sm-7">${new Date(cert.created_at).toLocaleDateString()}</dd>
-                                </dl>
+            if (data.success && data.certificate) {
+                const cert = data.certificate;
+                
+                // Build the preview URL for the certificate file (using inline disposition)
+                const previewUrl = `/mit/ajax/download_certificate.php?id=${cert.id}&preview=1`;
+                // Build the download URL for the certificate file (using attachment disposition)
+                const downloadUrl = `/mit/ajax/download_certificate.php?id=${cert.id}&download=1`;
+                
+                // Determine if the file can be previewed inline
+                const fileExtension = cert.file_name ? cert.file_name.split('.').pop().toLowerCase() : '';
+                const mimeType = cert.mime_type || '';
+                
+                // Create preview content based on file type
+                let previewContent = '';
+                if (mimeType.startsWith('image/') || fileExtension === 'pdf') {
+                    if (mimeType.startsWith('image/')) {
+                        previewContent = `<img src="${previewUrl}" alt="${escapeHtml(cert.certificate_name)}" style="max-width: 100%; max-height: 300px; object-fit: contain;" />`;
+                    } else if (fileExtension === 'pdf') {
+                        previewContent = `<iframe src="${previewUrl}" style="width: 100%; height: 300px; border: none;"></iframe>`;
+                    }
+                } else {
+                    previewContent = `
+                        <div class="text-center">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-2"></i>
+                            <p class="text-muted small">Preview not available for this file type</p>
+                            <p class="text-muted small">${escapeHtml(cert.file_name)}</p>
+                        </div>
+                    `;
+                }
+                
+                const html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Certificate Information</h6>
+                            <dl class="row small">
+                                <dt class="col-sm-5">Name:</dt>
+                                <dd class="col-sm-7">${escapeHtml(cert.certificate_name)}</dd>
                                 
-                                ${cert.approval_status !== 'pending' ? `
-                                    <h6 class="mt-3">Approval Information</h6>
-                                    <dl class="row small">
-                                        <dt class="col-sm-5">Approved By:</dt>
-                                        <dd class="col-sm-7">${escapeHtml(cert.approved_by_name || 'N/A')}</dd>
-                                        
-                                        ${cert.approval_notes ? `
-                                            <dt class="col-sm-5">Notes:</dt>
-                                            <dd class="col-sm-7">${escapeHtml(cert.approval_notes)}</dd>
-                                        ` : ''}
-                                        
-                                        ${cert.rejection_reason ? `
-                                            <dt class="col-sm-5">Rejection Reason:</dt>
-                                            <dd class="col-sm-7 text-danger">${escapeHtml(cert.rejection_reason)}</dd>
-                                        ` : ''}
-                                    </dl>
+                                <dt class="col-sm-5">Type:</dt>
+                                <dd class="col-sm-7">${escapeHtml(cert.certificate_type)}</dd>
+                                
+                                <dt class="col-sm-5">Organization:</dt>
+                                <dd class="col-sm-7">${escapeHtml(cert.issuing_organization || 'N/A')}</dd>
+                                
+                                <dt class="col-sm-5">Issue Date:</dt>
+                                <dd class="col-sm-7">${cert.issue_date || 'N/A'}</dd>
+                                
+                                <dt class="col-sm-5">Expiry Date:</dt>
+                                <dd class="col-sm-7">${cert.expiry_date || 'N/A'}</dd>
+                                
+                                <dt class="col-sm-5">Number:</dt>
+                                <dd class="col-sm-7">${escapeHtml(cert.certificate_number || 'N/A')}</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>User Information</h6>
+                            <dl class="row small">
+                                <dt class="col-sm-5">User:</dt>
+                                <dd class="col-sm-7">${escapeHtml(cert.user_name || cert.user_email)}</dd>
+                                
+                                <dt class="col-sm-5">Email:</dt>
+                                <dd class="col-sm-7">${escapeHtml(cert.user_email)}</dd>
+                                
+                                <dt class="col-sm-5">Status:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-${getStatusClass(cert.approval_status)}">
+                                        ${cert.approval_status}
+                                    </span>
+                                </dd>
+                                
+                                <dt class="col-sm-5">Uploaded:</dt>
+                                <dd class="col-sm-7">${new Date(cert.created_at).toLocaleDateString()}</dd>
+                            </dl>
+                            
+                            ${cert.approval_status !== 'pending' ? `
+                                <h6 class="mt-3">Approval Information</h6>
+                                <dl class="row small">
+                                    <dt class="col-sm-5">Approved By:</dt>
+                                    <dd class="col-sm-7">${escapeHtml(cert.approved_by_name || 'N/A')}</dd>
+                                    
+                                    ${cert.approval_notes ? `
+                                        <dt class="col-sm-5">Notes:</dt>
+                                        <dd class="col-sm-7">${escapeHtml(cert.approval_notes)}</dd>
+                                    ` : ''}
+                                    
+                                    ${cert.rejection_reason ? `
+                                        <dt class="col-sm-5">Rejection Reason:</dt>
+                                        <dd class="col-sm-7 text-danger">${escapeHtml(cert.rejection_reason)}</dd>
+                                    ` : ''}
+                                </dl>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>File Preview</h6>
+                            <div class="border rounded p-3 bg-light text-center" style="min-height: 320px;">
+                                ${previewContent}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Actions</h6>
+                            <div class="d-grid gap-2">
+                                <a href="${downloadUrl}" class="btn btn-primary" target="_blank">
+                                    <i class="fas fa-download me-1"></i>Download Certificate
+                                </a>
+                                ${canManage(cert.approval_status) ? `
+                                    <button class="btn btn-success" onclick="approveCertificate(${cert.id})">
+                                        <i class="fas fa-check me-1"></i>Approve
+                                    </button>
+                                    <button class="btn btn-danger" onclick="rejectCertificate(${cert.id})">
+                                        <i class="fas fa-times me-1"></i>Reject
+                                    </button>
                                 ` : ''}
                             </div>
                         </div>
-                        <hr>
-                        <div class="text-center">
-                            <a href="/mit/ajax/download_certificate.php?id=${cert.id}" class="btn btn-primary">
-                                <i class="fas fa-download me-1"></i>Download Certificate
-                            </a>
-                        </div>
-                    `;
-                    
-                    document.getElementById('certificateDetailContent').innerHTML = html;
-                    new bootstrap.Modal(document.getElementById('certificateDetailModal')).show();
-                }
+                    </div>
+                `;
+                
+                document.getElementById('certificateDetailContent').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('certificateDetailModal')).show();
+            } else {
+                console.error('Error loading certificate:', data.message);
+                alert('Error loading certificate details.');
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while loading certificate details.');
         });
 }
 
@@ -625,7 +678,8 @@ function getStatusClass(status) {
 }
 
 function canManage(status) {
-    return status === 'pending';
+    const userRole = document.body.getAttribute('data-current-user-role');
+    return ['super_admin', 'admin', 'manager'].includes(userRole) && status === 'pending';
 }
 
 function escapeHtml(text) {

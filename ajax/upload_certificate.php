@@ -106,43 +106,84 @@ try {
         ]);
 
     } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        // Get certificates for a user
-        $user_id = $_GET['user_id'] ?? $current_user['id'];
-        $limit = intval($_GET['limit'] ?? 100);
-        $offset = intval($_GET['offset'] ?? 0);
-
-        // Check permissions
-        $current_user_role = $current_user['user_type'] ?? '';
-        if ($user_id !== $current_user['id']) {
-            if (!in_array($current_user_role, ['super_admin', 'admin', 'manager'])) {
-                throw new Exception('You do not have permission to view certificates for other users');
+        // Check if a specific certificate ID is requested
+        $certificate_id = $_GET['id'] ?? null;
+        
+        if ($certificate_id) {
+            // Get specific certificate by ID
+            $stmt = $pdo->prepare("
+                SELECT 
+                    c.id, c.user_id, c.certificate_name, c.certificate_type, c.issuing_organization,
+                    c.issue_date, c.expiry_date, c.certificate_number, c.file_name, 
+                    c.file_size, c.mime_type, c.status, c.approval_status, c.approval_notes,
+                    c.rejection_reason, c.created_at, c.updated_at,
+                    CASE 
+                        WHEN c.approved_at IS NOT NULL THEN c.approved_at
+                        WHEN c.rejected_at IS NOT NULL THEN c.rejected_at
+                        ELSE NULL
+                    END as status_changed_at
+                FROM certificates c
+                WHERE c.id = ?
+            ");
+            $stmt->execute([$certificate_id]);
+            $certificate = $stmt->fetch();
+            
+            if (!$certificate) {
+                throw new Exception('Certificate not found');
             }
+            
+            // Check permissions for the specific certificate
+            $current_user_role = $current_user['user_type'] ?? '';
+            $is_owner = $certificate['user_id'] === $current_user['id'];
+            $is_admin = in_array($current_user_role, ['super_admin', 'admin', 'manager']);
+            
+            if (!$is_owner && !$is_admin) {
+                throw new Exception('You do not have permission to view this certificate');
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'certificate' => $certificate
+            ]);
+        } else {
+            // Get certificates for a user (existing functionality)
+            $user_id = $_GET['user_id'] ?? $current_user['id'];
+            $limit = intval($_GET['limit'] ?? 100);
+            $offset = intval($_GET['offset'] ?? 0);
+
+            // Check permissions
+            $current_user_role = $current_user['user_type'] ?? '';
+            if ($user_id !== $current_user['id']) {
+                if (!in_array($current_user_role, ['super_admin', 'admin', 'manager'])) {
+                    throw new Exception('You do not have permission to view certificates for other users');
+                }
+            }
+
+            $stmt = $pdo->prepare("
+                SELECT 
+                    c.id, c.certificate_name, c.certificate_type, c.issuing_organization,
+                    c.issue_date, c.expiry_date, c.certificate_number, c.file_name, 
+                    c.file_size, c.mime_type, c.status, c.approval_status, c.approval_notes,
+                    c.created_at, c.updated_at,
+                    CASE 
+                        WHEN c.approved_at IS NOT NULL THEN c.approved_at
+                        WHEN c.rejected_at IS NOT NULL THEN c.rejected_at
+                        ELSE NULL
+                    END as status_changed_at
+                FROM certificates c
+                WHERE c.user_id = ?
+                ORDER BY c.created_at DESC
+                LIMIT ? OFFSET ?
+            ");
+
+            $stmt->execute([$user_id, $limit, $offset]);
+            $certificates = $stmt->fetchAll();
+
+            echo json_encode([
+                'success' => true,
+                'certificates' => $certificates
+            ]);
         }
-
-        $stmt = $pdo->prepare("
-            SELECT 
-                c.id, c.certificate_name, c.certificate_type, c.issuing_organization,
-                c.issue_date, c.expiry_date, c.certificate_number, c.file_name, 
-                c.file_size, c.mime_type, c.status, c.approval_status, c.approval_notes,
-                c.created_at, c.updated_at,
-                CASE 
-                    WHEN c.approved_at IS NOT NULL THEN c.approved_at
-                    WHEN c.rejected_at IS NOT NULL THEN c.rejected_at
-                    ELSE NULL
-                END as status_changed_at
-            FROM certificates c
-            WHERE c.user_id = ?
-            ORDER BY c.created_at DESC
-            LIMIT ? OFFSET ?
-        ");
-
-        $stmt->execute([$user_id, $limit, $offset]);
-        $certificates = $stmt->fetchAll();
-
-        echo json_encode([
-            'success' => true,
-            'certificates' => $certificates
-        ]);
 
     } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         // Delete certificate

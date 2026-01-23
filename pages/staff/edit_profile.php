@@ -56,6 +56,45 @@ $current_address = $staff['current_address'] ?? '';
 $emergency_contact_name = $staff['emergency_contact_name'] ?? '';
 $emergency_contact_number = $staff['emergency_contact_number'] ?? '';
 
+// Additional staff profile fields
+$staff_id = $staff['staff_id'] ?? $generateStaffId();
+$designation = $staff['designation'] ?? '';
+$department = $staff['department'] ?? '';
+$employment_type = $staff['employment_type'] ?? '';
+$date_of_joining = $staff['date_of_joining'] ?? '';
+$employment_status = $staff['employment_status'] ?? 'Active';
+$role_category = $staff['role_category'] ?? '';
+$skills = $staff['skills'] ?? '';
+$certifications = $staff['certifications'] ?? '';
+$service_area = $staff['service_area'] ?? '';
+$on_call_support = $staff['on_call_support'] ?? 0;
+$experience_years = $staff['experience_years'] ?? 0;
+$shift_timing = $staff['shift_timing'] ?? '';
+$company_laptop_issued = $staff['company_laptop_issued'] ?? 0;
+$asset_serial_number = $staff['asset_serial_number'] ?? '';
+$vpn_access = $staff['vpn_access'] ?? 0;
+$reporting_manager_id = $staff['reporting_manager_id'] ?? '';
+$username = $staff['username'] ?? $current_user['email'];
+$role_level = $staff['role_level'] ?? '';
+$system_access = $staff['system_access'] ?? '';
+$bank_name = $staff['bank_name'] ?? '';
+$account_number = $staff['account_number'] ?? '';
+$salary_type = $staff['salary_type'] ?? '';
+$payment_method = $staff['payment_method'] ?? '';
+$last_working_day = $staff['last_working_day'] ?? '';
+$remarks = $staff['remarks'] ?? '';
+$permanent_address = $staff['permanent_address'] ?? '';
+$national_id = $staff['national_id'] ?? '';
+$passport_number = $staff['passport_number'] ?? '';
+$date_of_birth = $staff['date_of_birth'] ?? '';
+$gender = $staff['gender'] ?? '';
+$nationality = $staff['nationality'] ?? '';
+$tax_id = $staff['tax_id'] ?? '';
+$work_permit_details = $staff['work_permit_details'] ?? '';
+$assigned_clients = $staff['assigned_clients'] ?? '';
+$hr_approval_date = $staff['hr_approval_date'] ?? '';
+$hr_manager_id = $staff['hr_manager_id'] ?? '';
+
 $errors = [];
 $success = false;
 
@@ -71,6 +110,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $current_address = trim($_POST['current_address'] ?? '');
     $emergency_contact_name = trim($_POST['emergency_contact_name'] ?? '');
     $emergency_contact_number = trim($_POST['emergency_contact_number'] ?? '');
+    
+    // Additional staff profile fields
+    $designation = trim($_POST['designation'] ?? '');
+    $department = trim($_POST['department'] ?? '');
+    $employment_type = trim($_POST['employment_type'] ?? '');
+    $date_of_joining = trim($_POST['date_of_joining'] ?? '');
+    $employment_status = trim($_POST['employment_status'] ?? 'Active');
+    $role_category = trim($_POST['role_category'] ?? '');
+    $skills = trim($_POST['skills'] ?? '');
+    $certifications = trim($_POST['certifications'] ?? '');
+    $service_area = trim($_POST['service_area'] ?? '');
+    $on_call_support = isset($_POST['on_call_support']) ? 1 : 0;
+    $shift_timing = trim($_POST['shift_timing'] ?? '');
+    $company_laptop_issued = isset($_POST['company_laptop_issued']) ? 1 : 0;
+    $asset_serial_number = trim($_POST['asset_serial_number'] ?? '');
+    $vpn_access = isset($_POST['vpn_access']) ? 1 : 0;
+    $reporting_manager_id = trim($_POST['reporting_manager_id'] ?? '');
+    $username = trim($_POST['username'] ?? $current_user['email']);
+    $role_level = trim($_POST['role_level'] ?? '');
+    $system_access = trim($_POST['system_access'] ?? '');
+    $bank_name = trim($_POST['bank_name'] ?? '');
+    $account_number = trim($_POST['account_number'] ?? '');
+    $salary_type = trim($_POST['salary_type'] ?? '');
+    $payment_method = trim($_POST['payment_method'] ?? '');
+    $last_working_day = trim($_POST['last_working_day'] ?? '');
+    $remarks = trim($_POST['remarks'] ?? '');
+    $permanent_address = trim($_POST['permanent_address'] ?? '');
+    $national_id = trim($_POST['national_id'] ?? '');
+    $passport_number = trim($_POST['passport_number'] ?? '');
+    $date_of_birth = trim($_POST['date_of_birth'] ?? '');
+    $gender = trim($_POST['gender'] ?? '');
+    $nationality = trim($_POST['nationality'] ?? '');
+    $tax_id = trim($_POST['tax_id'] ?? '');
+    $work_permit_details = trim($_POST['work_permit_details'] ?? '');
+    $assigned_clients = trim($_POST['assigned_clients'] ?? '');
+    $hr_approval_date = trim($_POST['hr_approval_date'] ?? '');
+    $hr_manager_id = trim($_POST['hr_manager_id'] ?? '');
+    
+    // Convert empty date strings to NULL for database compatibility
+    $date_of_joining = !empty($date_of_joining) ? $date_of_joining : null;
+    $date_of_birth = !empty($date_of_birth) ? $date_of_birth : null;
+    $last_working_day = !empty($last_working_day) ? $last_working_day : null;
+    $hr_approval_date = !empty($hr_approval_date) ? $hr_approval_date : null;
+    
+    // Convert empty UUID strings to NULL for database compatibility
+    $reporting_manager_id = !empty($reporting_manager_id) ? $reporting_manager_id : null;
+    $hr_manager_id = !empty($hr_manager_id) ? $hr_manager_id : null;
+    
+    // Calculate experience years based on date of joining
+    $experience_years = 0;
+    if (!empty($date_of_joining)) {
+        try {
+            $join_date = new DateTime($date_of_joining);
+            $current_date = new DateTime();
+            $interval = $join_date->diff($current_date);
+            $experience_years = $interval->y;
+        } catch (Exception $e) {
+            // If date parsing fails, set experience to 0
+            $experience_years = 0;
+        }
+    }
     
     // Validate inputs
     if (empty($email)) {
@@ -138,35 +238,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($staff['id']) {
                 // Update existing staff profile
                 $staffUpdateQuery = "UPDATE staff_profiles SET 
+                                    staff_id = ?,
                                     full_name = ?, 
                                     phone_number = ?, 
                                     official_email = ?,
                                     personal_email = ?,
                                     alternate_phone = ?,
                                     current_address = ?,
+                                    permanent_address = ?,
+                                    national_id = ?,
+                                    passport_number = ?,
+                                    date_of_birth = ?,
+                                    gender = ?,
+                                    nationality = ?,
+                                    tax_id = ?,
+                                    work_permit_details = ?,
                                     emergency_contact_name = ?,
                                     emergency_contact_number = ?,
-                                    staff_id = ?,
+                                    designation = ?,
+                                    department = ?,
+                                    employment_type = ?,
+                                    date_of_joining = ?,
+                                    employment_status = ?,
+                                    role_category = ?,
+                                    skills = ?,
+                                    certifications = ?,
+                                    experience_years = ?,
+                                    assigned_clients = ?,
+                                    service_area = ?,
+                                    shift_timing = ?,
+                                    on_call_support = ?,
+                                    username = ?,
+                                    role_level = ?,
+                                    system_access = ?,
+                                    company_laptop_issued = ?,
+                                    asset_serial_number = ?,
+                                    vpn_access = ?,
+                                    reporting_manager_id = ?,
+                                    bank_name = ?,
+                                    account_number = ?,
+                                    salary_type = ?,
+                                    payment_method = ?,
+                                    last_working_day = ?,
+                                    remarks = ?,
+                                    hr_approval_date = ?,
+                                    hr_manager_id = ?,
                                     updated_at = NOW()
                                     WHERE user_id = ?";
                 $staffUpdateStmt = $pdo->prepare($staffUpdateQuery);
                 $staffUpdateStmt->execute([
-                    $full_name, $phone, $official_email, $personal_email,
-                    $alternate_phone, $current_address, $emergency_contact_name,
-                    $emergency_contact_number, $staff_id ?: $generateStaffId(), $current_user['id']
+                    $staff_id ?: $generateStaffId(), $full_name, $phone, $official_email, $personal_email,
+                    $alternate_phone, $current_address, $permanent_address, $national_id, $passport_number,
+                    $date_of_birth, $gender, $nationality, $tax_id, $work_permit_details,
+                    $emergency_contact_name, $emergency_contact_number, $designation, $department,
+                    $employment_type, $date_of_joining, $employment_status, $role_category, $skills,
+                    $certifications, $experience_years, $assigned_clients, $service_area, $shift_timing,
+                    $on_call_support, $username, $role_level, $system_access, $company_laptop_issued,
+                    $asset_serial_number, $vpn_access, $reporting_manager_id, $bank_name, $account_number,
+                    $salary_type, $payment_method, $last_working_day, $remarks, $hr_approval_date, $hr_manager_id,
+                    $current_user['id']
                 ]);
             } else {
                 // Create new staff profile
                 $staffInsertQuery = "INSERT INTO staff_profiles 
                                     (user_id, staff_id, full_name, phone_number, official_email,
-                                     personal_email, alternate_phone, current_address,
-                                     emergency_contact_name, emergency_contact_number, created_at, updated_at) 
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                                     personal_email, alternate_phone, current_address, permanent_address,
+                                     national_id, passport_number, date_of_birth, gender, nationality,
+                                     tax_id, work_permit_details, emergency_contact_name, 
+                                     emergency_contact_number, designation, department, employment_type,
+                                     date_of_joining, employment_status, role_category, skills, 
+                                     certifications, experience_years, assigned_clients, service_area,
+                                     shift_timing, on_call_support, username, role_level, system_access,
+                                     company_laptop_issued, asset_serial_number, vpn_access, 
+                                     reporting_manager_id, bank_name, account_number, salary_type,
+                                     payment_method, last_working_day, remarks, hr_approval_date, 
+                                     hr_manager_id, created_at, updated_at) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
                 $staffInsertStmt = $pdo->prepare($staffInsertQuery);
                 $staffInsertStmt->execute([
                     $current_user['id'], $staff_id ?: $generateStaffId(), $full_name, $phone, $official_email,
-                    $personal_email, $alternate_phone, $current_address,
-                    $emergency_contact_name, $emergency_contact_number
+                    $personal_email, $alternate_phone, $current_address, $permanent_address, $national_id, 
+                    $passport_number, $date_of_birth, $gender, $nationality, $tax_id, $work_permit_details,
+                    $emergency_contact_name, $emergency_contact_number, $designation, $department,
+                    $employment_type, $date_of_joining, $employment_status, $role_category, $skills,
+                    $certifications, $experience_years, $assigned_clients, $service_area, $shift_timing,
+                    $on_call_support, $username, $role_level, $system_access, $company_laptop_issued,
+                    $asset_serial_number, $vpn_access, $reporting_manager_id, $bank_name, $account_number,
+                    $salary_type, $payment_method, $last_working_day, $remarks, $hr_approval_date, $hr_manager_id
                 ]);
             }
 
@@ -367,7 +525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <?php if (isset($errors['general'])): ?>
         <div class="alert alert-danger">
-            <i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($errors['general']) ?>
+            <i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($errors['general'] ?? '') ?>
         </div>
         <?php endif; ?>
         
@@ -387,7 +545,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                    id="email" name="email" value="<?= htmlspecialchars($email) ?>" 
                                    placeholder="user@example.com" required>
                             <?php if (isset($errors['email'])): ?>
-                            <div class="invalid-feedback"><?= htmlspecialchars($errors['email']) ?></div>
+                            <div class="invalid-feedback"><?= htmlspecialchars($errors['email'] ?? '') ?></div>
                             <?php endif; ?>
                         </div>
                         
@@ -405,7 +563,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                    id="full_name" name="full_name" value="<?= htmlspecialchars($full_name) ?>" 
                                    placeholder="John Doe" required>
                             <?php if (isset($errors['full_name'])): ?>
-                            <div class="invalid-feedback"><?= htmlspecialchars($errors['full_name']) ?></div>
+                            <div class="invalid-feedback"><?= htmlspecialchars($errors['full_name'] ?? '') ?></div>
                             <?php endif; ?>
                         </div>
                         
@@ -414,6 +572,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="tel" class="form-control" 
                                    id="phone" name="phone" value="<?= htmlspecialchars($phone) ?>" 
                                    placeholder="+255 xxx xxx xxx">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="designation" class="form-label">Designation</label>
+                            <input type="text" class="form-control" 
+                                   id="designation" name="designation" value="<?= htmlspecialchars($designation) ?>" 
+                                   placeholder="Your job title">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="department" class="form-label">Department</label>
+                            <input type="text" class="form-control" 
+                                   id="department" name="department" value="<?= htmlspecialchars($department) ?>" 
+                                   placeholder="Your department">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="date_of_joining" class="form-label">Date of Joining</label>
+                            <input type="date" class="form-control" 
+                                   id="date_of_joining" name="date_of_joining" 
+                                   value="<?= htmlspecialchars($date_of_joining ?? '') ?>">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="employment_type" class="form-label">Employment Type</label>
+                            <select class="form-control" id="employment_type" name="employment_type">
+                                <option value="Full-time" <?= $employment_type == 'Full-time' ? 'selected' : '' ?>>Full-time</option>
+                                <option value="Part-time" <?= $employment_type == 'Part-time' ? 'selected' : '' ?>>Part-time</option>
+                                <option value="Contract" <?= $employment_type == 'Contract' ? 'selected' : '' ?>>Contract</option>
+                                <option value="Intern" <?= $employment_type == 'Intern' ? 'selected' : '' ?>>Intern</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="employment_status" class="form-label">Employment Status</label>
+                            <select class="form-control" id="employment_status" name="employment_status">
+                                <option value="Active" <?= $employment_status == 'Active' ? 'selected' : '' ?>>Active</option>
+                                <option value="Inactive" <?= $employment_status == 'Inactive' ? 'selected' : '' ?>>Inactive</option>
+                                <option value="Terminated" <?= $employment_status == 'Terminated' ? 'selected' : '' ?>>Terminated</option>
+                                <option value="Resigned" <?= $employment_status == 'Resigned' ? 'selected' : '' ?>>Resigned</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="role_category" class="form-label">Role Category</label>
+                            <input type="text" class="form-control" 
+                                   id="role_category" name="role_category" value="<?= htmlspecialchars($role_category) ?>" 
+                                   placeholder="Category of your role">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="skills" class="form-label">Skills</label>
+                            <input type="text" class="form-control" 
+                                   id="skills" name="skills" value="<?= htmlspecialchars($skills) ?>" 
+                                   placeholder="Comma separated list of your skills">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="certifications" class="form-label">Certifications</label>
+                            <input type="text" class="form-control" 
+                                   id="certifications" name="certifications" value="<?= htmlspecialchars($certifications) ?>" 
+                                   placeholder="List of your certifications">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="service_area" class="form-label">Service Area</label>
+                            <input type="text" class="form-control" 
+                                   id="service_area" name="service_area" value="<?= htmlspecialchars($service_area) ?>" 
+                                   placeholder="Your service area">
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" 
+                                   id="on_call_support" name="on_call_support" 
+                                   <?= $on_call_support ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="on_call_support">On-call Support</label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="shift_timing" class="form-label">Shift Timing</label>
+                            <input type="text" class="form-control" 
+                                   id="shift_timing" name="shift_timing" value="<?= htmlspecialchars($shift_timing) ?>" 
+                                   placeholder="Your shift schedule">
                         </div>
                     </div>
                     
@@ -446,6 +687,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                    value="<?= htmlspecialchars($alternate_phone) ?>" 
                                    placeholder="+255 xxx xxx xxx">
                         </div>
+                        
+                        <div class="mb-3">
+                            <label for="permanent_address" class="form-label">Permanent Address</label>
+                            <textarea class="form-control" 
+                                      id="permanent_address" name="permanent_address" 
+                                      rows="3" 
+                                      placeholder="Enter your permanent address"><?= htmlspecialchars($permanent_address ?? '') ?></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="national_id" class="form-label">National ID</label>
+                            <input type="text" class="form-control" 
+                                   id="national_id" name="national_id" 
+                                   value="<?= htmlspecialchars($national_id) ?>" 
+                                   placeholder="Your National ID number">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="passport_number" class="form-label">Passport Number</label>
+                            <input type="text" class="form-control" 
+                                   id="passport_number" name="passport_number" 
+                                   value="<?= htmlspecialchars($passport_number) ?>" 
+                                   placeholder="Your Passport number">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="date_of_birth" class="form-label">Date of Birth</label>
+                            <input type="date" class="form-control" 
+                                   id="date_of_birth" name="date_of_birth" 
+                                   value="<?= htmlspecialchars($date_of_birth ?? '') ?>">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="gender" class="form-label">Gender</label>
+                            <select class="form-control" id="gender" name="gender">
+                                <option value="">Select Gender</option>
+                                <option value="Male" <?= $gender == 'Male' ? 'selected' : '' ?>>Male</option>
+                                <option value="Female" <?= $gender == 'Female' ? 'selected' : '' ?>>Female</option>
+                                <option value="Other" <?= $gender == 'Other' ? 'selected' : '' ?>>Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="nationality" class="form-label">Nationality</label>
+                            <input type="text" class="form-control" 
+                                   id="nationality" name="nationality" 
+                                   value="<?= htmlspecialchars($nationality) ?>" 
+                                   placeholder="Your nationality">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tax_id" class="form-label">Tax ID</label>
+                            <input type="text" class="form-control" 
+                                   id="tax_id" name="tax_id" 
+                                   value="<?= htmlspecialchars($tax_id) ?>" 
+                                   placeholder="Your Tax ID">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="work_permit_details" class="form-label">Work Permit Details</label>
+                            <input type="text" class="form-control" 
+                                   id="work_permit_details" name="work_permit_details" 
+                                   value="<?= htmlspecialchars($work_permit_details) ?>" 
+                                   placeholder="Work permit details if applicable">
+                        </div>
                     </div>
                 </div>
                 
@@ -461,7 +767,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <textarea class="form-control" 
                                       id="current_address" name="current_address" 
                                       rows="4" 
-                                      placeholder="Enter your current address"><?= htmlspecialchars($current_address) ?></textarea>
+                                      placeholder="Enter your current address"><?= htmlspecialchars($current_address ?? '') ?></textarea>
                         </div>
                     </div>
                     
@@ -488,6 +794,151 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                     
+                    <!-- System Access Section -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h5><i class="fas fa-laptop me-2"></i> System Access</h5>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" 
+                                   id="username" name="username" 
+                                   value="<?= htmlspecialchars($username) ?>" 
+                                   placeholder="Username for system access">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="role_level" class="form-label">Role Level</label>
+                            <input type="text" class="form-control" 
+                                   id="role_level" name="role_level" 
+                                   value="<?= htmlspecialchars($role_level) ?>" 
+                                   placeholder="Role level in system">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="system_access" class="form-label">System Access</label>
+                            <input type="text" class="form-control" 
+                                   id="system_access" name="system_access" 
+                                   value="<?= htmlspecialchars($system_access) ?>" 
+                                   placeholder="Access permissions">
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" 
+                                   id="company_laptop_issued" name="company_laptop_issued" 
+                                   <?= $company_laptop_issued ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="company_laptop_issued">Company Laptop Issued</label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="asset_serial_number" class="form-label">Asset Serial Number</label>
+                            <input type="text" class="form-control" 
+                                   id="asset_serial_number" name="asset_serial_number" 
+                                   value="<?= htmlspecialchars($asset_serial_number) ?>" 
+                                   placeholder="Serial number of issued laptop/device">
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" 
+                                   id="vpn_access" name="vpn_access" 
+                                   <?= $vpn_access ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="vpn_access">VPN Access</label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="reporting_manager_id" class="form-label">Reporting Manager</label>
+                            <input type="text" class="form-control" 
+                                   id="reporting_manager_id" name="reporting_manager_id" 
+                                   value="<?= htmlspecialchars($reporting_manager_id) ?>" 
+                                   placeholder="ID or name of reporting manager">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="assigned_clients" class="form-label">Assigned Clients</label>
+                            <input type="text" class="form-control" 
+                                   id="assigned_clients" name="assigned_clients" 
+                                   value="<?= htmlspecialchars($assigned_clients) ?>" 
+                                   placeholder="Comma separated list of assigned clients">
+                        </div>
+                    </div>
+                    
+                    <!-- Financial Information Section -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h5><i class="fas fa-money-bill-wave me-2"></i> Financial Information</h5>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="bank_name" class="form-label">Bank Name</label>
+                            <input type="text" class="form-control" 
+                                   id="bank_name" name="bank_name" 
+                                   value="<?= htmlspecialchars($bank_name) ?>" 
+                                   placeholder="Name of your bank">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="account_number" class="form-label">Account Number</label>
+                            <input type="text" class="form-control" 
+                                   id="account_number" name="account_number" 
+                                   value="<?= htmlspecialchars($account_number) ?>" 
+                                   placeholder="Your bank account number">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="salary_type" class="form-label">Salary Type</label>
+                            <input type="text" class="form-control" 
+                                   id="salary_type" name="salary_type" 
+                                   value="<?= htmlspecialchars($salary_type) ?>" 
+                                   placeholder="Monthly, Hourly, etc.">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="payment_method" class="form-label">Payment Method</label>
+                            <input type="text" class="form-control" 
+                                   id="payment_method" name="payment_method" 
+                                   value="<?= htmlspecialchars($payment_method) ?>" 
+                                   placeholder="Cash, Bank Transfer, etc.">
+                        </div>
+                    </div>
+                    
+                    <!-- HR & Employment Section -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h5><i class="fas fa-user-clock me-2"></i> HR & Employment</h5>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="last_working_day" class="form-label">Last Working Day</label>
+                            <input type="date" class="form-control" 
+                                   id="last_working_day" name="last_working_day" 
+                                   value="<?= htmlspecialchars($last_working_day ?? '') ?>">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="remarks" class="form-label">Remarks</label>
+                            <textarea class="form-control" 
+                                      id="remarks" name="remarks" 
+                                      rows="3" 
+                                      placeholder="Any additional remarks"><?= htmlspecialchars($remarks ?? '') ?></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="hr_approval_date" class="form-label">HR Approval Date</label>
+                            <input type="date" class="form-control" 
+                                   id="hr_approval_date" name="hr_approval_date" 
+                                   value="<?= htmlspecialchars($hr_approval_date ?? '') ?>">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="hr_manager_id" class="form-label">HR Manager ID</label>
+                            <input type="text" class="form-control" 
+                                   id="hr_manager_id" name="hr_manager_id" 
+                                   value="<?= htmlspecialchars($hr_manager_id) ?>" 
+                                   placeholder="ID of HR manager">
+                        </div>
+                    </div>
+                    
                     <!-- Security Section -->
                     <div class="form-section">
                         <div class="section-header">
@@ -510,7 +961,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </button>
                             </div>
                             <?php if (isset($errors['password'])): ?>
-                            <div class="invalid-feedback"><?= htmlspecialchars($errors['password']) ?></div>
+                            <div class="invalid-feedback"><?= htmlspecialchars($errors['password'] ?? '') ?></div>
                             <?php endif; ?>
                             <div class="password-strength mt-1" id="passwordStrength">
                                 <div id="strengthBar" style="width: 0%;"></div>
@@ -529,7 +980,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </button>
                             </div>
                             <?php if (isset($errors['confirm_password'])): ?>
-                            <div class="invalid-feedback"><?= htmlspecialchars($errors['confirm_password']) ?></div>
+                            <div class="invalid-feedback"><?= htmlspecialchars($errors['confirm_password'] ?? '') ?></div>
                             <?php endif; ?>
                             <div id="passwordMatch" class="mt-1"></div>
                         </div>

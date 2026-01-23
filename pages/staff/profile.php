@@ -23,6 +23,55 @@ $staff = $stmt->fetch();
 // If profile doesn't exist, we'll show an incomplete profile message and direct to edit
 $is_profile_complete = $staff !== false;
 
+// Calculate experience based on date of joining (always calculate fresh)
+if ($is_profile_complete && !empty($staff['date_of_joining'])) {
+    try {
+        $join_date = new DateTime($staff['date_of_joining']);
+        $current_date = new DateTime();
+        
+        // Check if join date is in the future
+        if ($join_date > $current_date) {
+            // If join date is in the future, set experience to 0
+            $calculated_experience_years = 0;
+            $calculated_experience_months = 0;
+            $calculated_total_months = 0;
+            $calculated_experience_formatted = "0 yrs";
+        } else {
+            // Calculate difference for past dates
+            $interval = $join_date->diff($current_date);
+            
+            // Calculate total months for more precision
+            $total_months = ($interval->y * 12) + $interval->m;
+            
+            // Store both years and months for display purposes
+            $calculated_experience_years = $interval->y;
+            $calculated_experience_months = $interval->m;
+            $calculated_total_months = $total_months;
+            
+            // Also create a formatted string for display
+            if ($interval->y > 0) {
+                $calculated_experience_formatted = $interval->y . " yrs";
+                if ($interval->m > 0) {
+                    $calculated_experience_formatted .= ", " . $interval->m . " mos";
+                }
+            } else {
+                $calculated_experience_formatted = $interval->m . " mos";
+            }
+        }
+    } catch (Exception $e) {
+        // If date parsing fails, fall back to stored value
+        $calculated_experience_years = $staff['experience_years'] ?? 0;
+        $calculated_experience_months = 0;
+        $calculated_total_months = 0;
+        $calculated_experience_formatted = ($staff['experience_years'] ?? 0) . " yrs";
+    }
+} else {
+    $calculated_experience_years = $staff['experience_years'] ?? 0;
+    $calculated_experience_months = 0;
+    $calculated_total_months = 0;
+    $calculated_experience_formatted = ($staff['experience_years'] ?? 0) . " yrs";
+}
+
 // Get assigned tickets
 $ticket_count = 0;
 $completed_this_month = 0;
@@ -206,7 +255,7 @@ if ($is_profile_complete && isset($staff['id'])) {
             <!-- Profile Header -->
             <div class="profile-header">
                 <div class="profile-avatar">
-                    <?php echo $is_profile_complete ? strtoupper(substr($staff['full_name'], 0, 1)) : strtoupper(substr($current_user['email'], 0, 1)); ?>
+                    <?php echo $is_profile_complete ? strtoupper(substr($staff['full_name'] ?? '', 0, 1)) : strtoupper(substr($current_user['email'], 0, 1)); ?>
                 </div>
                 <div class="profile-info">
                     <h1><?php echo $is_profile_complete ? htmlspecialchars($staff['full_name'] ?? '') : 'Incomplete Profile'; ?></h1>
@@ -223,7 +272,7 @@ if ($is_profile_complete && isset($staff['id'])) {
                             <span class="label">Completed This Month</span>
                         </div>
                         <div class="profile-stat">
-                            <span class="number"><?php echo $is_profile_complete ? ($staff['experience_years'] ?? '0') : '0'; ?> yrs</span>
+                            <span class="number"><?php echo $is_profile_complete ? $calculated_experience_formatted : '0 yrs'; ?></span>
                             <span class="label">Experience</span>
                         </div>
                         <div class="profile-stat">
@@ -267,6 +316,18 @@ if ($is_profile_complete && isset($staff['id'])) {
                             <div class="info-row">
                                 <div class="info-label">Employment Type:</div>
                                 <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['employment_type'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Employment Status:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['employment_status'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Designation:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['designation'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Department:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['department'] ?? '') : 'N/A'; ?></div>
                             </div>
                         </div>
                         
@@ -323,6 +384,14 @@ if ($is_profile_complete && isset($staff['id'])) {
                                 <div class="info-label">On-call Support:</div>
                                 <div class="info-value"><?php echo $is_profile_complete ? ($staff['on_call_support'] ? 'Yes' : 'No') : 'N/A'; ?></div>
                             </div>
+                            <div class="info-row">
+                                <div class="info-label">Shift Timing:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['shift_timing'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Assigned Clients:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['assigned_clients'] ?? '') : 'N/A'; ?></div>
+                            </div>
                         </div>
                         
                         <!-- Certificates Section -->
@@ -338,6 +407,47 @@ if ($is_profile_complete && isset($staff['id'])) {
                     </div>
                     
                     <div class="col-md-6">
+                        <!-- Personal Information -->
+                        <div class="info-card">
+                            <h3><i class="fas fa-user"></i> Personal Information</h3>
+                            <div class="info-row">
+                                <div class="info-label">Date of Birth:</div>
+                                <div class="info-value">
+                                    <?php 
+                                    if ($is_profile_complete && !empty($staff['date_of_birth'])) {
+                                        echo date('F d, Y', strtotime($staff['date_of_birth'])); 
+                                    } else {
+                                        echo 'N/A';
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Gender:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['gender'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Nationality:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['nationality'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">National ID:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['national_id'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Passport Number:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['passport_number'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Tax ID:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['tax_id'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Work Permit Details:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['work_permit_details'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                        </div>
+                        
                         <!-- Contact Information -->
                         <div class="info-card">
                             <h3><i class="fas fa-address-card"></i> Contact Information</h3>
@@ -365,6 +475,10 @@ if ($is_profile_complete && isset($staff['id'])) {
                             <div class="info-row">
                                 <div class="info-label">Current Address:</div>
                                 <div class="info-value"><?php echo $is_profile_complete ? nl2br(htmlspecialchars($staff['current_address'] ?? '')) : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Permanent Address:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? nl2br(htmlspecialchars($staff['permanent_address'] ?? '')) : 'N/A'; ?></div>
                             </div>
                         </div>
                         
@@ -407,6 +521,96 @@ if ($is_profile_complete && isset($staff['id'])) {
                                         <?php echo $is_profile_complete ? 'Not assigned' : 'N/A'; ?>
                                     <?php endif; ?>
                                 </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Asset Serial Number:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['asset_serial_number'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Role Level:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['role_level'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">System Access:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['system_access'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <!-- Financial Information -->
+                        <div class="info-card">
+                            <h3><i class="fas fa-money-bill-wave"></i> Financial Information</h3>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="info-row">
+                                        <div class="info-label">Bank Name:</div>
+                                        <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['bank_name'] ?? '') : 'N/A'; ?></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-row">
+                                        <div class="info-label">Account Number:</div>
+                                        <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['account_number'] ?? '') : 'N/A'; ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="info-row">
+                                        <div class="info-label">Salary Type:</div>
+                                        <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['salary_type'] ?? '') : 'N/A'; ?></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-row">
+                                        <div class="info-label">Payment Method:</div>
+                                        <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['payment_method'] ?? '') : 'N/A'; ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- HR & Employment -->
+                        <div class="info-card">
+                            <h3><i class="fas fa-user-clock"></i> HR & Employment</h3>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="info-row">
+                                        <div class="info-label">Last Working Day:</div>
+                                        <div class="info-value">
+                                            <?php 
+                                            if ($is_profile_complete && !empty($staff['last_working_day'])) {
+                                                echo date('F d, Y', strtotime($staff['last_working_day'])); 
+                                            } else {
+                                                echo 'N/A';
+                                            }
+                                            ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-row">
+                                        <div class="info-label">HR Approval Date:</div>
+                                        <div class="info-value">
+                                            <?php 
+                                            if ($is_profile_complete && !empty($staff['hr_approval_date'])) {
+                                                echo date('F d, Y', strtotime($staff['hr_approval_date'])); 
+                                            } else {
+                                                echo 'N/A';
+                                            }
+                                            ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">HR Manager ID:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? htmlspecialchars($staff['hr_manager_id'] ?? '') : 'N/A'; ?></div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">Remarks:</div>
+                                <div class="info-value"><?php echo $is_profile_complete ? nl2br(htmlspecialchars($staff['remarks'] ?? '')) : 'N/A'; ?></div>
                             </div>
                         </div>
                     </div>
