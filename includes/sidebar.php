@@ -3,7 +3,7 @@ require_once 'routes.php';
 $current_user = getCurrentUser();
 $user_type = $current_user['user_type'] ?? 'client';
 ?>
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <h3><i class="fas fa-network-wired"></i> MSP Portal</h3>
         <p><?php echo htmlspecialchars($current_user['staff_profile']['full_name'] ?? $current_user['email']); ?></p>
@@ -32,8 +32,10 @@ $user_type = $current_user['user_type'] ?? 'client';
             <?php if (hasManagerLevel()): ?>
                 <li><a href="<?php echo route('clients.index'); ?>" <?php
                                                                     $current_page = basename($_SERVER['SCRIPT_NAME']);
+                                                                    $request_uri = $_SERVER['REQUEST_URI'];
                                                                     $is_clients_page = strpos($_SERVER['SCRIPT_NAME'], '/clients/') !== false ||
-                                                                        in_array($current_page, ['locations.php', 'add_asset.php', 'add_contract.php', 'add_ticket.php']);
+                                                                        in_array($current_page, ['locations.php', 'add_asset.php', 'add_contract.php', 'add_ticket.php']) ||
+                                                                        strpos($request_uri, 'add-contract') !== false;
                                                                     echo $is_clients_page ? 'class="active"' : ''; ?>>
                         <i class="fas fa-building"></i> Clients
                     </a></li>

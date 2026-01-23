@@ -152,8 +152,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare("
                 INSERT INTO contracts (
                     id, client_id, contract_number, contract_type, start_date, end_date,
-                    service_scope, contract_value, payment_terms, status, 
-                    renewal_reminder, auto_renew, created_at, updated_at
+                    service_scope, monthly_amount, status, 
+                    response_time_hours, resolution_time_hours, penalty_terms, created_at, updated_at
                 ) VALUES (
                     uuid_generate_v4(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()
                 ) RETURNING id
@@ -166,11 +166,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $form_data['start_date'],
                 $form_data['end_date'],
                 $final_scope,
-                $form_data['contract_value'] ?: null,
-                $form_data['payment_terms'],
+                $form_data['contract_value'] ?: null,  // Using the form field name but mapping to monthly_amount
                 $form_data['status'],
-                $form_data['renewal_reminder'],
-                $form_data['auto_renew']
+                null,  // response_time_hours - not in form yet
+                null,  // resolution_time_hours - not in form yet
+                $form_data['notes'] ?: null  // Using notes field for penalty_terms
             ]);
             
             $contract_id = $stmt->fetchColumn();
@@ -178,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->commit();
             
             $_SESSION['success'] = "Contract '$contract_number' created successfully!";
-            header("Location: " . route('contracts.view') . "?id=$contract_id");
+            header("Location: " . route('contracts.view', ['id' => $contract_id]));
             exit();
             
         } catch (PDOException $e) {
@@ -214,8 +214,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <!-- Custom Styles -->
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #2c3e50;
             --accent-color: #e74c3c;
             --success-color: #27ae60;
             --warning-color: #f39c12;
@@ -264,30 +262,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* Main Layout */
         .main-wrapper {
             display: flex;
-            min-height: calc(100vh - 56px);
+            min-height: 100vh;
         }
         
         /* Sidebar */
         .sidebar {
-            width: 250px;
+            width: var(--sidebar-width);
             background-color: var(--secondary-color);
             color: white;
-            transition: all 0.3s;
+            position: fixed;
+            height: 100vh;
             overflow-y: auto;
-            height: calc(100vh - 56px);
-            position: sticky;
-            top: 56px;
+            transition: transform 0.3s ease;
+            z-index: 1000;
         }
         
         @media (max-width: 992px) {
             .sidebar {
+                transform: translateX(-100%);
                 position: fixed;
-                left: -250px;
                 z-index: 1040;
                 box-shadow: 3px 0 10px rgba(0, 0, 0, 0.1);
             }
             .sidebar.active {
-                left: 0;
+                transform: translateX(0);
             }
         }
         
@@ -335,15 +333,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* Main Content */
         .main-content {
             flex: 1;
-            padding: 25px;
+            margin-left: var(--sidebar-width);
+            padding: 1rem;
             background-color: #f5f7fa;
-            overflow-y: auto;
-            width: 100%;
+            min-height: 100vh;
         }
         
         @media (max-width: 992px) {
             .main-content {
-                padding: 15px;
+                margin-left: 0;
+                padding: 0.5rem;
             }
         }
         
@@ -395,7 +394,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .card-body {
-            padding: 25px;
+            padding: 15px;
         }
         
         /* Form Elements */
@@ -436,8 +435,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-section {
             background-color: var(--light-bg);
             border-radius: 8px;
-            padding: 25px;
-            margin-bottom: 25px;
+            padding: 15px;
+            margin-bottom: 20px;
             border-left: 4px solid var(--primary-color);
         }
         
@@ -665,7 +664,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span class="text-white me-3 d-none d-md-inline">
                     <i class="fas fa-user me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
                 </span>
-                <?php require_once '../../../includes/routes.php'; ?><a href="<?php echo route('logout'); ?>" class="btn btn-outline-light btn-sm">
+                <a href="<?php echo route('logout'); ?>" class="btn btn-outline-light btn-sm">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </div>
@@ -686,7 +685,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="<?php echo route('clients.index'); ?>">Clients</a></li>
-                    <li class="breadcrumb-item"><a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>"><?php echo htmlspecialchars($client['company_name']); ?></a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('clients.view', ['id' => $client_id]); ?>"><?php echo htmlspecialchars($client['company_name']); ?></a></li>
                     <li class="breadcrumb-item active" aria-current="page">Add Contract</li>
                 </ol>
             </nav>
@@ -699,7 +698,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </h1>
                     <p class="text-muted">Create a new contract for <?= htmlspecialchars($client['company_name']) ?></p>
                 </div>
-                <a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>" class="btn btn-outline-secondary">
+                <a href="<?php echo route('clients.view', ['id' => $client_id]); ?>" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Client
                 </a>
             </div>
@@ -923,7 +922,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>" class="btn btn-outline-secondary">
+                            <a href="<?php echo route('clients.view', ['id' => $client_id]); ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-primary">

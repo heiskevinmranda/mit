@@ -69,8 +69,13 @@ function validateClientData($data) {
  * Get all industries from clients
  */
 function getAllIndustries($pdo) {
-    $stmt = $pdo->query("SELECT DISTINCT industry FROM clients WHERE industry IS NOT NULL AND industry != '' ORDER BY industry");
-    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    try {
+        $stmt = $pdo->query("SELECT DISTINCT industry FROM clients WHERE industry IS NOT NULL AND industry != '' ORDER BY industry");
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        error_log("Database error in getAllIndustries: " . $e->getMessage());
+        return [];
+    }
 }
 
 /**

@@ -46,12 +46,23 @@ if (!empty($industry)) {
 
 $query .= " GROUP BY c.id ORDER BY c.company_name LIMIT 100";
 
-$stmt = $pdo->prepare($query);
-$stmt->execute($params);
-$clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    $clients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    error_log("Database error in clients/index.php: " . $e->getMessage());
+    $_SESSION['error'] = "Database error occurred. Please contact the administrator.";
+    $clients = [];
+}
 
 // Get all industries for filter dropdown
-$industries = getAllIndustries($pdo);
+try {
+    $industries = getAllIndustries($pdo);
+} catch (PDOException $e) {
+    error_log("Database error getting industries in clients/index.php: " . $e->getMessage());
+    $industries = [];
+}
 ?>
 
 <!DOCTYPE html>

@@ -800,12 +800,12 @@ require_once __DIR__ . '/../../includes/header.php';
                                             </td>
                                             <td>
                                                 <div class="action-buttons">
-                                                    <a href="edit_location.php?id=<?= $location['id'] ?>&client_id=<?= $client_id ?>" 
+                                                    <a href="<?= route('clients.edit_location') . '?id=' . $location['id'] . '&client_id=' . $client_id ?>" 
                                                        class="btn btn-warning btn-sm">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     <?php if (!$location['is_primary']): ?>
-                                                    <a href="delete_location.php?id=<?= $location['id'] ?>&client_id=<?= $client_id ?>" 
+                                                    <a href="<?= route('clients.delete_location') . '?id=' . $location['id'] . '&client_id=' . $client_id ?>" 
                                                        class="btn btn-danger btn-sm"
                                                        onclick="return confirm('Are you sure you want to delete this location?')">
                                                         <i class="fas fa-trash"></i>

@@ -1,6 +1,7 @@
 <?php
 // pages/clients/locations.php
 require_once '../../includes/auth.php';
+require_once '../../includes/routes.php';
 requireLogin();
 
 $pdo = getDBConnection();
@@ -59,6 +60,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Update existing location
             $location_id = $_POST['location_id'] ?? 0;
             
+            // If setting as primary, first unset existing primary location for this client (except current one)
+            if (!empty($_POST['is_primary'])) {
+                $unset_stmt = $pdo->prepare("UPDATE client_locations SET is_primary = 0 WHERE client_id = ? AND is_primary = 1 AND id != ?");
+                $unset_stmt->execute([$client_id, $location_id]);
+            }
+            
             $stmt = $pdo->prepare("
                 UPDATE client_locations 
                 SET location_name = ?, address = ?, city = ?, state = ?, country = ?,
@@ -75,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_POST['primary_contact'] ?? '',
                 $_POST['phone'] ?? '',
                 $_POST['email'] ?? '',
-                isset($_POST['is_primary']) ? 1 : 0,
+                !empty($_POST['is_primary']) ? 1 : 0,
                 $location_id,
                 $client_id
             ]);
@@ -172,8 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="header">
                 <h1><i class="fas fa-map-marker-alt"></i> Locations for: <?php echo htmlspecialchars($client['company_name']); ?></h1>
                 <div class="btn-group">
-                    <a href="index.php" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Back to Clients
+                    <a href="<?php echo route('clients.view', ['id' => $client_id]); ?>" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back
                     </a>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
                         <i class="fas fa-plus"></i> Add Location
