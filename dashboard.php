@@ -1209,7 +1209,7 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                                 <i class="fas fa-plus me-2"></i>Add Daily Task
                             </button>
                             <button type="button" class="btn btn-primary" onclick="loadDailyTasks()">
-                                <i class="fas fa-list me-2"></i>View Today's Tasks
+                                <i class="fas fa-list me-2"></i>View Tasks for Follow-up
                             </button>
                         </div>
                     </div>
@@ -1942,8 +1942,35 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                             <textarea class="form-control" id="taskDescription" name="task_description" rows="3"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label for="assignedToName" class="form-label">Assigned To</label>
-                            <input type="text" class="form-control" id="assignedToName" name="assigned_to_name" placeholder="Enter assignee name">
+                            <label for="assignedTo" class="form-label">Assigned To</label>
+                            <select class="form-select" id="assignedTo" name="assigned_to_id">
+                                <option value="">Not assigned</option>
+                                <?php
+                                // Include database connection and get users
+                                require_once 'config/database.php';
+                                require_once 'includes/auth.php';
+                                
+                                try {
+                                    $pdo = getDBConnection();
+                                    // Join with staff_profiles to get full names
+                                    $stmt = $pdo->query("SELECT u.id, u.email, u.user_type, sp.full_name 
+                                                         FROM users u 
+                                                         LEFT JOIN staff_profiles sp ON u.id = sp.user_id 
+                                                         WHERE u.is_active = true 
+                                                         ORDER BY u.user_type DESC, sp.full_name, u.email");
+                                    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                    
+                                    foreach ($users as $user) {
+                                        $displayName = $user['full_name'] ?: $user['email'];
+                                        echo '<option value="' . htmlspecialchars($user['id']) . '">' . 
+                                             htmlspecialchars($displayName) . ' (' . 
+                                             htmlspecialchars(ucfirst(str_replace('_', ' ', $user['user_type']))) . ')</option>';
+                                    }
+                                } catch (Exception $e) {
+                                    error_log("Error fetching users for assignment: " . $e->getMessage());
+                                }
+                                ?>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="taskPriority" class="form-label">Priority</label>
@@ -2022,7 +2049,7 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="manageDailyTasksModalLabel">Manage Daily Tasks</h5>
+                    <h5 class="modal-title" id="manageDailyTasksModalLabel">Manage Tasks (Follow-up)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -2061,8 +2088,35 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                             <textarea class="form-control" id="editTaskDescription" name="task_description" rows="3"></textarea>
                         </div>
                         <div class="mb-3">
-                            <label for="editAssignedToName" class="form-label">Assigned To</label>
-                            <input type="text" class="form-control" id="editAssignedToName" name="assigned_to_name" placeholder="Enter assignee name">
+                            <label for="editAssignedTo" class="form-label">Assigned To</label>
+                            <select class="form-select" id="editAssignedTo" name="assigned_to_id">
+                                <option value="">Not assigned</option>
+                                <?php
+                                // Include database connection and get users
+                                require_once 'config/database.php';
+                                require_once 'includes/auth.php';
+                                
+                                try {
+                                    $pdo = getDBConnection();
+                                    // Join with staff_profiles to get full names
+                                    $stmt = $pdo->query("SELECT u.id, u.email, u.user_type, sp.full_name 
+                                                         FROM users u 
+                                                         LEFT JOIN staff_profiles sp ON u.id = sp.user_id 
+                                                         WHERE u.is_active = true 
+                                                         ORDER BY u.user_type DESC, sp.full_name, u.email");
+                                    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                                    
+                                    foreach ($users as $user) {
+                                        $displayName = $user['full_name'] ?: $user['email'];
+                                        echo '<option value="' . htmlspecialchars($user['id']) . '">' . 
+                                             htmlspecialchars($displayName) . ' (' . 
+                                             htmlspecialchars(ucfirst(str_replace('_', ' ', $user['user_type']))) . ')</option>';
+                                    }
+                                } catch (Exception $e) {
+                                    error_log("Error fetching users for assignment: " . $e->getMessage());
+                                }
+                                ?>
+                            </select>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -2149,7 +2203,7 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                                     <td>${new Date(task.created_at).toLocaleTimeString()}</td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button type="button" class="btn btn-outline-primary" onclick="editTask(${task.id}, '${task.task_title.replace(/'/g, "\\'")}', '${task.task_description ? task.task_description.replace(/'/g, "\\'") : ''}', '${task.assigned_to_name ? task.assigned_to_name.replace(/'/g, "\\'") : ''}', '${task.task_status}', '${task.priority}')">
+                                            <button type="button" class="btn btn-outline-primary" onclick="editTask(${task.id}, '${task.task_title.replace(/'/g, "\\'")}', '${task.task_description ? task.task_description.replace(/'/g, "\\'") : ''}', '${(task.assigned_to_name || '').replace(/'/g, "\\'")}', '${task.task_status}', '${task.priority}')">
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                             <button type="button" class="btn btn-outline-danger" onclick="deleteTask(${task.id})">
@@ -2170,8 +2224,8 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                         tasksContainer.innerHTML = `
                             <div class="text-center py-5">
                                 <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
-                                <h5 class="text-muted">No tasks for today</h5>
-                                <p class="text-muted">Click "Add Daily Task" to create your first task.</p>
+                                <h5 class="text-muted">No tasks requiring follow-up</h5>
+                                <p class="text-muted">All tasks are completed or no pending tasks assigned to you.</p>
                             </div>`;
                     }
                 })
@@ -2190,7 +2244,21 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
             document.getElementById('editTaskId').value = taskId;
             document.getElementById('editTaskTitle').value = title;
             document.getElementById('editTaskDescription').value = description;
-            document.getElementById('editAssignedToName').value = assignedTo;
+            // For the assigned user dropdown, we'll need to match the assignedTo value with the option values
+            const assignedToSelector = document.getElementById('editAssignedTo');
+            // Try to match by name (now using full names instead of emails) or by user ID
+            let matched = false;
+            for (let i = 0; i < assignedToSelector.options.length; i++) {
+                if (assignedToSelector.options[i].text.includes(assignedTo) || assignedToSelector.options[i].value === assignedTo) {
+                    assignedToSelector.selectedIndex = i;
+                    matched = true;
+                    break;
+                }
+            }
+            // If no match found, set to empty (not assigned)
+            if (!matched) {
+                assignedToSelector.selectedIndex = 0;
+            }
             document.getElementById('editTaskStatus').value = status;
             document.getElementById('editTaskPriority').value = priority;
             
