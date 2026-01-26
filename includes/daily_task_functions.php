@@ -366,6 +366,111 @@ function getTasksForFollowUp($pdo, $user_id = null, $user_type = null) {
 }
 
 /**
+ * Get tasks grouped by assigned user for better organization
+ */
+function getGroupedDailyTasks($pdo, $user_id = null, $user_type = null) {
+    // Check if assigned_to column exists
+    $assignedColumnsExist = false;
+    try {
+        $checkColumnSql = "SELECT column_name FROM information_schema.columns 
+                          WHERE table_name = 'daily_tasks' AND column_name = 'assigned_to'";
+        $checkStmt = $pdo->query($checkColumnSql);
+        $assignedColumnsExist = $checkStmt->rowCount() > 0;
+    } catch (Exception $e) {
+        $assignedColumnsExist = false;
+    }
+    
+    if (!$assignedColumnsExist) {
+        // Fallback to flat structure if no assignment columns
+        $tasks = getTasksForFollowUp($pdo, $user_id, $user_type);
+        return [
+            'grouped' => false,
+            'tasks' => $tasks
+        ];
+    }
+    
+    // Get tasks with user information for grouping
+    if ($user_id && $user_type) {
+        if (in_array($user_type, ['super_admin', 'admin', 'manager'])) {
+            // Admins and managers can see all pending/in-progress tasks
+            $sql = "SELECT dt.*, 
+                           COALESCE(sp.full_name, u.email) as assigned_to_name, 
+                           COALESCE(sp2.full_name, u2.email) as assigned_by_name,
+                           u.id as assigned_to_id
+                    FROM daily_tasks dt
+                    LEFT JOIN users u ON dt.assigned_to = u.id
+                    LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+                    LEFT JOIN users u2 ON dt.assigned_by = u2.id
+                    LEFT JOIN staff_profiles sp2 ON u2.id = sp2.user_id
+                    WHERE dt.task_status IN ('pending', 'in_progress')
+                    ORDER BY u.email ASC, dt.priority DESC, dt.created_at ASC";
+        } else {
+            // Regular users can only see pending/in-progress tasks assigned to them
+            $sql = "SELECT dt.*, 
+                           COALESCE(sp.full_name, u.email) as assigned_to_name, 
+                           COALESCE(sp2.full_name, u2.email) as assigned_by_name,
+                           u.id as assigned_to_id
+                    FROM daily_tasks dt
+                    LEFT JOIN users u ON dt.assigned_to = u.id
+                    LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+                    LEFT JOIN users u2 ON dt.assigned_by = u2.id
+                    LEFT JOIN staff_profiles sp2 ON u2.id = sp2.user_id
+                    WHERE dt.task_status IN ('pending', 'in_progress') AND dt.assigned_to = :user_id
+                    ORDER BY u.email ASC, dt.priority DESC, dt.created_at ASC";
+        }
+    } else {
+        // No user context - return all tasks
+        $sql = "SELECT dt.*, 
+                       COALESCE(sp.full_name, u.email) as assigned_to_name, 
+                       COALESCE(sp2.full_name, u2.email) as assigned_by_name,
+                       u.id as assigned_to_id
+                FROM daily_tasks dt
+                LEFT JOIN users u ON dt.assigned_to = u.id
+                LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+                LEFT JOIN users u2 ON dt.assigned_by = u2.id
+                LEFT JOIN staff_profiles sp2 ON u2.id = sp2.user_id
+                WHERE dt.task_status IN ('pending', 'in_progress')
+                ORDER BY u.email ASC, dt.priority DESC, dt.created_at ASC";
+    }
+    
+    $stmt = $pdo->prepare($sql);
+    if (isset($user_id) && !in_array($user_type, ['super_admin', 'admin', 'manager'])) {
+        $stmt->execute([':user_id' => $user_id]);
+    } else {
+        $stmt->execute();
+    }
+    
+    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Group tasks by assigned user
+    $grouped_tasks = [];
+    foreach ($tasks as $task) {
+        $user_key = $task['assigned_to_id'] ?: 'unassigned';
+        $user_name = $task['assigned_to_name'] ?: 'Unassigned';
+        
+        if (!isset($grouped_tasks[$user_key])) {
+            $grouped_tasks[$user_key] = [
+                'user_id' => $task['assigned_to_id'],
+                'user_name' => $user_name,
+                'tasks' => []
+            ];
+        }
+        
+        $grouped_tasks[$user_key]['tasks'][] = $task;
+    }
+    
+    // Sort groups by user name
+    uasort($grouped_tasks, function($a, $b) {
+        return strcmp(strtolower($a['user_name']), strtolower($b['user_name']));
+    });
+    
+    return [
+        'grouped' => true,
+        'users' => $grouped_tasks
+    ];
+}
+
+/**
  * Get task priorities
  */
 function getTaskPriorities() {

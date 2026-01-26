@@ -1167,6 +1167,45 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
             }
         }
 
+        /* Grouped Daily Tasks Styles */
+        .grouped-tasks-container {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .user-task-group {
+            border-left: 4px solid #007bff;
+            padding-left: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .user-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .user-header h5 {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .table-dark th {
+            background-color: #343a40;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .badge {
+            font-size: 0.85em;
+            padding: 0.4em 0.8em;
+        }
+        
+        .task-description {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
         /* Loading skeleton */
         .skeleton {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
@@ -1205,10 +1244,10 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                             Hello <?php echo htmlspecialchars($staff_profile['full_name'] ?? 'User'); ?>, here's your dashboard overview
                         </p>
                         <div class="mt-3">
-                            <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addDailyTaskModal">
-                                <i class="fas fa-plus me-2"></i>Add Daily Task
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bulkAddDailyTaskModal">
+                                <i class="fas fa-plus-circle me-2"></i>Add Task
                             </button>
-                            <button type="button" class="btn btn-primary" onclick="loadDailyTasks()">
+                            <button type="button" class="btn btn-primary ms-2" onclick="loadDailyTasks()">
                                 <i class="fas fa-list me-2"></i>View Tasks for Follow-up
                             </button>
                         </div>
@@ -1923,118 +1962,376 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
         });
     </script>
 
-    <!-- Add Daily Task Modal -->
-    <div class="modal fade" id="addDailyTaskModal" tabindex="-1" aria-labelledby="addDailyTaskModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+    <!-- Bulk Add Daily Tasks Modal -->
+    <div class="modal fade" id="bulkAddDailyTaskModal" tabindex="-1" aria-labelledby="bulkAddDailyTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addDailyTaskModalLabel">Add Daily Task</h5>
+                    <h5 class="modal-title" id="bulkAddDailyTaskModalLabel">
+                        <i class="fas fa-tasks me-2"></i>Add Task(s)
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="addDailyTaskForm">
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="taskTitle" class="form-label">Task Title *</label>
-                            <input type="text" class="form-control" id="taskTitle" name="task_title" required maxlength="255">
-                        </div>
-                        <div class="mb-3">
-                            <label for="taskDescription" class="form-label">Description</label>
-                            <textarea class="form-control" id="taskDescription" name="task_description" rows="3"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="assignedTo" class="form-label">Assigned To</label>
-                            <select class="form-select" id="assignedTo" name="assigned_to_id">
-                                <option value="">Not assigned</option>
-                                <?php
-                                // Include database connection and get users
-                                require_once 'config/database.php';
-                                require_once 'includes/auth.php';
-                                
-                                try {
-                                    $pdo = getDBConnection();
-                                    // Join with staff_profiles to get full names
-                                    $stmt = $pdo->query("SELECT u.id, u.email, u.user_type, sp.full_name 
-                                                         FROM users u 
-                                                         LEFT JOIN staff_profiles sp ON u.id = sp.user_id 
-                                                         WHERE u.is_active = true 
-                                                         ORDER BY u.user_type DESC, sp.full_name, u.email");
-                                    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                                    
-                                    foreach ($users as $user) {
-                                        $displayName = $user['full_name'] ?: $user['email'];
-                                        echo '<option value="' . htmlspecialchars($user['id']) . '">' . 
-                                             htmlspecialchars($displayName) . ' (' . 
-                                             htmlspecialchars(ucfirst(str_replace('_', ' ', $user['user_type']))) . ')</option>';
+                <div class="modal-body">
+                    <form id="bulkAddTaskForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="bulkAssignedTo" class="form-label">Assign To <span class="text-danger">*</span></label>
+                                <select class="form-select" id="bulkAssignedTo" name="assigned_to" required>
+                                    <option value="">Select User</option>
+                                    <?php
+                                    // Get all users for assignment dropdown
+                                    try {
+                                        $userStmt = $pdo->query("
+                                            SELECT u.id, u.email, sp.full_name 
+                                            FROM users u 
+                                            LEFT JOIN staff_profiles sp ON u.id = sp.user_id 
+                                            WHERE u.is_active = true 
+                                            ORDER BY sp.full_name ASC, u.email ASC
+                                        ");
+                                        $users = $userStmt->fetchAll(PDO::FETCH_ASSOC);
+                                        
+                                        foreach ($users as $user) {
+                                            $display_name = !empty($user['full_name']) ? $user['full_name'] : $user['email'];
+                                            echo "<option value='{$user['id']}'>{$display_name}</option>";
+                                        }
+                                    } catch (Exception $e) {
+                                        // Fallback if staff_profiles table doesn't exist
+                                        $userStmt = $pdo->query("SELECT id, email FROM users WHERE is_active = true ORDER BY email ASC");
+                                        $users = $userStmt->fetchAll(PDO::FETCH_ASSOC);
+                                        foreach ($users as $user) {
+                                            echo "<option value='{$user['id']}'>{$user['email']}</option>";
+                                        }
                                     }
-                                } catch (Exception $e) {
-                                    error_log("Error fetching users for assignment: " . $e->getMessage());
-                                }
-                                ?>
-                            </select>
+                                    ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="bulkTaskPriority" class="form-label">Default Priority</label>
+                                <select class="form-select" id="bulkTaskPriority" name="default_priority">
+                                    <option value="low">Low</option>
+                                    <option value="medium" selected>Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
                         </div>
+                        
                         <div class="mb-3">
-                            <label for="taskPriority" class="form-label">Priority</label>
-                            <select class="form-select" id="taskPriority" name="priority">
-                                <option value="low">Low</option>
-                                <option value="medium" selected>Medium</option>
-                                <option value="high">High</option>
-                                <option value="urgent">Urgent</option>
-                            </select>
+                            <label class="form-label">Tasks <span class="text-danger">*</span></label>
+                            <div id="taskListContainer">
+                                <!-- Task items will be added here dynamically -->
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addTaskButton">
+                                <i class="fas fa-plus me-1"></i>Add Another Task
+                            </button>
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Add Task</button>
-                    </div>
-                </form>
+                        
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="bulkSubmitButton">
+                                <i class="fas fa-save me-1"></i>Create Task(s)
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Handle daily task form submission
-        document.getElementById('addDailyTaskForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        // Bulk Task JavaScript
+        // Bulk task management functions
+        let taskCounter = 1;
 
-            const formData = new FormData(this);
-
-            // Send AJAX request to create task
-            fetch('ajax/create_daily_task.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Task created successfully!');
-                        // Close the modal
-                        const modalElement = document.getElementById('addDailyTaskModal');
-                        const modal = bootstrap.Modal.getInstance(modalElement);
-                        if (modal) {
-                            modal.hide();
-                        } else {
-                            // Fallback: manually hide the modal
-                            modalElement.classList.remove('show');
-                            modalElement.setAttribute('aria-modal', 'false');
-                            modalElement.setAttribute('role', 'dialog');
-                            document.querySelector('.modal-backdrop')?.remove();
-                            document.body.classList.remove('modal-open');
-                        }
-
-                        // Reset form
-                        this.reset();
-
-                        // Optionally reload the page or update task list
-                        // location.reload();
-                    } else {
-                        alert('Error: ' + (data.message || 'Failed to create task'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while creating the task.');
-                });
+        // Initialize the first task field when modal opens
+        document.getElementById('bulkAddDailyTaskModal').addEventListener('shown.bs.modal', function () {
+            if (document.getElementById('taskListContainer').children.length === 0) {
+                addTaskField();
+            }
         });
+
+        // Add task button event
+        document.getElementById('addTaskButton').addEventListener('click', addTaskField);
+
+        // Form submission
+        document.getElementById('bulkAddTaskForm').addEventListener('submit', handleBulkTaskSubmission);
+
+        // Add a new task field
+        function addTaskField() {
+            const container = document.getElementById('taskListContainer');
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'task-item mb-3 p-3 border rounded';
+            taskDiv.dataset.taskId = taskCounter;
+            
+            taskDiv.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Task #${taskCounter}</h6>
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-task" onclick="removeTaskField(${taskCounter})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <input type="text" class="form-control task-title" name="tasks[${taskCounter}][task_title]" 
+                               placeholder="Task Title *" required>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <select class="form-select task-priority" name="tasks[${taskCounter}][priority]">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm w-100 copy-down" 
+                                onclick="copyDown(${taskCounter})" title="Copy this priority to all tasks below">
+                            <i class="fas fa-arrow-down"></i> Copy Down
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <textarea class="form-control task-description" name="tasks[${taskCounter}][task_description]" 
+                              rows="2" placeholder="Description (optional)"></textarea>
+                </div>
+            `;
+            
+            container.appendChild(taskDiv);
+            taskCounter++;
+            
+            // Update remove buttons visibility
+            updateRemoveButtons();
+        }
+
+        // Remove a task field
+        function removeTaskField(taskId) {
+            const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+            if (taskElement) {
+                taskElement.remove();
+                updateTaskNumbers();
+                updateRemoveButtons();
+            }
+        }
+
+        // Update task numbering after removal
+        function updateTaskNumbers() {
+            const tasks = document.querySelectorAll('.task-item');
+            tasks.forEach((task, index) => {
+                const title = task.querySelector('h6');
+                const taskId = index + 1;
+                title.textContent = `Task #${taskId}`;
+                task.dataset.taskId = taskId;
+                
+                // Update input names
+                const inputs = task.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    const name = input.name;
+                    const newName = name.replace(/\[(\d+)\]/, `[${taskId}]`);
+                    input.name = newName;
+                });
+            });
+            
+            taskCounter = tasks.length + 1;
+        }
+
+        // Update remove buttons visibility
+        function updateRemoveButtons() {
+            const tasks = document.querySelectorAll('.task-item');
+            const removeButtons = document.querySelectorAll('.remove-task');
+            
+            // Hide remove button for the first task
+            if (tasks.length <= 1) {
+                removeButtons.forEach(btn => btn.style.display = 'none');
+            } else {
+                removeButtons.forEach(btn => btn.style.display = 'block');
+            }
+        }
+
+        // Copy priority down to all tasks below
+        function copyDown(currentTaskId) {
+            const currentTask = document.querySelector(`[data-task-id="${currentTaskId}"]`);
+            const currentPriority = currentTask.querySelector('.task-priority').value;
+            
+            const allTasks = Array.from(document.querySelectorAll('.task-item'));
+            const currentIndex = allTasks.findIndex(task => parseInt(task.dataset.taskId) === currentTaskId);
+            
+            // Apply to all tasks below
+            for (let i = currentIndex + 1; i < allTasks.length; i++) {
+                allTasks[i].querySelector('.task-priority').value = currentPriority;
+            }
+            
+            showToast('Priority copied to tasks below', 'success');
+        }
+
+        // Handle bulk task submission
+        function handleBulkTaskSubmission(e) {
+            e.preventDefault();
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const submitButton = document.getElementById('bulkSubmitButton');
+            
+            // Disable submit button and show loading
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating Tasks...';
+            
+            // Collect all tasks
+            const tasks = [];
+            const assignedTo = formData.get('assigned_to');
+            const defaultPriority = formData.get('default_priority');
+            
+            console.log('=== BULK TASK DEBUG INFO ===');
+            console.log('Form data keys:', [...formData.keys()]);
+            console.log('assigned_to value:', assignedTo);
+            console.log('default_priority value:', defaultPriority);
+            
+            // Collect all tasks
+            const taskItems = document.querySelectorAll('.task-item');
+            console.log('Number of task items found:', taskItems.length);
+            
+            taskItems.forEach((item, index) => {
+                console.log(`--- Processing task item ${index + 1} ---`);
+                console.log('Task item element:', item);
+                
+                const titleInput = item.querySelector('.task-title');
+                const descriptionInput = item.querySelector('.task-description');  
+                const prioritySelect = item.querySelector('.task-priority');
+                
+                console.log('Title input element:', titleInput);
+                console.log('Description input element:', descriptionInput);
+                console.log('Priority select element:', prioritySelect);
+                
+                if (titleInput && descriptionInput && prioritySelect) {
+                    const title = titleInput.value.trim();
+                    const description = descriptionInput.value.trim();
+                    const priority = prioritySelect.value;
+                    
+                    console.log('Extracted values:', { title, description, priority });
+                    
+                    if (title) {
+                        tasks.push({
+                            task_title: title,
+                            task_description: description,
+                            priority: priority,
+                            assigned_to: assignedTo
+                        });
+                        console.log('✓ Task added to collection');
+                    } else {
+                        console.log('✗ Skipped - empty title');
+                    }
+                } else {
+                    console.log('✗ Missing required input elements');
+                    console.log('Title exists:', !!titleInput);
+                    console.log('Description exists:', !!descriptionInput);
+                    console.log('Priority exists:', !!prioritySelect);
+                }
+            });
+            
+            console.log('=== FINAL RESULTS ===');
+            console.log('Total tasks collected:', tasks.length);
+            console.log('Tasks data:', tasks);
+            
+            if (tasks.length === 0) {
+                showToast('Please add at least one task with a title', 'error');
+                resetSubmitButton();
+                return;
+            }
+            
+            // Send AJAX request
+            fetch('ajax/create_multiple_daily_tasks.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ tasks: tasks })
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    
+                    // Show detailed results
+                    if (data.created_tasks.length > 0) {
+                        console.log('Created tasks:', data.created_tasks);
+                    }
+                    if (data.failed_tasks.length > 0) {
+                        console.log('Failed tasks:', data.failed_tasks);
+                        showToast(`${data.failed_tasks.length} task(s) failed to create`, 'warning');
+                    }
+                    
+                    // Close modal and reset form
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('bulkAddDailyTaskModal'));
+                    modal.hide();
+                    
+                    // Reset form
+                    document.getElementById('bulkAddTaskForm').reset();
+                    document.getElementById('taskListContainer').innerHTML = '';
+                    taskCounter = 1;
+                    
+                    // Refresh task list if visible
+                    if (typeof loadDailyTasks === 'function') {
+                        setTimeout(loadDailyTasks, 500);
+                    }
+                } else {
+                    showToast(data.message || 'Failed to create tasks', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred while creating tasks: ' + error.message, 'error');
+            })
+            .finally(() => {
+                resetSubmitButton();
+            });
+        }
+
+        // Reset submit button
+        function resetSubmitButton() {
+            const submitButton = document.getElementById('bulkSubmitButton');
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="fas fa-save me-1"></i>Create All Tasks';
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info'} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            // Add to toast container
+            let toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toastContainer';
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                document.body.appendChild(toastContainer);
+            }
+            
+            toastContainer.appendChild(toast);
+            
+            // Initialize and show toast
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            // Remove toast after it's hidden
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
     </script>
 
 
@@ -2149,77 +2446,24 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
     </div>
 
     <script>
-        // Function to load and display daily tasks for management
+        // Function to load and display daily tasks for management (using grouped display)
         function loadDailyTasks() {
             // Show the modal first
             const modal = new bootstrap.Modal(document.getElementById('manageDailyTasksModal'));
             modal.show();
             
-            // Load tasks via AJAX
-            fetch('ajax/get_daily_tasks.php')
+            // Load grouped tasks via AJAX
+            fetch('ajax/get_grouped_daily_tasks.php')
                 .then(response => response.json())
                 .then(data => {
                     const tasksContainer = document.getElementById('dailyTasksManagement');
                     
-                    if (data.success && data.tasks.length > 0) {
-                        let html = `
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Task Title</th>
-                                            <th>Description</th>
-                                            <th>Assigned To</th>
-                                            <th>Priority</th>
-                                            <th>Status</th>
-                                            <th>Created</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>`;
-                        
-                        data.tasks.forEach(task => {
-                            const priorityClass = {
-                                'urgent': 'bg-danger',
-                                'high': 'bg-warning text-dark',
-                                'medium': 'bg-info text-dark',
-                                'low': 'bg-secondary'
-                            }[task.priority] || 'bg-secondary';
-                            
-                            const statusClass = {
-                                'pending': 'bg-secondary',
-                                'in_progress': 'bg-warning text-dark',
-                                'completed': 'bg-success',
-                                'cancelled': 'bg-danger'
-                            }[task.task_status] || 'bg-secondary';
-                            
-                            html += `
-                                <tr>
-                                    <td><strong>${task.task_title}</strong></td>
-                                    <td>${task.task_description ? task.task_description.substring(0, 50) + (task.task_description.length > 50 ? '...' : '') : 'No description'}</td>
-                                    <td>${task.assigned_to_name || 'Not assigned'}</td>
-                                    <td><span class="badge ${priorityClass}">${task.priority}</span></td>
-                                    <td><span class="badge ${statusClass}">${task.task_status}</span></td>
-                                    <td>${new Date(task.created_at).toLocaleTimeString()}</td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <button type="button" class="btn btn-outline-primary" onclick="editTask(${task.id}, '${task.task_title.replace(/'/g, "\\'")}', '${task.task_description ? task.task_description.replace(/'/g, "\\'") : ''}', '${(task.assigned_to_name || '').replace(/'/g, "\\'")}', '${task.task_status}', '${task.priority}')">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-outline-danger" onclick="deleteTask(${task.id})">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>`;
-                        });
-                        
-                        html += `
-                                    </tbody>
-                                </table>
-                            </div>`;
-                        
-                        tasksContainer.innerHTML = html;
+                    if (data.success && data.grouped) {
+                        // Display grouped tasks
+                        displayGroupedTasks(tasksContainer, data.data.users);
+                    } else if (data.success && !data.grouped) {
+                        // Fallback to flat display if grouping not available
+                        displayFlatTasks(tasksContainer, data.data.tasks);
                     } else {
                         tasksContainer.innerHTML = `
                             <div class="text-center py-5">
@@ -2236,6 +2480,201 @@ if (in_array($user_type, ['support_tech', 'engineer'])) {
                             Error loading tasks: ${error.message}
                         </div>`;
                 });
+        }
+
+        // Function to display tasks grouped by user
+        function displayGroupedTasks(container, groupedUsers) {
+            let html = '<div class="grouped-tasks-container">';
+            
+            // Iterate through each user group
+            Object.keys(groupedUsers).forEach(userKey => {
+                const userGroup = groupedUsers[userKey];
+                const userTasks = userGroup.tasks;
+                
+                if (userTasks.length > 0) {
+                    html += `
+                        <div class="user-task-group mb-4">
+                            <div class="user-header bg-light p-3 rounded mb-3">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-user me-2"></i>
+                                    ${escapeHtml(userGroup.user_name)}
+                                    <span class="badge bg-primary ms-2">${userTasks.length} task${userTasks.length !== 1 ? 's' : ''}</span>
+                                </h5>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th width="30%">Task Title</th>
+                                            <th width="25%">Status</th>
+                                            <th width="15%">Priority</th>
+                                            <th width="20%">Created At</th>
+                                            <th width="10%">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                    
+                    // Add each task for this user
+                    userTasks.forEach(task => {
+                        const priorityClass = getPriorityBadgeClass(task.priority);
+                        const statusClass = getStatusBadgeClass(task.task_status);
+                        const createdAt = formatDate(task.created_at);
+                        
+                        html += `
+                            <tr>
+                                <td>
+                                    <strong>${escapeHtml(task.task_title)}</strong>
+                                    ${task.task_description ? `<div class="small text-muted mt-1">${escapeHtml(task.task_description)}</div>` : ''}
+                                </td>
+                                <td><span class="badge ${statusClass}">${formatStatus(task.task_status)}</span></td>
+                                <td><span class="badge ${priorityClass}">${formatPriority(task.priority)}</span></td>
+                                <td>${createdAt}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary" 
+                                                onclick="editTask(${task.id}, '${escapeHtml(task.task_title)}', '${escapeHtml(task.task_description || '')}', '${escapeHtml(task.assigned_to_name || '')}', '${task.task_status}', '${task.priority}')"
+                                                title="Edit Task">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                onclick="deleteTask(${task.id})"
+                                                title="Delete Task">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>`;
+                    });
+                    
+                    html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>`;
+                }
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Function to display tasks in flat format (fallback)
+        function displayFlatTasks(container, tasks) {
+            if (tasks.length > 0) {
+                let html = `
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Task Title</th>
+                                    <th>Description</th>
+                                    <th>Assigned To</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                
+                tasks.forEach(task => {
+                    const priorityClass = getPriorityBadgeClass(task.priority);
+                    const statusClass = getStatusBadgeClass(task.task_status);
+                    const createdAt = formatDate(task.created_at);
+                    
+                    html += `
+                        <tr>
+                            <td><strong>${escapeHtml(task.task_title)}</strong></td>
+                            <td>${escapeHtml(task.task_description || 'No description')}</td>
+                            <td>${escapeHtml(task.assigned_to_name || 'Not assigned')}</td>
+                            <td><span class="badge ${priorityClass}">${formatPriority(task.priority)}</span></td>
+                            <td><span class="badge ${statusClass}">${formatStatus(task.task_status)}</span></td>
+                            <td>${createdAt}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-primary" 
+                                            onclick="editTask(${task.id}, '${escapeHtml(task.task_title)}', '${escapeHtml(task.task_description || '')}', '${escapeHtml(task.assigned_to_name || '')}', '${task.task_status}', '${task.priority}')"
+                                            title="Edit Task">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            onclick="deleteTask(${task.id})"
+                                            title="Delete Task">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>`;
+                
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No tasks for today</h5>
+                        <p class="text-muted">Click "Add Daily Task" to create your first task.</p>
+                    </div>`;
+            }
+        }
+
+        // Helper functions for formatting
+        function getPriorityBadgeClass(priority) {
+            const classes = {
+                'urgent': 'bg-danger',
+                'high': 'bg-warning text-dark',
+                'medium': 'bg-info text-dark',
+                'low': 'bg-secondary'
+            };
+            return classes[priority] || 'bg-secondary';
+        }
+
+        function getStatusBadgeClass(status) {
+            const classes = {
+                'pending': 'bg-secondary',
+                'in_progress': 'bg-warning text-dark',
+                'completed': 'bg-success',
+                'cancelled': 'bg-danger'
+            };
+            return classes[status] || 'bg-secondary';
+        }
+
+        function formatPriority(priority) {
+            const labels = {
+                'low': 'Low',
+                'medium': 'Medium',
+                'high': 'High',
+                'urgent': 'Urgent'
+            };
+            return labels[priority] || priority;
+        }
+
+        function formatStatus(status) {
+            const labels = {
+                'pending': 'Pending',
+                'in_progress': 'In Progress',
+                'completed': 'Completed',
+                'cancelled': 'Cancelled'
+            };
+            return labels[status] || status;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Function to open edit task modal
