@@ -20,8 +20,8 @@ function createDailyTask($pdo, $task_data) {
     }
     
     if ($columnExists) {
-        $sql = "INSERT INTO daily_tasks (task_title, task_description, assigned_to_name, priority) 
-                VALUES (:task_title, :task_description, :assigned_to_name, :priority) 
+        $sql = "INSERT INTO daily_tasks (task_date, task_title, task_description, assigned_to_name, priority) 
+                VALUES (CURRENT_DATE, :task_title, :task_description, :assigned_to_name, :priority) 
                 RETURNING id";
         
         $stmt = $pdo->prepare($sql);
@@ -32,8 +32,8 @@ function createDailyTask($pdo, $task_data) {
             ':priority' => $task_data['priority'] ?? 'medium'
         ]);
     } else {
-        $sql = "INSERT INTO daily_tasks (task_title, task_description, priority) 
-                VALUES (:task_title, :task_description, :priority) 
+        $sql = "INSERT INTO daily_tasks (task_date, task_title, task_description, priority) 
+                VALUES (CURRENT_DATE, :task_title, :task_description, :priority) 
                 RETURNING id";
         
         $stmt = $pdo->prepare($sql);
@@ -52,9 +52,15 @@ function createDailyTask($pdo, $task_data) {
  */
 function getDailyTasksByDate($pdo, $date = null) {
     if (!$date) {
-        $date = date('Y-m-d');
+        // Use database's current date if no date is provided
+        $sql = "SELECT * FROM daily_tasks 
+                WHERE task_date = CURRENT_DATE
+                ORDER BY priority DESC, created_at ASC";
+        $stmt = $pdo->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
+    // If a specific date is provided, use it
     $sql = "SELECT * FROM daily_tasks 
             WHERE task_date = :date
             ORDER BY priority DESC, created_at ASC";
@@ -133,7 +139,13 @@ function deleteDailyTask($pdo, $task_id) {
  * Get today's tasks for all users
  */
 function getTodayTasks($pdo) {
-    return getDailyTasksByDate($pdo, date('Y-m-d'));
+    // Use database's current date to ensure consistency
+    $sql = "SELECT * FROM daily_tasks 
+            WHERE task_date = CURRENT_DATE
+            ORDER BY priority DESC, created_at ASC";
+    
+    $stmt = $pdo->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 /**
