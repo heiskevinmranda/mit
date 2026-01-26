@@ -1,11 +1,13 @@
 <?php
 require_once 'routes.php';
+require_once 'profile_picture_helper.php';
 $current_user = getCurrentUser();
 $user_type = $current_user['user_type'] ?? 'client';
 ?>
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <h3><i class="fas fa-network-wired"></i> MSP Portal</h3>
+        <?php echo getProfilePictureHTML($current_user['id'], $current_user['email'], 'md', 'sidebar-profile-pic'); ?>
         <p><?php echo htmlspecialchars($current_user['staff_profile']['full_name'] ?? $current_user['email']); ?></p>
         <span class="user-role"><?php echo ucfirst(str_replace('_', ' ', $user_type)); ?></span>
     </div>

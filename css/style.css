@@ -955,3 +955,25 @@ body {
 
 .py-4 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
 .mb-3 { margin-bottom: 1rem; }
+
+/* Profile Picture Styles */
+.sidebar-profile-pic {
+    margin: 10px auto;
+    display: block;
+}
+
+.profile-picture-initials, .profile-picture-img {
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.profile-picture-initials {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}

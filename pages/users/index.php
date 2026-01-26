@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/routes.php';
 require_once __DIR__ . '/../../includes/permissions.php';
+require_once __DIR__ . '/../../includes/profile_picture_helper.php';
 
 $page_title = 'User Management';
 
@@ -387,9 +388,7 @@ function getRoleBadge($role) {
                                 ?>
                                 <tr>
                                     <td>
-                                        <div class="user-avatar">
-                                            <?= strtoupper(substr($user['email'], 0, 1)) ?>
-                                        </div>
+                                        <?php echo getProfilePictureHTML($user['id'], $user['email'], 'md'); ?>
                                     </td>
                                     <td>
                                         <div class="user-email"><?= htmlspecialchars($user['email']) ?></div>

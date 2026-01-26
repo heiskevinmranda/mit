@@ -1,6 +1,7 @@
 <?php
 require_once '../../includes/auth.php';
 require_once '../../includes/routes.php';
+require_once '../../includes/profile_picture_helper.php';
 requireLogin();
 
 $page_title = 'My Profile';
@@ -123,19 +124,11 @@ if ($is_profile_complete && isset($staff['id'])) {
             padding: 40px;
             border-radius: 10px;
             margin-bottom: 30px;
+            text-align: center;
         }
-
-        .profile-avatar {
-            width: 120px;
-            height: 120px;
-            background: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            color: #004E89;
-            font-weight: bold;
+        
+        .profile-header .profile-picture-initials,
+        .profile-header .profile-picture-img {
             margin: 0 auto 20px;
             border: 5px solid rgba(255, 255, 255, 0.2);
         }
@@ -254,9 +247,7 @@ if ($is_profile_complete && isset($staff['id'])) {
             
             <!-- Profile Header -->
             <div class="profile-header">
-                <div class="profile-avatar">
-                    <?php echo $is_profile_complete ? strtoupper(substr($staff['full_name'] ?? '', 0, 1)) : strtoupper(substr($current_user['email'], 0, 1)); ?>
-                </div>
+                <?php echo getProfilePictureHTML($current_user['id'], $current_user['email'], 'xl'); ?>
                 <div class="profile-info">
                     <h1><?php echo $is_profile_complete ? htmlspecialchars($staff['full_name'] ?? '') : 'Incomplete Profile'; ?></h1>
                     <div class="designation"><?php echo $is_profile_complete ? htmlspecialchars($staff['designation'] ?? '') : 'Profile Incomplete'; ?></div>

@@ -8,6 +8,7 @@ $generateStaffId = function() {
 };
 
 require_once '../../includes/routes.php';
+require_once '../../includes/profile_picture_helper.php';
 requireLogin();
 
 $page_title = 'Edit Profile';
@@ -110,6 +111,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $current_address = trim($_POST['current_address'] ?? '');
     $emergency_contact_name = trim($_POST['emergency_contact_name'] ?? '');
     $emergency_contact_number = trim($_POST['emergency_contact_number'] ?? '');
+    
+    // Handle profile picture upload
+    $profile_picture_result = null;
+    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $profile_picture_result = uploadProfilePicture($_FILES['profile_picture'], $current_user['id']);
+        if (!$profile_picture_result['success']) {
+            $errors['profile_picture'] = $profile_picture_result['message'];
+        }
+    }
     
     // Additional staff profile fields
     $designation = trim($_POST['designation'] ?? '');
@@ -232,6 +242,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Update session email
                 $_SESSION['email'] = $email;
+            }
+
+            // Update profile picture if uploaded successfully
+            if ($profile_picture_result && $profile_picture_result['success']) {
+                updateUserProfilePicture($current_user['id'], $profile_picture_result['file_path']);
             }
 
             // Update or create staff profile
@@ -383,6 +398,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border: 1px solid #e9ecef;
         }
         
+        /* Profile Picture Styles */
+        .profile-picture-initials, .profile-picture-img {
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #e9ecef;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .profile-picture-initials {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .profile-picture-img {
+            display: block;
+        }
+        
         .section-header {
             display: flex;
             justify-content: space-between;
@@ -530,7 +567,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         
         <!-- Edit Form -->
-        <form method="POST" action="" id="editProfileForm">
+        <form method="POST" action="" id="editProfileForm" enctype="multipart/form-data">
             <div class="row">
                 <div class="col-md-6">
                     <!-- Personal Information Section -->
@@ -565,6 +602,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php if (isset($errors['full_name'])): ?>
                             <div class="invalid-feedback"><?= htmlspecialchars($errors['full_name'] ?? '') ?></div>
                             <?php endif; ?>
+                        </div>
+                        
+                        <!-- Profile Picture Upload -->
+                        <div class="mb-3">
+                            <label for="profile_picture" class="form-label">Profile Picture</label>
+                            <div class="mb-2">
+                                <?php echo getProfilePictureHTML($current_user['id'], $current_user['email'], 'lg'); ?>
+                            </div>
+                            <input type="file" class="form-control <?php echo isset($errors['profile_picture']) ? 'is-invalid' : ''; ?>" 
+                                   id="profile_picture" name="profile_picture" 
+                                   accept="image/jpeg,image/png,image/gif,image/webp">
+                            <?php if (isset($errors['profile_picture'])): ?>
+                            <div class="invalid-feedback"><?= htmlspecialchars($errors['profile_picture'] ?? '') ?></div>
+                            <?php endif; ?>
+                            <small class="text-muted">Upload a profile picture (JPG, PNG, GIF, or WebP, max 5MB)</small>
                         </div>
                         
                         <div class="mb-3">

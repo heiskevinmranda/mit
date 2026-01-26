@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/permissions.php';
 require_once __DIR__ . '/../../includes/routes.php';
+require_once __DIR__ . '/../../includes/profile_picture_helper.php';
 
 if (!isLoggedIn()) {
     header("Location: " . route('login'));
@@ -434,9 +435,7 @@ function getRoleBadge($role) {
             <!-- Profile Header -->
             <div class="profile-header">
                 <div class="d-flex align-items-center">
-                    <div class="profile-avatar">
-                        <?= strtoupper(substr($user['email'], 0, 1)) ?>
-                    </div>
+                    <?php echo getProfilePictureHTML($user['id'], $user['email'], 'xl'); ?>
                     <div class="profile-info flex-grow-1">
                         <h1><?= htmlspecialchars($user['full_name'] ?? $user['email']) ?></h1>
                         <p class="mb-1">
