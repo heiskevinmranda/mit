@@ -380,7 +380,7 @@
                     </ul>
                 </div>
                 
-                <a href="/mit/client-login.php" class="btn-login">
+                <a href="<?php echo route('client.login'); ?>" class="btn-login">
                     <i class="fas fa-sign-in-alt me-2"></i> Login to Client Portal
                 </a>
             </div>

@@ -736,7 +736,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <div class="card">
                         <div class="card-header">
                             <h5><i class="fas fa-map-marker-alt"></i> Client Locations</h5>
-                            <a href="<?= route('clients.add_location') . '?client_id=' . $client_id ?>" class="btn btn-primary btn-sm">
+                            <a href="<?= route('clients.add_location', ['client_id' => $client_id]) ?>" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plus"></i> Add Location
                             </a>
                         </div>
@@ -746,7 +746,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <i class="fas fa-map-marker-alt"></i>
                                 <h5>No Locations Found</h5>
                                 <p>This client doesn't have any locations yet.</p>
-                                <a href="<?= route('clients.add_location') . '?client_id=' . $client_id ?>" class="btn btn-primary">
+                                <a href="<?= route('clients.add_location', ['client_id' => $client_id]) ?>" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Add First Location
                                 </a>
                             </div>
@@ -800,12 +800,12 @@ require_once __DIR__ . '/../../includes/header.php';
                                             </td>
                                             <td>
                                                 <div class="action-buttons">
-                                                    <a href="<?= route('clients.edit_location') . '?id=' . $location['id'] . '&client_id=' . $client_id ?>" 
+                                                    <a href="<?= route('clients.edit_location', ['id' => $location['id'], 'client_id' => $client_id]) ?>" 
                                                        class="btn btn-warning btn-sm">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
                                                     <?php if (!$location['is_primary']): ?>
-                                                    <a href="<?= route('clients.delete_location') . '?id=' . $location['id'] . '&client_id=' . $client_id ?>" 
+                                                    <a href="<?= route('clients.delete_location', ['id' => $location['id'], 'client_id' => $client_id]) ?>" 
                                                        class="btn btn-danger btn-sm"
                                                        onclick="return confirm('Are you sure you want to delete this location?')">
                                                         <i class="fas fa-trash"></i>
@@ -828,7 +828,7 @@ require_once __DIR__ . '/../../includes/header.php';
                     <div class="card">
                         <div class="card-header">
                             <h5><i class="fas fa-file-contract"></i> Client Contracts</h5>
-                            <a href="<?= route('clients.add_contract') . '?client_id=' . $client_id ?>" class="btn btn-primary btn-sm">
+                            <a href="<?= route('clients.add_contract', ['client_id' => $client_id]) ?>" class="btn btn-primary btn-sm">
                                 <i class="fas fa-plus"></i> Add Contract
                             </a>
                         </div>
@@ -838,7 +838,7 @@ require_once __DIR__ . '/../../includes/header.php';
                                 <i class="fas fa-file-contract"></i>
                                 <h5>No Contracts Found</h5>
                                 <p>This client doesn't have any contracts yet.</p>
-                                <a href="<?= route('clients.add_contract') . '?client_id=' . $client_id ?>" class="btn btn-primary">
+                                <a href="<?= route('clients.add_contract', ['client_id' => $client_id]) ?>" class="btn btn-primary">
                                     <i class="fas fa-plus"></i> Add First Contract
                                 </a>
                             </div>

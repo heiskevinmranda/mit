@@ -120,10 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="alert alert-success">
                     <?php echo htmlspecialchars($success); ?>
                     <div class="mt-3">
-                        <a href="client-tickets.php" class="btn btn-success me-2">
+                        <a href="<?php echo route('client.tickets'); ?>" class="btn btn-success me-2">
                             <i class="fas fa-ticket-alt me-1"></i> View All Tickets
                         </a>
-                        <a href="new-ticket.php" class="btn btn-outline-success">
+                        <a href="<?php echo route('tickets.create'); ?>" class="btn btn-outline-success">
                             <i class="fas fa-plus me-1"></i> Create Another
                         </a>
                     </div>
@@ -235,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 <!-- Submit Buttons -->
                 <div class="d-flex justify-content-between mt-4 pt-4 border-top">
-                    <a href="client-dashboard.php" class="btn btn-outline-secondary">
+                    <a href="<?php echo route('client.dashboard'); ?>" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
                     </a>
                     <button type="submit" class="btn btn-success btn-lg">

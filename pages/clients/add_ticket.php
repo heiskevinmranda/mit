@@ -45,7 +45,7 @@ try {
 $user_role = $_SESSION['user_type'] ?? null;
 if (!in_array($user_role, ['super_admin', 'admin', 'manager', 'technician'])) {
     $_SESSION['error'] = "You don't have permission to create tickets.";
-    header("Location: " . route('clients.view') . "?id=$client_id");
+    header("Location: " . route('clients.view', ['id' => $client_id]));
     exit();
 }
 
@@ -261,7 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->commit();
             
             $_SESSION['success'] = "Ticket #$ticket_number created successfully!";
-            header("Location: " . route('tickets.view') . "?id=$ticket_id");
+            header("Location: " . route('tickets.view', ['id' => $ticket_id]));
             exit();
             
         } catch (PDOException $e) {
@@ -820,7 +820,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="<?php echo route('clients.index'); ?>">Clients</a></li>
-                    <li class="breadcrumb-item"><a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>"><?php echo htmlspecialchars($client['company_name']); ?></a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('clients.view', ['id' => $client_id]); ?>"><?php echo htmlspecialchars($client['company_name']); ?></a></li>
                     <li class="breadcrumb-item active" aria-current="page">Create Ticket</li>
                 </ol>
             </nav>
@@ -833,7 +833,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </h1>
                     <p class="text-muted">Create a new support ticket for <?= htmlspecialchars($client['company_name']) ?></p>
                 </div>
-                <a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>" class="btn btn-outline-secondary">
+                <a href="<?php echo route('clients.view', ['id' => $client_id]); ?>" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Client
                 </a>
             </div>
@@ -1088,7 +1088,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="view.php?id=<?= $client_id ?>" class="btn btn-outline-secondary">
+                            <a href="<?= route('clients.view', ['id' => $client_id]) ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-primary">

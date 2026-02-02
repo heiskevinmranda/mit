@@ -732,25 +732,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <h4><i class="fas fa-tools"></i> MSP Portal <span class="super-admin-badge"><i class="fas fa-user-shield"></i> SUPER ADMIN</span></h4>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3 d-none d-md-inline">
-                    <i class="fas fa-user-shield me-1"></i> <?= htmlspecialchars($_SESSION['email'] ?? 'User') ?>
-                </span>
-                <?php require_once '../../../includes/routes.php'; ?><a href="<?php echo route('logout'); ?>" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </nav>
-    
-    <!-- Sidebar Backdrop (mobile) -->
-    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
-    
-    <div class="main-wrapper">
+    <div class="dashboard-container">
         <!-- Sidebar -->
         <?php include '../../includes/sidebar.php'; ?>
         
@@ -761,7 +743,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="<?php echo route('clients.index'); ?>">Clients</a></li>
-                    <li class="breadcrumb-item"><a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>"><?php echo htmlspecialchars($client['company_name']); ?></a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('clients.view', ['id' => $client_id]); ?>"><?php echo htmlspecialchars($client['company_name']); ?></a></li>
                     <li class="breadcrumb-item active" aria-current="page">Delete Client</li>
                 </ol>
             </nav>
@@ -784,7 +766,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </h1>
                     <p class="text-muted">This action cannot be undone and is restricted to super administrators only</p>
                 </div>
-                <a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>" class="btn btn-outline-secondary">
+                <a href="<?php echo route('clients.view', ['id' => $client_id]); ?>" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Client
                 </a>
             </div>
@@ -962,7 +944,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="<?php echo route('clients.view') . '?id=' . $client_id; ?>" class="btn btn-outline-secondary">
+                            <a href="<?php echo route('clients.view', ['id' => $client_id]); ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <div class="action-buttons">
@@ -1014,8 +996,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </main>
     </div>
     
+        <!-- Sidebar Backdrop (mobile) -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    
     <!-- Mobile Menu Button -->
-    <button class="mobile-menu-btn" onclick="toggleSidebar()">
+    <button class="mobile-menu-btn" id="mobileMenuBtn">
         <i class="fas fa-bars"></i>
     </button>
     
@@ -1044,6 +1029,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     toggleSidebar();
                 }
             });
+        });
+        
+        // Mobile menu button event listener
+        document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+            toggleSidebar();
+        });
+        
+        // Close sidebar when clicking outside (mobile)
+        document.getElementById('sidebarBackdrop').addEventListener('click', function() {
+            toggleSidebar();
         });
         
         // Toggle permanent deletion section based on archive checkbox
@@ -1128,19 +1123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         }, 5000);
         
-        // Close sidebar when clicking outside (mobile)
-        document.addEventListener('click', function(event) {
-            const sidebar = document.getElementById('sidebar');
-            const backdrop = document.getElementById('sidebarBackdrop');
-            const mobileBtn = document.querySelector('.mobile-menu-btn');
-            
-            if (window.innerWidth < 992 && 
-                sidebar.classList.contains('active') && 
-                !sidebar.contains(event.target) && 
-                !mobileBtn.contains(event.target)) {
-                toggleSidebar();
-            }
-        });
+        
         
         // Initialize the page state
         document.addEventListener('DOMContentLoaded', function() {

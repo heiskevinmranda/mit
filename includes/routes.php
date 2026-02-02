@@ -160,6 +160,17 @@ class RouteManager
         // File download routes
         'attachments.download' => '/attachments/download',
         
+        // Client portal routes
+        'client.dashboard' => '/client/dashboard',
+        'client.tickets' => '/client/tickets',
+        'client.assets' => '/client/assets',
+        'client.contracts' => '/client/contracts',
+        'client.site_visits' => '/client/site-visits',
+        'client.reports' => '/client/reports',
+        'client.profile' => '/client/profile',
+        'client.change_password' => '/client/change-password',
+        'client.login' => '/client-login',
+        
         // Error routes
         'errors.404' => '/errors/404',
         'errors.403' => '/errors/403',

@@ -138,6 +138,18 @@ RewriteRule ^errors/403$ pages/errors/403.php [L]
 RewriteRule ^errors/500$ pages/errors/500.php [L]
 RewriteRule ^errors/401$ pages/errors/401.php [L]
 
+# Client portal routes
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^client/dashboard$ client/client-dashboard.php [L]
+RewriteRule ^client/tickets$ client/client-tickets.php [L]
+RewriteRule ^client/assets$ client/client-assets.php [L]
+RewriteRule ^client/contracts$ client/client-contracts.php [L]
+RewriteRule ^client/site-visits$ client/client-site-visits.php [L]
+RewriteRule ^client/reports$ client/client-reports.php [L]
+RewriteRule ^client/profile$ client/client-profile.php [L]
+RewriteRule ^client/change-password$ client/client-change-password.php [L]
+RewriteRule ^client-login$ client-login.php [L]
+
 # Catch-all for other routes (to handle 404s or custom routing)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

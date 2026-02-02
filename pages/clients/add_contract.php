@@ -44,7 +44,7 @@ try {
 // Check permissions
 if (!hasClientPermission('edit', $client_id)) {
     $_SESSION['error'] = "You don't have permission to add contracts for this client.";
-    header("Location: " . route('clients.view') . "?id=$client_id");
+    header("Location: " . route('clients.view', ['id' => $client_id]));
     exit();
 }
 

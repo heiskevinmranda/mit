@@ -1026,7 +1026,7 @@ require_once __DIR__ . '/../../includes/header.php';
                         
                         <!-- Form Actions -->
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="<?= route('clients.view') . '?id=' . $client_id ?>" class="btn btn-outline-secondary">
+                            <a href="<?= route('clients.view', ['id' => $client_id]) ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <div class="action-buttons">

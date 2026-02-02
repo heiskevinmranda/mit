@@ -67,13 +67,13 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <ul class="nav flex-column pt-3">
         <li class="nav-item">
             <a class="nav-link <?php echo $current_page == 'client-dashboard.php' ? 'active' : ''; ?>" 
-               href="client-dashboard.php">
+               href="<?php echo route('client.dashboard'); ?>">
                 <i class="fas fa-tachometer-alt"></i> Dashboard
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $current_page == 'client-tickets.php' ? 'active' : ''; ?>" 
-               href="client-tickets.php">
+               href="<?php echo route('client.tickets'); ?>">
                 <i class="fas fa-ticket-alt"></i> Support Tickets
                 <?php if ($counts['open_tickets'] > 0): ?>
                     <span class="badge bg-danger float-end"><?php echo $counts['open_tickets']; ?></span>
@@ -88,21 +88,21 @@ $current_page = basename($_SERVER['PHP_SELF']);
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $current_page == 'client-assets.php' ? 'active' : ''; ?>" 
-               href="client-assets.php">
+               href="<?php echo route('client.assets'); ?>">
                 <i class="fas fa-server"></i> IT Assets
                 <span class="badge bg-info float-end"><?php echo $counts['total_assets']; ?></span>
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $current_page == 'client-contracts.php' ? 'active' : ''; ?>" 
-               href="client-contracts.php">
+               href="<?php echo route('client.contracts'); ?>">
                 <i class="fas fa-file-contract"></i> Contracts
                 <span class="badge bg-success float-end"><?php echo $counts['active_contracts']; ?></span>
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $current_page == 'client-site-visits.php' ? 'active' : ''; ?>" 
-               href="client-site-visits.php">
+               href="<?php echo route('client.site_visits'); ?>">
                 <i class="fas fa-map-marker-alt"></i> Site Visits
                 <?php if ($counts['pending_visits'] > 0): ?>
                     <span class="badge bg-warning float-end"><?php echo $counts['pending_visits']; ?></span>
@@ -111,19 +111,19 @@ $current_page = basename($_SERVER['PHP_SELF']);
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $current_page == 'client-reports.php' ? 'active' : ''; ?>" 
-               href="client-reports.php">
+               href="<?php echo route('client.reports'); ?>">
                 <i class="fas fa-chart-bar"></i> Reports
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $current_page == 'client-profile.php' ? 'active' : ''; ?>" 
-               href="client-profile.php">
+               href="<?php echo route('client.profile'); ?>">
                 <i class="fas fa-user-cog"></i> My Profile
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link <?php echo $current_page == 'client-change-password.php' ? 'active' : ''; ?>" 
-               href="client-change-password.php">
+               href="<?php echo route('client.change_password'); ?>">
                 <i class="fas fa-key"></i> Change Password
             </a>
         </li>
