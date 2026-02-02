@@ -255,10 +255,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $staffUpdateQuery = "UPDATE staff_profiles SET 
                                     staff_id = ?,
                                     full_name = ?, 
-                                    phone_number = ?, 
+                                    designation = ?,
+                                    department = ?,
+                                    employment_type = ?,
+                                    date_of_joining = ?,
+                                    reporting_manager_id = ?,
                                     official_email = ?,
                                     personal_email = ?,
+                                    phone_number = ?, 
                                     alternate_phone = ?,
+                                    emergency_contact_name = ?,
+                                    emergency_contact_number = ?,
                                     current_address = ?,
                                     permanent_address = ?,
                                     national_id = ?,
@@ -268,13 +275,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     nationality = ?,
                                     tax_id = ?,
                                     work_permit_details = ?,
-                                    emergency_contact_name = ?,
-                                    emergency_contact_number = ?,
-                                    designation = ?,
-                                    department = ?,
-                                    employment_type = ?,
-                                    date_of_joining = ?,
-                                    employment_status = ?,
                                     role_category = ?,
                                     skills = ?,
                                     certifications = ?,
@@ -289,11 +289,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     company_laptop_issued = ?,
                                     asset_serial_number = ?,
                                     vpn_access = ?,
-                                    reporting_manager_id = ?,
                                     bank_name = ?,
                                     account_number = ?,
                                     salary_type = ?,
                                     payment_method = ?,
+                                    employment_status = ?,
                                     last_working_day = ?,
                                     remarks = ?,
                                     hr_approval_date = ?,
@@ -302,44 +302,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     WHERE user_id = ?";
                 $staffUpdateStmt = $pdo->prepare($staffUpdateQuery);
                 $staffUpdateStmt->execute([
-                    $staff_id ?: $generateStaffId(), $full_name, $phone, $official_email, $personal_email,
-                    $alternate_phone, $current_address, $permanent_address, $national_id, $passport_number,
+                    $staff_id ?: $generateStaffId(), $full_name, $designation, $department,
+                    $employment_type, $date_of_joining, $reporting_manager_id, $official_email, $personal_email,
+                    $phone, $alternate_phone, $emergency_contact_name, $emergency_contact_number,
+                    $current_address, $permanent_address, $national_id, $passport_number,
                     $date_of_birth, $gender, $nationality, $tax_id, $work_permit_details,
-                    $emergency_contact_name, $emergency_contact_number, $designation, $department,
-                    $employment_type, $date_of_joining, $employment_status, $role_category, $skills,
-                    $certifications, $experience_years, $assigned_clients, $service_area, $shift_timing,
-                    $on_call_support, $username, $role_level, $system_access, $company_laptop_issued,
-                    $asset_serial_number, $vpn_access, $reporting_manager_id, $bank_name, $account_number,
-                    $salary_type, $payment_method, $last_working_day, $remarks, $hr_approval_date, $hr_manager_id,
+                    $role_category, $skills, $certifications, $experience_years, $assigned_clients,
+                    $service_area, $shift_timing, $on_call_support, $username, $role_level,
+                    $system_access, $company_laptop_issued, $asset_serial_number, $vpn_access,
+                    $bank_name, $account_number, $salary_type, $payment_method, $employment_status,
+                    $last_working_day, $remarks, $hr_approval_date, $hr_manager_id,
                     $current_user['id']
                 ]);
             } else {
                 // Create new staff profile
                 $staffInsertQuery = "INSERT INTO staff_profiles 
-                                    (user_id, staff_id, full_name, phone_number, official_email,
-                                     personal_email, alternate_phone, current_address, permanent_address,
-                                     national_id, passport_number, date_of_birth, gender, nationality,
-                                     tax_id, work_permit_details, emergency_contact_name, 
-                                     emergency_contact_number, designation, department, employment_type,
-                                     date_of_joining, employment_status, role_category, skills, 
-                                     certifications, experience_years, assigned_clients, service_area,
-                                     shift_timing, on_call_support, username, role_level, system_access,
-                                     company_laptop_issued, asset_serial_number, vpn_access, 
-                                     reporting_manager_id, bank_name, account_number, salary_type,
-                                     payment_method, last_working_day, remarks, hr_approval_date, 
-                                     hr_manager_id, created_at, updated_at) 
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())";
+                                    (user_id, staff_id, full_name, designation, department, employment_type,
+                                     date_of_joining, reporting_manager_id, official_email, personal_email,
+                                     phone_number, alternate_phone, emergency_contact_name, emergency_contact_number,
+                                     current_address, permanent_address, national_id, passport_number, date_of_birth,
+                                     gender, nationality, tax_id, work_permit_details, role_category, skills,
+                                     certifications, experience_years, assigned_clients, service_area, shift_timing,
+                                     on_call_support, username, role_level, system_access, company_laptop_issued,
+                                     asset_serial_number, vpn_access, bank_name, account_number, salary_type,
+                                     payment_method, employment_status, last_working_day, remarks, staff_signature_data,
+                                     hr_approval_date, hr_manager_id, photo_path, signature_path, documents) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $staffInsertStmt = $pdo->prepare($staffInsertQuery);
                 $staffInsertStmt->execute([
-                    $current_user['id'], $staff_id ?: $generateStaffId(), $full_name, $phone, $official_email,
-                    $personal_email, $alternate_phone, $current_address, $permanent_address, $national_id, 
-                    $passport_number, $date_of_birth, $gender, $nationality, $tax_id, $work_permit_details,
-                    $emergency_contact_name, $emergency_contact_number, $designation, $department,
-                    $employment_type, $date_of_joining, $employment_status, $role_category, $skills,
+                    $current_user['id'], $staff_id ?: $generateStaffId(), $full_name, $designation, $department,
+                    $employment_type, $date_of_joining, $reporting_manager_id, $official_email, $personal_email,
+                    $phone, $alternate_phone, $emergency_contact_name, $emergency_contact_number,
+                    $current_address, $permanent_address, $national_id, $passport_number, $date_of_birth,
+                    $gender, $nationality, $tax_id, $work_permit_details, $role_category, $skills,
                     $certifications, $experience_years, $assigned_clients, $service_area, $shift_timing,
                     $on_call_support, $username, $role_level, $system_access, $company_laptop_issued,
-                    $asset_serial_number, $vpn_access, $reporting_manager_id, $bank_name, $account_number,
-                    $salary_type, $payment_method, $last_working_day, $remarks, $hr_approval_date, $hr_manager_id
+                    $asset_serial_number, $vpn_access, $bank_name, $account_number, $salary_type,
+                    $payment_method, $employment_status, $last_working_day, $remarks, null,
+                    $hr_approval_date, $hr_manager_id, null, null, null
                 ]);
             }
 
@@ -579,7 +579,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="mb-3">
                             <label for="email" class="form-label required">Email Address</label>
                             <input type="email" class="form-control <?php echo isset($errors['email']) ? 'is-invalid' : ''; ?>" 
-                                   id="email" name="email" value="<?= htmlspecialchars($email) ?>" 
+                                   id="email" name="email" value="<?= htmlspecialchars($email ?? '') ?>" 
                                    placeholder="user@example.com" required>
                             <?php if (isset($errors['email'])): ?>
                             <div class="invalid-feedback"><?= htmlspecialchars($errors['email'] ?? '') ?></div>
@@ -597,7 +597,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="mb-3">
                             <label for="full_name" class="form-label required">Full Name</label>
                             <input type="text" class="form-control <?php echo isset($errors['full_name']) ? 'is-invalid' : ''; ?>" 
-                                   id="full_name" name="full_name" value="<?= htmlspecialchars($full_name) ?>" 
+                                   id="full_name" name="full_name" value="<?= htmlspecialchars($full_name ?? '') ?>" 
                                    placeholder="John Doe" required>
                             <?php if (isset($errors['full_name'])): ?>
                             <div class="invalid-feedback"><?= htmlspecialchars($errors['full_name'] ?? '') ?></div>
@@ -622,21 +622,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="mb-3">
                             <label for="phone" class="form-label">Phone Number</label>
                             <input type="tel" class="form-control" 
-                                   id="phone" name="phone" value="<?= htmlspecialchars($phone) ?>" 
+                                   id="phone" name="phone" value="<?= htmlspecialchars($phone ?? '') ?>" 
                                    placeholder="+255 xxx xxx xxx">
                         </div>
                         
                         <div class="mb-3">
                             <label for="designation" class="form-label">Designation</label>
                             <input type="text" class="form-control" 
-                                   id="designation" name="designation" value="<?= htmlspecialchars($designation) ?>" 
+                                   id="designation" name="designation" value="<?= htmlspecialchars($designation ?? '') ?>" 
                                    placeholder="Your job title">
                         </div>
                         
                         <div class="mb-3">
                             <label for="department" class="form-label">Department</label>
                             <input type="text" class="form-control" 
-                                   id="department" name="department" value="<?= htmlspecialchars($department) ?>" 
+                                   id="department" name="department" value="<?= htmlspecialchars($department ?? '') ?>" 
                                    placeholder="Your department">
                         </div>
                         
@@ -670,28 +670,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="mb-3">
                             <label for="role_category" class="form-label">Role Category</label>
                             <input type="text" class="form-control" 
-                                   id="role_category" name="role_category" value="<?= htmlspecialchars($role_category) ?>" 
+                                   id="role_category" name="role_category" value="<?= htmlspecialchars($role_category ?? '') ?>" 
                                    placeholder="Category of your role">
                         </div>
                         
                         <div class="mb-3">
                             <label for="skills" class="form-label">Skills</label>
                             <input type="text" class="form-control" 
-                                   id="skills" name="skills" value="<?= htmlspecialchars($skills) ?>" 
+                                   id="skills" name="skills" value="<?= htmlspecialchars($skills ?? '') ?>" 
                                    placeholder="Comma separated list of your skills">
                         </div>
                         
                         <div class="mb-3">
                             <label for="certifications" class="form-label">Certifications</label>
                             <input type="text" class="form-control" 
-                                   id="certifications" name="certifications" value="<?= htmlspecialchars($certifications) ?>" 
+                                   id="certifications" name="certifications" value="<?= htmlspecialchars($certifications ?? '') ?>" 
                                    placeholder="List of your certifications">
                         </div>
                         
                         <div class="mb-3">
                             <label for="service_area" class="form-label">Service Area</label>
                             <input type="text" class="form-control" 
-                                   id="service_area" name="service_area" value="<?= htmlspecialchars($service_area) ?>" 
+                                   id="service_area" name="service_area" value="<?= htmlspecialchars($service_area ?? '') ?>" 
                                    placeholder="Your service area">
                         </div>
                         
@@ -705,7 +705,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="mb-3">
                             <label for="shift_timing" class="form-label">Shift Timing</label>
                             <input type="text" class="form-control" 
-                                   id="shift_timing" name="shift_timing" value="<?= htmlspecialchars($shift_timing) ?>" 
+                                   id="shift_timing" name="shift_timing" value="<?= htmlspecialchars($shift_timing ?? '') ?>" 
                                    placeholder="Your shift schedule">
                         </div>
                     </div>
@@ -720,7 +720,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="official_email" class="form-label">Official Email</label>
                             <input type="email" class="form-control" 
                                    id="official_email" name="official_email" 
-                                   value="<?= htmlspecialchars($official_email) ?>" 
+                                   value="<?= htmlspecialchars($official_email ?? '') ?>"
                                    placeholder="official@company.com">
                         </div>
                         
@@ -728,7 +728,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="personal_email" class="form-label">Personal Email</label>
                             <input type="email" class="form-control" 
                                    id="personal_email" name="personal_email" 
-                                   value="<?= htmlspecialchars($personal_email) ?>" 
+                                   value="<?= htmlspecialchars($personal_email ?? '') ?>"
                                    placeholder="personal@email.com">
                         </div>
                         
@@ -736,7 +736,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="alternate_phone" class="form-label">Alternate Phone</label>
                             <input type="tel" class="form-control" 
                                    id="alternate_phone" name="alternate_phone" 
-                                   value="<?= htmlspecialchars($alternate_phone) ?>" 
+                                   value="<?= htmlspecialchars($alternate_phone ?? '') ?>"
                                    placeholder="+255 xxx xxx xxx">
                         </div>
                         
@@ -752,7 +752,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="national_id" class="form-label">National ID</label>
                             <input type="text" class="form-control" 
                                    id="national_id" name="national_id" 
-                                   value="<?= htmlspecialchars($national_id) ?>" 
+                                   value="<?= htmlspecialchars($national_id ?? '') ?>"
                                    placeholder="Your National ID number">
                         </div>
                         
@@ -760,7 +760,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="passport_number" class="form-label">Passport Number</label>
                             <input type="text" class="form-control" 
                                    id="passport_number" name="passport_number" 
-                                   value="<?= htmlspecialchars($passport_number) ?>" 
+                                   value="<?= htmlspecialchars($passport_number ?? '') ?>"
                                    placeholder="Your Passport number">
                         </div>
                         
@@ -785,7 +785,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="nationality" class="form-label">Nationality</label>
                             <input type="text" class="form-control" 
                                    id="nationality" name="nationality" 
-                                   value="<?= htmlspecialchars($nationality) ?>" 
+                                   value="<?= htmlspecialchars($nationality ?? '') ?>" 
                                    placeholder="Your nationality">
                         </div>
                         
@@ -793,7 +793,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="tax_id" class="form-label">Tax ID</label>
                             <input type="text" class="form-control" 
                                    id="tax_id" name="tax_id" 
-                                   value="<?= htmlspecialchars($tax_id) ?>" 
+                                   value="<?= htmlspecialchars($tax_id ?? '') ?>" 
                                    placeholder="Your Tax ID">
                         </div>
                         
@@ -801,7 +801,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="work_permit_details" class="form-label">Work Permit Details</label>
                             <input type="text" class="form-control" 
                                    id="work_permit_details" name="work_permit_details" 
-                                   value="<?= htmlspecialchars($work_permit_details) ?>" 
+                                   value="<?= htmlspecialchars($work_permit_details ?? '') ?>" 
                                    placeholder="Work permit details if applicable">
                         </div>
                     </div>
@@ -833,7 +833,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="emergency_contact_name" class="form-label">Emergency Contact Name</label>
                             <input type="text" class="form-control" 
                                    id="emergency_contact_name" name="emergency_contact_name" 
-                                   value="<?= htmlspecialchars($emergency_contact_name) ?>" 
+                                   value="<?= htmlspecialchars($emergency_contact_name ?? '') ?>" 
                                    placeholder="John Smith">
                         </div>
                         
@@ -841,7 +841,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="emergency_contact_number" class="form-label">Emergency Contact Number</label>
                             <input type="tel" class="form-control" 
                                    id="emergency_contact_number" name="emergency_contact_number" 
-                                   value="<?= htmlspecialchars($emergency_contact_number) ?>" 
+                                   value="<?= htmlspecialchars($emergency_contact_number ?? '') ?>" 
                                    placeholder="+255 xxx xxx xxx">
                         </div>
                     </div>
@@ -856,7 +856,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="username" class="form-label">Username</label>
                             <input type="text" class="form-control" 
                                    id="username" name="username" 
-                                   value="<?= htmlspecialchars($username) ?>" 
+                                   value="<?= htmlspecialchars($username ?? '') ?>" 
                                    placeholder="Username for system access">
                         </div>
                         
@@ -864,7 +864,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="role_level" class="form-label">Role Level</label>
                             <input type="text" class="form-control" 
                                    id="role_level" name="role_level" 
-                                   value="<?= htmlspecialchars($role_level) ?>" 
+                                   value="<?= htmlspecialchars($role_level ?? '') ?>" 
                                    placeholder="Role level in system">
                         </div>
                         
@@ -872,7 +872,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="system_access" class="form-label">System Access</label>
                             <input type="text" class="form-control" 
                                    id="system_access" name="system_access" 
-                                   value="<?= htmlspecialchars($system_access) ?>" 
+                                   value="<?= htmlspecialchars($system_access ?? '') ?>" 
                                    placeholder="Access permissions">
                         </div>
                         
@@ -887,7 +887,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="asset_serial_number" class="form-label">Asset Serial Number</label>
                             <input type="text" class="form-control" 
                                    id="asset_serial_number" name="asset_serial_number" 
-                                   value="<?= htmlspecialchars($asset_serial_number) ?>" 
+                                   value="<?= htmlspecialchars($asset_serial_number ?? '') ?>" 
                                    placeholder="Serial number of issued laptop/device">
                         </div>
                         
@@ -902,7 +902,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="reporting_manager_id" class="form-label">Reporting Manager</label>
                             <input type="text" class="form-control" 
                                    id="reporting_manager_id" name="reporting_manager_id" 
-                                   value="<?= htmlspecialchars($reporting_manager_id) ?>" 
+                                   value="<?= htmlspecialchars($reporting_manager_id ?? '') ?>" 
                                    placeholder="ID or name of reporting manager">
                         </div>
                         
@@ -910,7 +910,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="assigned_clients" class="form-label">Assigned Clients</label>
                             <input type="text" class="form-control" 
                                    id="assigned_clients" name="assigned_clients" 
-                                   value="<?= htmlspecialchars($assigned_clients) ?>" 
+                                   value="<?= htmlspecialchars($assigned_clients ?? '') ?>" 
                                    placeholder="Comma separated list of assigned clients">
                         </div>
                     </div>
@@ -925,7 +925,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="bank_name" class="form-label">Bank Name</label>
                             <input type="text" class="form-control" 
                                    id="bank_name" name="bank_name" 
-                                   value="<?= htmlspecialchars($bank_name) ?>" 
+                                   value="<?= htmlspecialchars($bank_name ?? '') ?>" 
                                    placeholder="Name of your bank">
                         </div>
                         
@@ -933,7 +933,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="account_number" class="form-label">Account Number</label>
                             <input type="text" class="form-control" 
                                    id="account_number" name="account_number" 
-                                   value="<?= htmlspecialchars($account_number) ?>" 
+                                   value="<?= htmlspecialchars($account_number ?? '') ?>" 
                                    placeholder="Your bank account number">
                         </div>
                         
@@ -941,7 +941,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="salary_type" class="form-label">Salary Type</label>
                             <input type="text" class="form-control" 
                                    id="salary_type" name="salary_type" 
-                                   value="<?= htmlspecialchars($salary_type) ?>" 
+                                   value="<?= htmlspecialchars($salary_type ?? '') ?>" 
                                    placeholder="Monthly, Hourly, etc.">
                         </div>
                         
@@ -949,7 +949,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="payment_method" class="form-label">Payment Method</label>
                             <input type="text" class="form-control" 
                                    id="payment_method" name="payment_method" 
-                                   value="<?= htmlspecialchars($payment_method) ?>" 
+                                   value="<?= htmlspecialchars($payment_method ?? '') ?>" 
                                    placeholder="Cash, Bank Transfer, etc.">
                         </div>
                     </div>
@@ -986,7 +986,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <label for="hr_manager_id" class="form-label">HR Manager ID</label>
                             <input type="text" class="form-control" 
                                    id="hr_manager_id" name="hr_manager_id" 
-                                   value="<?= htmlspecialchars($hr_manager_id) ?>" 
+                                   value="<?= htmlspecialchars($hr_manager_id ?? '') ?>" 
                                    placeholder="ID of HR manager">
                         </div>
                     </div>

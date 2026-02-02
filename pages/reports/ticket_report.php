@@ -36,8 +36,10 @@ $priorities = ['Low', 'Medium', 'High', 'Critical'];
 $statuses = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
 // Build where clause for reports
-$where_conditions = ['t.created_at BETWEEN ? AND ?'];
-$params = [$start_date, $end_date];
+// Using PostgreSQL compatible date range that includes the full end date
+// Casting to timestamp to ensure proper comparison
+$where_conditions = ['t.created_at >= CAST(? AS TIMESTAMP) AND t.created_at <= CAST(? AS TIMESTAMP)'];
+$params = ["$start_date 00:00:00", "$end_date 23:59:59"];
 $types = [PDO::PARAM_STR, PDO::PARAM_STR];
 
 // Require client selection for security and filtering purposes
@@ -132,15 +134,15 @@ $client_tickets_sql = "SELECT
     COUNT(CASE WHEN t.status = 'Open' THEN 1 END) as open_count,
     COUNT(CASE WHEN t.status = 'Resolved' OR t.status = 'Closed' THEN 1 END) as resolved_count
 FROM clients c
-LEFT JOIN tickets t ON c.id = t.client_id AND (t.created_at BETWEEN ? AND ?)
+LEFT JOIN tickets t ON c.id = t.client_id AND (t.created_at >= CAST(? AS TIMESTAMP) AND t.created_at <= CAST(? AS TIMESTAMP))
 GROUP BY c.id, c.company_name
 HAVING COUNT(t.id) > 0
 ORDER BY ticket_count DESC
 LIMIT 10";
 
 $stmt = $pdo->prepare($client_tickets_sql);
-$stmt->bindValue(1, $start_date, PDO::PARAM_STR);
-$stmt->bindValue(2, $end_date, PDO::PARAM_STR);
+$stmt->bindValue(1, "$start_date 00:00:00", PDO::PARAM_STR);
+$stmt->bindValue(2, "$end_date 23:59:59", PDO::PARAM_STR);
 $stmt->execute();
 $client_tickets = $stmt->fetchAll();
 

@@ -90,8 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Build where clause for reports
-$where_conditions = ['t.created_at BETWEEN ? AND ?'];
-$params = [$start_date, $end_date];
+// Using PostgreSQL compatible date range that includes the full end date
+// Casting to timestamp to ensure proper comparison
+$where_conditions = ['t.created_at >= CAST(? AS TIMESTAMP) AND t.created_at <= CAST(? AS TIMESTAMP)'];
+$params = ["$start_date 00:00:00", "$end_date 23:59:59"];
 $types = [PDO::PARAM_STR, PDO::PARAM_STR];
 
 if ($client_id) {

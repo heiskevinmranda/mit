@@ -933,7 +933,9 @@ class TicketReportPDFGenerator
         if (!empty($this->custom_suggestions)) {
             $this->pdf->Ln(10);
             $this->pdf->SetFont('helvetica', 'B', 12);
-            $this->pdf->MultiCell(0, 5, $this->custom_suggestions, 0, 'L');
+            // Sanitize the custom suggestions to prevent PDF corruption
+            $sanitized_suggestions = $this->sanitizeForPDF($this->custom_suggestions);
+            $this->pdf->MultiCell(0, 5, $sanitized_suggestions, 0, 'L');
         } else {
             $this->pdf->Ln(10);
             $this->pdf->SetFont('helvetica', 'I', 12);
@@ -953,12 +955,16 @@ class TicketReportPDFGenerator
 
             if (!empty($this->detailed_suggestion_title)) {
                 $this->pdf->SetFont('helvetica', 'B', 16);
-                $this->pdf->Cell(0, 10, $this->detailed_suggestion_title, 0, 1, 'L');
+                // Sanitize the detailed suggestion title to prevent PDF corruption
+                $sanitized_title = $this->sanitizeForPDF($this->detailed_suggestion_title);
+                $this->pdf->Cell(0, 10, $sanitized_title, 0, 1, 'L');
             }
 
             if (!empty($this->detailed_suggestion_description)) {
                 $this->pdf->SetFont('helvetica', '', 12);
-                $this->pdf->MultiCell(0, 5, $this->detailed_suggestion_description, 0, 'L');
+                // Sanitize the detailed suggestion description to prevent PDF corruption
+                $sanitized_description = $this->sanitizeForPDF($this->detailed_suggestion_description);
+                $this->pdf->MultiCell(0, 5, $sanitized_description, 0, 'L');
             }
 
             $this->pdf->Ln(5);
@@ -1011,7 +1017,9 @@ class TicketReportPDFGenerator
                 $this->pdf->SetFont('helvetica', 'B', 14);
                 $this->pdf->Cell(0, 10, 'Additional Notes', 0, 1, 'L');
                 $this->pdf->SetFont('helvetica', '', 12);
-                $this->pdf->MultiCell(0, 5, $this->additional_comments, 0, 'L');
+                // Sanitize the additional comments to prevent PDF corruption
+                $sanitized_comments = $this->sanitizeForPDF($this->additional_comments);
+                $this->pdf->MultiCell(0, 5, $sanitized_comments, 0, 'L');
             }
         } else {
             $this->pdf->SetFont('helvetica', 'B', 16);
@@ -1093,6 +1101,14 @@ class TicketReportPDFGenerator
         } catch (Exception $e) {
             return null;
         }
+    }
+    
+    private function sanitizeForPDF($text) {
+        // Remove or escape problematic characters for PDF generation
+        $text = strip_tags($text); // Remove HTML tags
+        $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8'); // Decode HTML entities
+        $text = preg_replace('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/', '', $text); // Remove control characters
+        return $text;
     }
 }
 // Clean the output buffer if it was started in this file
