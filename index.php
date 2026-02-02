@@ -1,5 +1,27 @@
 <?php
 // index.php - Updated with dual login options
+
+// Define route function for landing page
+function route($name, $params = []) {
+    $routes = [
+        'client.login' => '/mit/client-login.php',
+        'login' => '/mit/login.php',
+        'dashboard' => '/mit/dashboard.php',
+        'home' => '/mit/',
+        'assets.index' => '/mit/pages/assets/index.php',
+        'tickets.index' => '/mit/pages/tickets/index.php',
+        'clients.index' => '/mit/pages/clients/index.php',
+        'users.index' => '/mit/pages/users/index.php',
+        'reports.index' => '/mit/pages/reports/index.php',
+        'staff.profile' => '/mit/pages/staff/profile.php',
+        'staff.edit_profile' => '/mit/pages/staff/edit_profile.php',
+        'certificates.index' => '/mit/pages/certificates/index.php',
+        'contracts.index' => '/mit/pages/contracts/index.php',
+        'services.index' => '/mit/pages/services/index.php'
+    ];
+    
+    return $routes[$name] ?? '/mit/';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
