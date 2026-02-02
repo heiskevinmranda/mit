@@ -371,12 +371,12 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
         <!-- Navigation -->
         <ul class="nav flex-column pt-3">
             <li class="nav-item">
-                <a class="nav-link active" href="client-dashboard.php">
+                <a class="nav-link active" href="<?php echo route('client.dashboard'); ?>">
                     <i class="fas fa-tachometer-alt"></i> Dashboard
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="client-tickets.php">
+                <a class="nav-link" href="<?php echo route('client.tickets'); ?>">
                     <i class="fas fa-ticket-alt"></i> Support Tickets
                     <?php if ($stats['open_tickets'] > 0): ?>
                         <span class="badge bg-danger float-end"><?php echo $stats['open_tickets']; ?></span>
@@ -384,24 +384,24 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="new-ticket.php">
+                <a class="nav-link" href="<?php echo route('tickets.create'); ?>">
                     <i class="fas fa-plus-circle"></i> New Ticket
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="client-assets.php">
+                <a class="nav-link" href="<?php echo route('client.assets'); ?>">
                     <i class="fas fa-server"></i> IT Assets
                     <span class="badge bg-info float-end"><?php echo $stats['total_assets']; ?></span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="client-contracts.php">
+                <a class="nav-link" href="<?php echo route('client.contracts'); ?>">
                     <i class="fas fa-file-contract"></i> Contracts
                     <span class="badge bg-success float-end"><?php echo $stats['active_contracts']; ?></span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="client-site-visits.php">
+                <a class="nav-link" href="<?php echo route('client.site_visits'); ?>">
                     <i class="fas fa-map-marker-alt"></i> Site Visits
                     <?php if ($stats['pending_site_visits'] > 0): ?>
                         <span class="badge bg-warning float-end"><?php echo $stats['pending_site_visits']; ?></span>
@@ -409,17 +409,17 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="client-reports.php">
+                <a class="nav-link" href="<?php echo route('client.reports'); ?>">
                     <i class="fas fa-chart-bar"></i> Reports
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="client-profile.php">
+                <a class="nav-link" href="<?php echo route('client.profile'); ?>">
                     <i class="fas fa-user-cog"></i> My Profile
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="client-change-password.php">
+                <a class="nav-link" href="<?php echo route('client.change_password'); ?>">
                     <i class="fas fa-key"></i> Change Password
                 </a>
             </li>
@@ -526,7 +526,7 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                 <div class="data-card">
                     <h4 class="mb-4"><i class="fas fa-bolt me-2"></i>Quick Actions</h4>
                     <div class="quick-actions-grid">
-                        <a href="new-ticket.php" class="action-card">
+                        <a href="<?php echo route('tickets.create'); ?>" class="action-card">
                             <div class="action-icon">
                                 <i class="fas fa-plus-circle"></i>
                             </div>
@@ -534,7 +534,7 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                             <small class="text-muted">Report an issue or request</small>
                         </a>
                         
-                        <a href="client-tickets.php" class="action-card">
+                        <a href="<?php echo route('client.tickets'); ?>" class="action-card">
                             <div class="action-icon">
                                 <i class="fas fa-ticket-alt"></i>
                             </div>
@@ -542,7 +542,7 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                             <small class="text-muted">Check status and updates</small>
                         </a>
                         
-                        <a href="client-assets.php" class="action-card">
+                        <a href="<?php echo route('client.assets'); ?>" class="action-card">
                             <div class="action-icon">
                                 <i class="fas fa-server"></i>
                             </div>
@@ -550,7 +550,7 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                             <small class="text-muted">View IT equipment list</small>
                         </a>
                         
-                        <a href="client-contracts.php" class="action-card">
+                        <a href="<?php echo route('client.contracts'); ?>" class="action-card">
                             <div class="action-icon">
                                 <i class="fas fa-file-contract"></i>
                             </div>
@@ -569,7 +569,7 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                 <div class="data-card">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h4><i class="fas fa-ticket-alt me-2"></i>Recent Tickets</h4>
-                        <a href="client-tickets.php" class="btn btn-client btn-sm">View All</a>
+                        <a href="<?php echo route('client.tickets'); ?>" class="btn btn-client btn-sm">View All</a>
                     </div>
                     
                     <?php if (empty($recent_tickets)): ?>
@@ -577,7 +577,7 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                             <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">No tickets found</h5>
                             <p>You haven't submitted any support tickets yet.</p>
-                            <a href="new-ticket.php" class="btn btn-client">Create First Ticket</a>
+                            <a href="<?php echo route('tickets.create'); ?>" class="btn btn-client">Create First Ticket</a>
                         </div>
                     <?php else: ?>
                         <div class="table-responsive">
@@ -593,7 +593,7 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                                 <tbody>
                                     <?php foreach ($recent_tickets as $ticket): ?>
                                         <tr>
-                                            <td><strong><a href="client-ticket-details.php?id=<?php echo $ticket['id']; ?>"><?php echo htmlspecialchars($ticket['ticket_number']); ?></a></strong></td>
+                                            <td><strong><a href="<?php echo route('tickets.view', ['id' => $ticket['id']]); ?>"><?php echo htmlspecialchars($ticket['ticket_number']); ?></a></strong></td>
                                             <td>
                                                 <?php echo htmlspecialchars(substr($ticket['title'], 0, 30)); ?>
                                                 <?php if (strlen($ticket['title']) > 30): ?>...<?php endif; ?>
@@ -622,7 +622,7 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                 <div class="data-card mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h4><i class="fas fa-server me-2"></i>Recent Assets</h4>
-                        <a href="client-assets.php" class="btn btn-client btn-sm">View All</a>
+                        <a href="<?php echo route('client.assets'); ?>" class="btn btn-client btn-sm">View All</a>
                     </div>
                     
                     <?php if (empty($recent_assets)): ?>
@@ -662,7 +662,7 @@ $asset_active_rate = $stats['total_assets'] > 0 ?
                 <div class="data-card">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h4><i class="fas fa-file-contract me-2"></i>Active Contracts</h4>
-                        <a href="client-contracts.php" class="btn btn-client btn-sm">View All</a>
+                        <a href="<?php echo route('client.contracts'); ?>" class="btn btn-client btn-sm">View All</a>
                     </div>
                     
                     <div class="table-responsive">

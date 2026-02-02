@@ -55,12 +55,12 @@ function getCount($pdo, $query, $params) {
     <!-- Navigation -->
     <ul class="nav flex-column pt-3">
         <li class="nav-item">
-            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-dashboard.php' ? 'active' : ''; ?>" href="client-dashboard.php">
+            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-dashboard.php' ? 'active' : ''; ?>" href="<?php echo route('client.dashboard'); ?>">
                 <i class="fas fa-tachometer-alt"></i> Dashboard
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-tickets.php' ? 'active' : ''; ?>" href="client-tickets.php">
+            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-tickets.php' ? 'active' : ''; ?>" href="<?php echo route('client.tickets'); ?>">
                 <i class="fas fa-ticket-alt"></i> Support Tickets
                 <?php if ($counts['open_tickets'] > 0): ?>
                     <span class="badge bg-danger float-end"><?php echo $counts['open_tickets']; ?></span>
@@ -68,24 +68,24 @@ function getCount($pdo, $query, $params) {
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'new-ticket.php' ? 'active' : ''; ?>" href="new-ticket.php">
+            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'new-ticket.php' ? 'active' : ''; ?>" href="<?php echo route('tickets.create'); ?>">
                 <i class="fas fa-plus-circle"></i> New Ticket
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-assets.php' ? 'active' : ''; ?>" href="client-assets.php">
+            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-assets.php' ? 'active' : ''; ?>" href="<?php echo route('client.assets'); ?>">
                 <i class="fas fa-server"></i> IT Assets
                 <span class="badge bg-info float-end"><?php echo $counts['total_assets']; ?></span>
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-contracts.php' ? 'active' : ''; ?>" href="client-contracts.php">
+            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-contracts.php' ? 'active' : ''; ?>" href="<?php echo route('client.contracts'); ?>">
                 <i class="fas fa-file-contract"></i> Contracts
                 <span class="badge bg-success float-end"><?php echo $counts['active_contracts']; ?></span>
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-site-visits.php' ? 'active' : ''; ?>" href="client-site-visits.php">
+            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-site-visits.php' ? 'active' : ''; ?>" href="<?php echo route('client.site_visits'); ?>">
                 <i class="fas fa-map-marker-alt"></i> Site Visits
                 <?php if ($counts['pending_visits'] > 0): ?>
                     <span class="badge bg-warning float-end"><?php echo $counts['pending_visits']; ?></span>
@@ -93,17 +93,17 @@ function getCount($pdo, $query, $params) {
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-reports.php' ? 'active' : ''; ?>" href="client-reports.php">
+            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-reports.php' ? 'active' : ''; ?>" href="<?php echo route('client.reports'); ?>">
                 <i class="fas fa-chart-bar"></i> Reports
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-profile.php' ? 'active' : ''; ?>" href="client-profile.php">
+            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-profile.php' ? 'active' : ''; ?>" href="<?php echo route('client.profile'); ?>">
                 <i class="fas fa-user-cog"></i> My Profile
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-change-password.php' ? 'active' : ''; ?>" href="client-change-password.php">
+            <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'client-change-password.php' ? 'active' : ''; ?>" href="<?php echo route('client.change_password'); ?>">
                 <i class="fas fa-key"></i> Change Password
             </a>
         </li>

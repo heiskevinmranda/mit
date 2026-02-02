@@ -11,7 +11,8 @@ session_start();
 
 // Check if already logged in as client
 if (isset($_SESSION['user_id']) && isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'client') {
-    header('Location: client-dashboard.php');
+    require_once 'includes/routes.php';
+    header('Location: ' . route('client.dashboard'));
     exit;
 }
 
@@ -38,7 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['email'] = $user['email'];
                     
                     // Redirect to client dashboard
-                    header('Location: client-dashboard.php');
+                    require_once 'includes/routes.php';
+                    header('Location: ' . route('client.dashboard'));
                     exit;
                 } else {
                     $error = "This account is not a client account. Please use staff login.";
@@ -289,7 +291,7 @@ function authenticateUser($email, $password) {
         </form>
         
         <div class="login-links">
-            <a href="client-change-password.php">Change Password</a> • 
+            <a href="<?php echo route('client.change_password'); ?>">Change Password</a> • 
             <a href="login.php">Staff Login</a>
         </div>
         

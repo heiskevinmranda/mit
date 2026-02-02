@@ -258,7 +258,7 @@ try {
     echo "<h4>Default Login Information:</h4>";
     echo "<p><strong>Email:</strong> Use client's email address from database</p>";
     echo "<p><strong>Password:</strong> qwert12345 (all clients)</p>";
-    echo "<p><strong>Login URL:</strong> <a href='client-login.php' target='_blank'>client-login.php</a></p>";
+    echo "<p><strong>Login URL:</strong> <a href='<?php echo route('client.login'); ?>' target='_blank'>client-login.php</a></p>";
     echo "<p><strong>Note:</strong> Clients should change their password after first login.</p>";
     echo "</div>";
     

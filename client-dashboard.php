@@ -736,28 +736,28 @@ if ($closed_count > 0) {
         <!-- Quick Links -->
         <div class="row mb-4">
             <div class="col-md-3">
-                <a href="client-assets.php" class="btn btn-outline-info w-100 py-3 mb-3">
+                <a href="<?php echo route('client.assets'); ?>" class="btn btn-outline-info w-100 py-3 mb-3">
                     <i class="fas fa-server fa-2x mb-2 d-block"></i>
                     <h5>IT Assets</h5>
                     <small class="text-muted">Manage equipment</small>
                 </a>
             </div>
             <div class="col-md-3">
-                <a href="client-contracts.php" class="btn btn-outline-warning w-100 py-3 mb-3">
+                <a href="<?php echo route('client.contracts'); ?>" class="btn btn-outline-warning w-100 py-3 mb-3">
                     <i class="fas fa-file-contract fa-2x mb-2 d-block"></i>
                     <h5>Contracts</h5>
                     <small class="text-muted">View agreements</small>
                 </a>
             </div>
             <div class="col-md-3">
-                <a href="client-reports.php" class="btn btn-outline-primary w-100 py-3 mb-3">
+                <a href="<?php echo route('client.reports'); ?>" class="btn btn-outline-primary w-100 py-3 mb-3">
                     <i class="fas fa-chart-bar fa-2x mb-2 d-block"></i>
                     <h5>Reports</h5>
                     <small class="text-muted">Analytics & insights</small>
                 </a>
             </div>
             <div class="col-md-3">
-                <a href="client-profile.php" class="btn btn-outline-secondary w-100 py-3 mb-3">
+                <a href="<?php echo route('client.profile'); ?>" class="btn btn-outline-secondary w-100 py-3 mb-3">
                     <i class="fas fa-user-cog fa-2x mb-2 d-block"></i>
                     <h5>My Profile</h5>
                     <small class="text-muted">Account settings</small>
