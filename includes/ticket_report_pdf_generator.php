@@ -595,21 +595,38 @@ class TicketReportPDFGenerator
         foreach ($items as $i => $item) {
             $x = $startX + ($i * ($boxWidth + $spacing));
 
-            // 1. Draw orange circle (icon placeholder)
+            // 1. Draw orange circle (icon background)
             $this->pdf->SetFillColor(255, 102, 0);
             $this->pdf->SetDrawColor(255, 102, 0);
-            $this->pdf->Circle($x + $boxWidth / 2, $iconY + 12, 12, 0, 360, 'F'); // filled circle
+            $this->pdf->Circle(
+                $x + $boxWidth / 2,
+                $iconY + 12,
+                12,
+                0,
+                360,
+                'F'
+            );
 
-            // Optional: white icon symbol (simple text approximation)
+            // 2. Icon symbol (ZapfDingbats – NO question marks)
             $this->pdf->SetTextColor(255, 255, 255);
-            $this->pdf->SetFont('helvetica', 'B', 20);
+            $this->pdf->SetFont('zapfdingbats', '', 18);
 
-            $symbol = '📅'; // Activities Calendar
-            if ($i === 1) $symbol = '📊';
-            if ($i === 2) $symbol = '🎟';
-            if ($i === 3) $symbol = '🛠';
+            // Dingbats symbols (safe in TCPDF)
+            $symbol = 'n';   // calendar-like
+            if ($i === 1) $symbol = 'i'; // chart-like
+            if ($i === 2) $symbol = 'H'; // ticket-like
+            if ($i === 3) $symbol = 'k'; // tools-like
 
-            $this->pdf->Text($x + $boxWidth / 2 - 5, $iconY + 8, $symbol);
+            $offset = -4;
+            if ($i === 1) $offset = -3;
+            if ($i === 2) $offset = -5;
+            if ($i === 3) $offset = -4;
+
+            $this->pdf->Text(
+                $x + ($boxWidth / 2) + $offset,
+                $iconY + 6,
+                $symbol
+            );
 
             // 2. Title under icon
             $this->pdf->SetXY($x, $textY);
@@ -893,29 +910,86 @@ class TicketReportPDFGenerator
 
         // Tickets table
         $this->pdf->Ln(10);
-        $this->pdf->SetFillColor(255, 102, 0);
-        $this->pdf->SetTextColor(255, 255, 255);
-        $this->pdf->SetFont('helvetica', 'B', 10);
-        $this->pdf->Cell(30, 10, 'Date', 1, 0, 'C', true);
-        $this->pdf->Cell(40, 10, 'Ticket #', 1, 0, 'C', true);
-        $this->pdf->Cell(90, 10, 'Subject', 1, 0, 'C', true);
-        $this->pdf->Cell(20, 10, 'Status', 1, 0, 'C', true);
-        $this->pdf->Cell(40, 10, 'Assigned to', 1, 0, 'C', true);
-        $this->pdf->Cell(40, 10, 'Requested By', 1, 1, 'C', true);
 
-        $this->pdf->SetTextColor(0, 0, 0);
-        $this->pdf->SetFont('helvetica', '', 9);
         $tickets = $this->report_data['recent_tickets'] ?? [];
-        $fill = false;
-        foreach ($tickets as $ticket) {
-            $this->pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
-            $this->pdf->Cell(30, 10, date('d/m/Y', strtotime($ticket['created_at'])), 1, 0, 'C', true);
-            $this->pdf->Cell(40, 10, $ticket['ticket_number'] ?? 'N/A', 1, 0, 'C', true);
-            $this->pdf->Cell(90, 10, substr($ticket['title'] ?? 'No Subject', 0, 55), 1, 0, 'L', true);
-            $this->pdf->Cell(20, 10, $ticket['status'] ?? 'Unknown', 1, 0, 'C', true);
-            $this->pdf->Cell(40, 10, $ticket['assigned_to'] ?? 'Unassigned', 1, 0, 'C', true);
-            $this->pdf->Cell(40, 10, substr($ticket['requested_by'] ?? 'Not specified', 0, 25), 1, 1, 'L', true);
-            $fill = !$fill;
+        $total_tickets = count($tickets);
+
+        // Add total ticket count info
+        $this->pdf->SetFont('helvetica', 'B', 12);
+        $this->pdf->Cell(0, 8, "Total Tickets: {$total_tickets}", 0, 1, 'L');
+        $this->pdf->Ln(5);
+
+        // Process tickets in chunks to handle pagination if needed
+        $chunk_size = 35; // Approximate number of tickets that fit on one page
+        $ticket_chunks = array_chunk($tickets, $chunk_size);
+
+        foreach ($ticket_chunks as $chunk_index => $ticket_chunk) {
+            // Add table header if it's a new page or first chunk
+            if ($chunk_index > 0) {
+                $this->pdf->AddPage();
+
+                // Re-add section header for subsequent pages
+                $this->pdf->SetTextColor(255, 102, 0); // Orange
+                $this->pdf->SetFont('helvetica', 'B', 24);
+                $this->pdf->Cell(0, 10, 'Activities Tickets (continued)', 0, 1, 'L');
+                $this->pdf->SetTextColor(0, 0, 0);
+                $this->pdf->Ln(10);
+            }
+
+            $this->pdf->SetFillColor(255, 102, 0);
+            $this->pdf->SetTextColor(255, 255, 255);
+            $this->pdf->SetFont('helvetica', 'B', 10);
+            $this->pdf->Cell(30, 10, 'Date', 1, 0, 'C', true);
+            $this->pdf->Cell(40, 10, 'Ticket #', 1, 0, 'C', true);
+            $this->pdf->Cell(90, 10, 'Subject', 1, 0, 'C', true);
+            $this->pdf->Cell(20, 10, 'Status', 1, 0, 'C', true);
+            $this->pdf->Cell(40, 10, 'Assigned to', 1, 0, 'C', true);
+            $this->pdf->Cell(40, 10, 'Requested By', 1, 1, 'C', true);
+
+            $this->pdf->SetTextColor(0, 0, 0);
+            $this->pdf->SetFont('helvetica', '', 9);
+            $row_count = 0;
+
+            foreach ($ticket_chunk as $ticket) {
+                // Check if we need a new page before adding the row
+                if ($this->pdf->GetY() > $this->pdf->getPageHeight() - $this->pdf->getBreakMargin() - 20) {
+                    $this->pdf->AddPage();
+
+                    // Re-add section header for subsequent pages
+                    $this->pdf->SetTextColor(255, 102, 0); // Orange
+                    $this->pdf->SetFont('helvetica', 'B', 24);
+                    $this->pdf->Cell(0, 10, 'Activities Tickets (continued)', 0, 1, 'L');
+                    $this->pdf->SetTextColor(0, 0, 0);
+                    $this->pdf->Ln(10);
+
+                    // Re-add table header
+                    $this->pdf->SetFillColor(255, 102, 0);
+                    $this->pdf->SetTextColor(255, 255, 255);
+                    $this->pdf->SetFont('helvetica', 'B', 10);
+                    $this->pdf->Cell(30, 10, 'Date', 1, 0, 'C', true);
+                    $this->pdf->Cell(40, 10, 'Ticket #', 1, 0, 'C', true);
+                    $this->pdf->Cell(90, 10, 'Subject', 1, 0, 'C', true);
+                    $this->pdf->Cell(20, 10, 'Status', 1, 0, 'C', true);
+                    $this->pdf->Cell(40, 10, 'Assigned to', 1, 0, 'C', true);
+                    $this->pdf->Cell(40, 10, 'Requested By', 1, 1, 'C', true);
+
+                    $row_count = 0;
+                }
+
+                // All rows with black text on white background
+                $this->pdf->SetFillColor(255, 255, 255); // White background
+                $this->pdf->SetTextColor(0, 0, 0); // Black text
+
+                $this->pdf->Cell(30, 10, date('d/m/Y', strtotime($ticket['created_at'])), 1, 0, 'C', true);
+                $this->pdf->Cell(40, 10, $ticket['ticket_number'] ?? 'N/A', 1, 0, 'C', true);
+                $this->pdf->Cell(90, 10, substr($ticket['title'] ?? 'No Subject', 0, 55), 1, 0, 'L', true);
+                $this->pdf->Cell(20, 10, $ticket['status'] ?? 'Unknown', 1, 0, 'C', true);
+                $this->pdf->Cell(40, 10, $ticket['assigned_to'] ?? 'Unassigned', 1, 0, 'C', true);
+                $this->pdf->Cell(40, 10, substr($ticket['requested_by'] ?? 'Not specified', 0, 25), 1, 1, 'L', true);
+
+
+                $row_count++;
+            }
         }
     }
 
@@ -975,19 +1049,33 @@ class TicketReportPDFGenerator
                 $this->pdf->SetFont('helvetica', '', 10);
                 $this->pdf->MultiCell(0, 5, 'Current situation showing the issue that needs to be addressed.', 0, 'L');
 
-                $imagePath = __DIR__ . $this->before_image_path;
+                // Handle the image path correctly - the path comes from export script
+                // The export script is in pages/reports/, and this file is in includes/
+                // So we need to adjust the path accordingly
+                error_log("Processing before image path: " . $this->before_image_path);
+
+                // The path from export script is relative to the project root, so just prepend the project root
+                $imagePath = __DIR__ . '/../' . $this->before_image_path;
+                error_log("Before image path resolved to: $imagePath");
+
                 if (file_exists($imagePath)) {
-                    // Get image dimensions
-                    $imgSize = getimagesize($imagePath);
-                    if ($imgSize !== false) {
-                        $imgWidth = min(80, $imgSize[0] / 4); // Scale down if needed
-                        $imgHeight = ($imgSize[1] / $imgSize[0]) * $imgWidth; // Maintain aspect ratio
-                        $this->pdf->Image($imagePath, $this->pdf->GetX(), $this->pdf->GetY(), $imgWidth, $imgHeight);
-                        $this->pdf->Ln($imgHeight + 5); // Add space after image
+                    error_log("Before image file exists at: $imagePath");
+                    try {
+                        // Get image dimensions
+                        $imgSize = getimagesize($imagePath);
+                        if ($imgSize !== false) {
+                            $imgWidth = min(80, $imgSize[0] / 4); // Scale down if needed
+                            $imgHeight = ($imgSize[1] / $imgSize[0]) * $imgWidth; // Maintain aspect ratio
+                            $this->pdf->Image($imagePath, $this->pdf->GetX(), $this->pdf->GetY(), $imgWidth, $imgHeight);
+                            $this->pdf->Ln($imgHeight + 5); // Add space after image
+                        }
+                    } catch (Exception $e) {
+                        // Log image processing errors but continue with the PDF generation
+                        error_log("Error processing image $imagePath: " . $e->getMessage());
                     }
                 } else {
                     // Log the missing image path for debugging
-                    error_log("Missing image file: $imagePath");
+                    error_log("Missing image file: $imagePath (from $this->before_image_path)");
                 }
             }
 
@@ -997,19 +1085,33 @@ class TicketReportPDFGenerator
                 $this->pdf->SetFont('helvetica', '', 10);
                 $this->pdf->MultiCell(0, 5, 'The recommended solution or improvement.', 0, 'L');
 
-                $imagePath = __DIR__ . $this->after_image_path;
+                // Handle the image path correctly - the path comes from export script
+                // The export script is in pages/reports/, and this file is in includes/
+                // So we need to adjust the path accordingly
+                error_log("Processing after image path: " . $this->after_image_path);
+
+                // The path from export script is relative to the project root, so just prepend the project root
+                $imagePath = __DIR__ . '/../' . $this->after_image_path;
+                error_log("After image path resolved to: $imagePath");
+
                 if (file_exists($imagePath)) {
-                    // Get image dimensions
-                    $imgSize = getimagesize($imagePath);
-                    if ($imgSize !== false) {
-                        $imgWidth = min(80, $imgSize[0] / 4); // Scale down if needed
-                        $imgHeight = ($imgSize[1] / $imgSize[0]) * $imgWidth; // Maintain aspect ratio
-                        $this->pdf->Image($imagePath, $this->pdf->GetX(), $this->pdf->GetY(), $imgWidth, $imgHeight);
-                        $this->pdf->Ln($imgHeight + 5); // Add space after image
+                    error_log("After image file exists at: $imagePath");
+                    try {
+                        // Get image dimensions
+                        $imgSize = getimagesize($imagePath);
+                        if ($imgSize !== false) {
+                            $imgWidth = min(80, $imgSize[0] / 4); // Scale down if needed
+                            $imgHeight = ($imgSize[1] / $imgSize[0]) * $imgWidth; // Maintain aspect ratio
+                            $this->pdf->Image($imagePath, $this->pdf->GetX(), $this->pdf->GetY(), $imgWidth, $imgHeight);
+                            $this->pdf->Ln($imgHeight + 5); // Add space after image
+                        }
+                    } catch (Exception $e) {
+                        // Log image processing errors but continue with the PDF generation
+                        error_log("Error processing image $imagePath: " . $e->getMessage());
                     }
                 } else {
                     // Log the missing image path for debugging
-                    error_log("Missing image file: $imagePath");
+                    error_log("Missing image file: $imagePath (from $this->after_image_path)");
                 }
             }
 
@@ -1102,12 +1204,13 @@ class TicketReportPDFGenerator
             return null;
         }
     }
-    
-    private function sanitizeForPDF($text) {
+
+    private function sanitizeForPDF($text)
+    {
         // Remove or escape problematic characters for PDF generation
         $text = strip_tags($text); // Remove HTML tags
         $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8'); // Decode HTML entities
-        $text = preg_replace('/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]/', '', $text); // Remove control characters
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text); // Remove control characters
         return $text;
     }
 }

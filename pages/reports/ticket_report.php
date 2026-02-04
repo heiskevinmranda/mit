@@ -876,6 +876,36 @@ $report_title = 'Ticket Report';
                 const detailedSuggestionDescription = $('#detailedSuggestionDescription').val();
                 const additionalComments = $('#additionalComments').val();
                 
+                // Validate images if provided
+                const beforeImage = $('#beforeImage')[0].files[0];
+                const afterImage = $('#afterImage')[0].files[0];
+                
+                // Allowed file types
+                const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp'];
+                const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                
+                if (beforeImage) {
+                    if (!allowedTypes.includes(beforeImage.type.toLowerCase())) {
+                        alert('Invalid file type for before image. Please upload JPG, PNG, GIF, BMP, or WebP files.');
+                        return;
+                    }
+                    if (beforeImage.size > maxSize) {
+                        alert('Before image is too large. Maximum size is 5MB.');
+                        return;
+                    }
+                }
+                
+                if (afterImage) {
+                    if (!allowedTypes.includes(afterImage.type.toLowerCase())) {
+                        alert('Invalid file type for after image. Please upload JPG, PNG, GIF, BMP, or WebP files.');
+                        return;
+                    }
+                    if (afterImage.size > maxSize) {
+                        alert('After image is too large. Maximum size is 5MB.');
+                        return;
+                    }
+                }
+                
                 // Collect filter parameters
                 const params = new URLSearchParams({
                     start_date: $('[name="start_date"]').val(),
@@ -889,10 +919,6 @@ $report_title = 'Ticket Report';
                     detailed_suggestion_description: detailedSuggestionDescription,
                     additional_comments: additionalComments
                 });
-                
-                // Check if images were uploaded
-                const beforeImage = $('#beforeImage')[0].files[0];
-                const afterImage = $('#afterImage')[0].files[0];
                 
                 if (beforeImage || afterImage) {
                     // If images are uploaded, use form submission instead of direct download
@@ -915,6 +941,10 @@ $report_title = 'Ticket Report';
                     if (afterImage) {
                         formData.append('after_image', afterImage);
                     }
+                    
+                    // Show loading indicator
+                    const originalText = $(this).html();
+                    $(this).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...').prop('disabled', true);
                     
                     // Submit via AJAX to handle file uploads
                     $.ajax({
@@ -955,11 +985,35 @@ $report_title = 'Ticket Report';
                         },
                         error: function(xhr, status, error) {
                             console.error('Error generating PDF:', error);
-                            alert('Error generating PDF: ' + error.message);
+                            // Check if there's a responseText with more details
+                            let errorMessage = 'Error generating PDF.';
+                            if (xhr.responseText) {
+                                try {
+                                    // Try to parse as JSON if it's an error response from PHP
+                                    const responseJson = JSON.parse(xhr.responseText);
+                                    if (responseJson.message) {
+                                        errorMessage = responseJson.message;
+                                    }
+                                } catch (e) {
+                                    // If not JSON, use the response text directly
+                                    errorMessage = xhr.responseText.substring(0, 200) + '...';
+                                }
+                            } else {
+                                errorMessage = error.message || 'Unknown error occurred.';
+                            }
+                            alert('Error generating PDF: ' + errorMessage);
+                        },
+                        complete: function() {
+                            // Restore button state
+                            $('#generatePdfBtn').html(originalText).prop('disabled', false);
                         }
                     });
                 } else {
                     // Direct download PDF in same window (no images to upload)
+                    // Show loading indicator
+                    const originalText = $(this).html();
+                    $(this).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...').prop('disabled', true);
+                    
                     const link = document.createElement('a');
                     link.href = './ticket_report_export?' + params.toString();
                     link.style.display = 'none';
@@ -969,6 +1023,11 @@ $report_title = 'Ticket Report';
                     
                     // Close the modal
                     $('#pdfOptionsModal').modal('hide');
+                    
+                    // Restore button state
+                    setTimeout(() => {
+                        $('#generatePdfBtn').html(originalText).prop('disabled', false);
+                    }, 1000);
                 }
             });
 

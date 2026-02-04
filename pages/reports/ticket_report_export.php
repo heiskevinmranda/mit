@@ -36,10 +36,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $detailed_suggestion_description = $_POST['detailed_suggestion_description'] ?? '';
     $additional_comments = $_POST['additional_comments'] ?? '';
     
-    // Handle file uploads
-    $upload_dir = '../../uploads/reports/' . uniqid() . '/';
-    if (!is_dir(dirname(__DIR__, 2) . '/uploads/reports/')) {
-        mkdir(dirname(__DIR__, 2) . '/uploads/reports/', 0755, true);
+    // Handle file uploads temporarily for PDF generation only
+    $temp_upload_dir = 'temp_uploads/reports/' . uniqid() . '/';
+    $temp_reports_dir = dirname(__DIR__, 2) . '/temp_uploads/reports/';
+    if (!is_dir($temp_reports_dir)) {
+        mkdir($temp_reports_dir, 0755, true);
+    }
+    
+    // Ensure the specific temp upload directory is created
+    $specific_temp_upload_dir = dirname(__DIR__, 2) . '/' . $temp_upload_dir;
+    if (!is_dir($specific_temp_upload_dir)) {
+        mkdir($specific_temp_upload_dir, 0755, true);
     }
     
     $before_image_path = '';
@@ -48,30 +55,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_FILES['before_image']) && $_FILES['before_image']['error'] === UPLOAD_ERR_OK) {
         $before_tmp_name = $_FILES['before_image']['tmp_name'];
         $before_name = $_FILES['before_image']['name'];
-        $before_extension = pathinfo($before_name, PATHINFO_EXTENSION);
-        $before_filename = 'before_' . uniqid() . '.' . $before_extension;
+        $before_size = $_FILES['before_image']['size'];
+        $before_extension = strtolower(pathinfo($before_name, PATHINFO_EXTENSION));
         
-        if (!is_dir(dirname(__DIR__, 2) . '/' . $upload_dir)) {
-            mkdir(dirname(__DIR__, 2) . '/' . $upload_dir, 0755, true);
-        }
-        
-        if (move_uploaded_file($before_tmp_name, dirname(__DIR__, 2) . $upload_dir . $before_filename)) {
-            $before_image_path = $upload_dir . $before_filename;
+        // Validate file type
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+        if (in_array($before_extension, $allowed_extensions)) {
+            // Validate file size (limit to 5MB)
+            if ($before_size <= 5 * 1024 * 1024) {
+                // Verify that it's a real image
+                $image_info = getimagesize($before_tmp_name);
+                if ($image_info !== false) {
+                    $before_filename = 'before_' . uniqid() . '.' . $before_extension;
+                    
+                    if (!is_dir(dirname(__DIR__, 2) . '/' . $temp_upload_dir)) {
+                        mkdir(dirname(__DIR__, 2) . '/' . $temp_upload_dir, 0755, true);
+                    }
+                    
+                    $full_path = dirname(__DIR__, 2) . '/' . $temp_upload_dir . $before_filename;
+                    error_log("Attempting to move before image to: $full_path");
+                    if (move_uploaded_file($before_tmp_name, $full_path)) {
+                        $before_image_path = $temp_upload_dir . $before_filename;
+                        error_log("Before image moved successfully, stored path: $before_image_path");
+                    } else {
+                        error_log("Failed to move before image from $before_tmp_name to $full_path");
+                    }
+                }
+            }
         }
     }
     
     if (isset($_FILES['after_image']) && $_FILES['after_image']['error'] === UPLOAD_ERR_OK) {
         $after_tmp_name = $_FILES['after_image']['tmp_name'];
         $after_name = $_FILES['after_image']['name'];
-        $after_extension = pathinfo($after_name, PATHINFO_EXTENSION);
-        $after_filename = 'after_' . uniqid() . '.' . $after_extension;
+        $after_size = $_FILES['after_image']['size'];
+        $after_extension = strtolower(pathinfo($after_name, PATHINFO_EXTENSION));
         
-        if (!is_dir(dirname(__DIR__, 2) . '/' . $upload_dir)) {
-            mkdir(dirname(__DIR__, 2) . '/' . $upload_dir, 0755, true);
-        }
-        
-        if (move_uploaded_file($after_tmp_name, dirname(__DIR__, 2) . $upload_dir . $after_filename)) {
-            $after_image_path = $upload_dir . $after_filename;
+        // Validate file type
+        $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
+        if (in_array($after_extension, $allowed_extensions)) {
+            // Validate file size (limit to 5MB)
+            if ($after_size <= 5 * 1024 * 1024) {
+                // Verify that it's a real image
+                $image_info = getimagesize($after_tmp_name);
+                if ($image_info !== false) {
+                    $after_filename = 'after_' . uniqid() . '.' . $after_extension;
+                    
+                    if (!is_dir(dirname(__DIR__, 2) . '/' . $temp_upload_dir)) {
+                        mkdir(dirname(__DIR__, 2) . '/' . $temp_upload_dir, 0755, true);
+                    }
+                    
+                    $full_path_after = dirname(__DIR__, 2) . '/' . $temp_upload_dir . $after_filename;
+                    error_log("Attempting to move after image to: $full_path_after");
+                    if (move_uploaded_file($after_tmp_name, $full_path_after)) {
+                        $after_image_path = $temp_upload_dir . $after_filename;
+                        error_log("After image moved successfully, stored path: $after_image_path");
+                    } else {
+                        error_log("Failed to move after image from $after_tmp_name to $full_path_after");
+                    }
+                }
+            }
         }
     }
 } else {
@@ -200,8 +243,7 @@ FROM tickets t
 LEFT JOIN clients c ON t.client_id = c.id
 LEFT JOIN staff_profiles sp ON t.assigned_to = sp.id
 WHERE $where_sql
-ORDER BY t.created_at DESC
-LIMIT 50"; // Get more tickets for the report
+ORDER BY t.created_at DESC"; // Get all tickets for the report
 
 $stmt = $pdo->prepare($recent_tickets_sql);
 for ($i = 0; $i < count($params); $i++) {
@@ -248,7 +290,14 @@ try {
     error_log("Ticket Report Export: PDF generator created successfully");
     
     $pdf = $pdf_generator->generate();
-    error_log("Ticket Report Export: PDF generated successfully, size: " . ($pdf ? strlen($pdf->Output('', 'S')) : 'unknown') . " bytes");
+    $pdf_content = $pdf->Output('', 'S'); // Get PDF as string to check size
+    error_log("Ticket Report Export: PDF generated successfully, size: " . strlen($pdf_content) . " bytes");
+    
+    // Check if PDF is too small (likely an error)
+    if (strlen($pdf_content) < 100) { // Less than 100 bytes is definitely an error
+        error_log("Ticket Report Export: PDF too small, likely an error occurred during generation");
+        throw new Exception("PDF generation failed - generated content too small");
+    }
     
     // Clean any previous output before sending PDF headers
     ob_end_clean();
@@ -256,8 +305,35 @@ try {
     // Output PDF
     $pdf_filename = 'ticket_report_' . date('Y-m-d_H-i-s') . '.pdf';
     error_log("Ticket Report Export: Attempting to output PDF as: $pdf_filename");
-    $pdf->Output($pdf_filename, 'D'); // 'D' forces download
+    // Clean up temporary images before sending PDF
+    if (!empty($before_image_path) || !empty($after_image_path)) {
+        // Delete the temporary image files
+        if (!empty($before_image_path) && file_exists($before_image_path)) {
+            unlink($before_image_path);
+        }
+        if (!empty($after_image_path) && file_exists($after_image_path)) {
+            unlink($after_image_path);
+        }
+        
+        // Try to remove the temporary directory if it's empty
+        $full_temp_dir = dirname(__DIR__, 2) . '/' . $temp_upload_dir;
+        if (is_dir($full_temp_dir)) {
+            // Check if directory is empty
+            $files = scandir($full_temp_dir);
+            if (count($files) <= 2) { // Only contains . and ..
+                rmdir($full_temp_dir);
+            }
+        }
+    }
     
+    // Send the already generated PDF content
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . $pdf_filename . '"');
+    header('Cache-Control: private, must-revalidate, max-age=0');
+    header('Pragma: public');
+    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+    echo $pdf_content;
+    exit;
 } catch (Exception $e) {
     // Log detailed error information
     error_log("Ticket Report Export ERROR: " . $e->getMessage() . 
@@ -306,6 +382,27 @@ try {
     
     // Clean the output buffer before redirecting
     ob_end_clean();
+    
+    // Clean up temporary images in case of error
+    if (!empty($before_image_path) || !empty($after_image_path)) {
+        // Delete the temporary image files
+        if (!empty($before_image_path) && file_exists($before_image_path)) {
+            unlink($before_image_path);
+        }
+        if (!empty($after_image_path) && file_exists($after_image_path)) {
+            unlink($after_image_path);
+        }
+        
+        // Try to remove the temporary directory if it's empty
+        $full_temp_dir = dirname(__DIR__, 2) . '/' . $temp_upload_dir;
+        if (is_dir($full_temp_dir)) {
+            // Check if directory is empty
+            $files = scandir($full_temp_dir);
+            if (count($files) <= 2) { // Only contains . and ..
+                rmdir($full_temp_dir);
+            }
+        }
+    }
     
     // Redirect to 500 error page
     header('Location: ../errors/500.php');
