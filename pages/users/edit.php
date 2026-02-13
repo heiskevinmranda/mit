@@ -6,6 +6,7 @@ session_start();
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../includes/auth.php';
 require_once __DIR__ . '/../../includes/permissions.php';
+require_once __DIR__ . '/../../includes/routes.php';
 
 if (!isLoggedIn()) {
     header("Location: ../../login.php");
@@ -459,7 +460,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($is_self) {
                 header("Location: ../staff/profile.php");
             } else {
-                header('Location: ' . route('users.view', ['id' => $user_id]));
+                try {
+                    header('Location: ' . route('users.view', ['id' => $user_id]));
+                } catch (Exception $e) {
+                    // Fallback if route function fails
+                    header("Location: view.php?id=" . $user_id);
+                }
             }
             exit();
             
@@ -478,16 +484,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Function to format phone number
 function formatPhone($phone) {
     if (empty($phone)) return '';
-    // Remove all non-numeric characters
-    $numbers = preg_replace('/[^0-9]/', '', $phone);
     
-    // Format based on length
-    if (strlen($numbers) == 10) {
-        return '+1 (' . substr($numbers, 0, 3) . ') ' . substr($numbers, 3, 3) . '-' . substr($numbers, 6, 4);
-    } elseif (strlen($numbers) > 10) {
-        return '+' . substr($numbers, 0, strlen($numbers)-10) . ' (' . substr($numbers, -10, 3) . ') ' . 
-               substr($numbers, -7, 3) . '-' . substr($numbers, -4);
+    // Remove extra whitespace
+    $phone = trim($phone);
+    
+    // If it's already formatted with a country code, keep it as is
+    if (preg_match('/^\+\d/', $phone)) {
+        return $phone;
     }
+    
+    // If it starts with 0, remove the leading 0 and return as-is
+    if (preg_match('/^0\d+$/', $phone)) {
+        return $phone;
+    }
+    
+    // For other cases, just return the original input
     return $phone;
 }
 
@@ -943,6 +954,12 @@ function getOtherStaff($pdo, $current_user_id) {
                 <i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($_SESSION['error']) ?>
             </div>
             <?php unset($_SESSION['error']); endif; ?>
+            
+            <?php if (isset($errors['general'])): ?>
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i> <?= htmlspecialchars($errors['general']) ?>
+            </div>
+            <?php endif; ?>
             
             <!-- Edit Form -->
             <form method="POST" action="?id=<?= htmlspecialchars($user_id) ?>" id="editUserForm">
@@ -1550,28 +1567,18 @@ function getOtherStaff($pdo, $current_user_id) {
             confirmField.addEventListener('input', checkPasswordMatch);
         }
         
-        // Phone number formatting
+        // Phone number formatting - preserve user input format
         const phoneField = document.getElementById('phone');
         if (phoneField) {
             phoneField.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, '');
+                // Don't auto-format - let user enter their preferred format
+                // Just remove any non-phone characters if needed
+                let value = e.target.value;
                 
-                if (value.length > 0) {
-                    if (value.length <= 3) {
-                        value = '+1 (' + value;
-                    } else if (value.length <= 6) {
-                        value = '+1 (' + value.substring(0, 3) + ') ' + value.substring(3);
-                    } else if (value.length <= 10) {
-                        value = '+1 (' + value.substring(0, 3) + ') ' + value.substring(3, 6) + '-' + value.substring(6);
-                    } else {
-                        // For international numbers
-                        const countryCode = value.substring(0, value.length - 10);
-                        const localNumber = value.substring(value.length - 10);
-                        value = '+' + countryCode + ' (' + localNumber.substring(0, 3) + ') ' + 
-                                localNumber.substring(3, 6) + '-' + localNumber.substring(6);
-                    }
-                }
+                // Optional: Remove any characters that aren't numbers, spaces, dashes, parentheses, or +
+                // value = value.replace(/[^0-9\s\-\+\(\)]/g, '');
                 
+                // Keep the value as entered by the user
                 e.target.value = value;
             });
         }
