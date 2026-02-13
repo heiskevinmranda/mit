@@ -54,6 +54,11 @@ function uploadProfilePicture($file, $user_id) {
         // Delete old profile picture if exists
         deleteOldProfilePicture($user_id);
         
+        // Update staff_profiles table with the profile picture path
+        $pdo = getDBConnection();
+        $stmt = $pdo->prepare("UPDATE staff_profiles SET profile_picture = ? WHERE user_id = ?");
+        $stmt->execute([$db_path, $user_id]);
+        
         return [
             'success' => true,
             'message' => 'Profile picture uploaded successfully.',
@@ -72,29 +77,34 @@ function uploadProfilePicture($file, $user_id) {
  * @param string $user_id - User ID
  */
 function deleteOldProfilePicture($user_id) {
-    $pdo = getDBConnection();
-    
-    // Get current profile picture path
-    $stmt = $pdo->prepare("SELECT profile_picture FROM users WHERE id = ?");
-    $stmt->execute([$user_id]);
-    $result = $stmt->fetch();
-    
-    if ($result && !empty($result['profile_picture'])) {
-        $profile_path = $result['profile_picture'];
+    try {
+        $pdo = getDBConnection();
         
-        // Check multiple possible locations
-        $paths_to_check = [
-            $profile_path,
-            'pages/staff/' . $profile_path,
-            $_SERVER['DOCUMENT_ROOT'] . '/mit/' . $profile_path
-        ];
+        // Get current profile picture path from staff_profiles
+        $stmt = $pdo->prepare("SELECT profile_picture FROM staff_profiles WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $result = $stmt->fetch();
         
-        foreach ($paths_to_check as $path) {
-            if (file_exists($path)) {
-                unlink($path);
-                break;
+        if ($result && !empty($result['profile_picture'])) {
+            $profile_path = $result['profile_picture'];
+            
+            // Check multiple possible locations
+            $paths_to_check = [
+                $profile_path,
+                'pages/staff/' . $profile_path,
+                $_SERVER['DOCUMENT_ROOT'] . '/mit/' . $profile_path
+            ];
+            
+            foreach ($paths_to_check as $path) {
+                if (file_exists($path)) {
+                    unlink($path);
+                    break;
+                }
             }
         }
+    } catch (Exception $e) {
+        // Log the error but don't crash the page
+        error_log("Error deleting old profile picture for user $user_id: " . $e->getMessage());
     }
 }
 
@@ -105,39 +115,45 @@ function deleteOldProfilePicture($user_id) {
  * @return string - Profile picture URL or Gravatar fallback
  */
 function getProfilePicture($user_id, $email = '') {
-    $pdo = getDBConnection();
-    
-    // Get profile picture from database
-    $stmt = $pdo->prepare("SELECT profile_picture FROM users WHERE id = ?");
-    $stmt->execute([$user_id]);
-    $result = $stmt->fetch();
-    
-    if ($result && !empty($result['profile_picture'])) {
-        $profile_path = $result['profile_picture'];
+    try {
+        $pdo = getDBConnection();
         
-        // Check if file exists at the stored path
-        if (file_exists($profile_path)) {
-            // Return absolute URL
-            $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
-            return $base_url . '/mit/' . $profile_path . '?v=' . filemtime($profile_path);
-        }
+        // Get profile picture from staff_profiles table
+        $stmt = $pdo->prepare("SELECT profile_picture FROM staff_profiles WHERE user_id = ?");
+        $stmt->execute([$user_id]);
+        $result = $stmt->fetch();
         
-        // Check alternative paths (handle legacy uploads)
-        $alternative_paths = [
-            'pages/staff/' . $profile_path,
-            $_SERVER['DOCUMENT_ROOT'] . '/mit/' . $profile_path
-        ];
-        
-        foreach ($alternative_paths as $alt_path) {
-            if (file_exists($alt_path)) {
-                // Update database with correct path
-                $correct_path = str_replace('pages/staff/', '', $profile_path);
-                updateUserProfilePicture($user_id, $correct_path);
+        if ($result && !empty($result['profile_picture'])) {
+            $profile_path = $result['profile_picture'];
+            
+            // Check if file exists at the stored path
+            if (file_exists($profile_path)) {
                 // Return absolute URL
                 $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
-                return $base_url . '/mit/' . $correct_path . '?v=' . filemtime($alt_path);
+                return $base_url . '/mit/' . $profile_path . '?v=' . filemtime($profile_path);
+            }
+            
+            // Check alternative paths (handle legacy uploads)
+            $alternative_paths = [
+                'pages/staff/' . $profile_path,
+                $_SERVER['DOCUMENT_ROOT'] . '/mit/' . $profile_path
+            ];
+            
+            foreach ($alternative_paths as $alt_path) {
+                if (file_exists($alt_path)) {
+                    // Update database with correct path
+                    $correct_path = str_replace('pages/staff/', '', $profile_path);
+                    updateUserProfilePicture($user_id, $correct_path);
+                    // Return absolute URL
+                    $base_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+                    return $base_url . '/mit/' . $correct_path . '?v=' . filemtime($alt_path);
+                }
             }
         }
+    } catch (Exception $e) {
+        // Log the error but don't crash the page
+        error_log("Error getting profile picture for user $user_id: " . $e->getMessage());
+        // Fall through to default avatar
     }
     
     // Fallback to Gravatar or default avatar
@@ -198,7 +214,7 @@ function getProfilePictureHTML($user_id, $email = '', $size = 'md', $additional_
 function updateUserProfilePicture($user_id, $file_path) {
     try {
         $pdo = getDBConnection();
-        $stmt = $pdo->prepare("UPDATE users SET profile_picture = ? WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE staff_profiles SET profile_picture = ? WHERE user_id = ?");
         return $stmt->execute([$file_path, $user_id]);
     } catch (Exception $e) {
         error_log("Error updating profile picture: " . $e->getMessage());

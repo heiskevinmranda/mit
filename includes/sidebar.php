@@ -1,6 +1,26 @@
 <?php
-require_once 'routes.php';
-require_once 'profile_picture_helper.php';
+// Add error handling for dependencies
+if (!file_exists(__DIR__ . '/routes.php')) {
+    die('Error: routes.php not found in includes directory. Path: ' . __DIR__ . '/routes.php');
+}
+if (!file_exists(__DIR__ . '/profile_picture_helper.php')) {
+    die('Error: profile_picture_helper.php not found in includes directory. Path: ' . __DIR__ . '/profile_picture_helper.php');
+}
+
+require_once __DIR__ . '/routes.php';
+require_once __DIR__ . '/profile_picture_helper.php';
+
+// Verify required functions exist
+if (!function_exists('getCurrentUser')) {
+    die('Error: getCurrentUser() function not found. Check that auth.php is loaded properly.');
+}
+if (!function_exists('route')) {
+    die('Error: route() function not found. Check that routes.php is loaded properly.');
+}
+if (!function_exists('getProfilePictureHTML')) {
+    die('Error: getProfilePictureHTML() function not found. Check that profile_picture_helper.php is loaded properly.');
+}
+
 $current_user = getCurrentUser();
 $user_type = $current_user['user_type'] ?? 'client';
 ?>

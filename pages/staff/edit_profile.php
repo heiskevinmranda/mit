@@ -326,8 +326,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                      on_call_support, username, role_level, system_access, company_laptop_issued,
                                      asset_serial_number, vpn_access, bank_name, account_number, salary_type,
                                      payment_method, employment_status, last_working_day, remarks, staff_signature_data,
-                                     hr_approval_date, hr_manager_id, photo_path, signature_path, documents) 
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                                     hr_approval_date, hr_manager_id) 
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 $staffInsertStmt = $pdo->prepare($staffInsertQuery);
                 $staffInsertStmt->execute([
                     $current_user['id'], $staff_id ?: $generateStaffId(), $full_name, $designation, $department,
@@ -339,7 +339,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $on_call_support, $username, $role_level, $system_access, $company_laptop_issued,
                     $asset_serial_number, $vpn_access, $bank_name, $account_number, $salary_type,
                     $payment_method, $employment_status, $last_working_day, $remarks, null,
-                    $hr_approval_date, $hr_manager_id, null, null, null
+                    $hr_approval_date, $hr_manager_id
                 ]);
             }
 

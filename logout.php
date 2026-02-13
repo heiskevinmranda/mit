@@ -5,6 +5,6 @@ require_once 'includes/auth.php';
 session_destroy();
 
 // Redirect to login page directly instead of using route function to avoid issues after session destruction
-header('Location: https://admin.msp.co.tz/');
+header('Location: https://ahead.msp.co.tz/mit/');
 exit;
 ?>

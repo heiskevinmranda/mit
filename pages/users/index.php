@@ -440,9 +440,12 @@ function getRoleBadge($role) {
                                             </button>
                                             <?php endif; ?>
                                             <?php if ($can_delete_user): ?>
-                                            <a href="<?php echo route('users.delete'); ?>?id=<?= $user['id'] ?>" class="btn btn-danger" title="Delete" onclick="return confirm('Delete this user? This action cannot be undone.')">
+                                            <button type="button" class="btn btn-danger delete-user-btn" 
+                                                    data-id="<?= $user['id'] ?>" 
+                                                    data-email="<?= htmlspecialchars($user['email']) ?>"
+                                                    title="Delete">
                                                 <i class="fas fa-trash"></i>
-                                            </a>
+                                            </button>
                                             <?php else: ?>
                                             <button class="btn btn-danger disabled" title="No permission to delete">
                                                 <i class="fas fa-trash"></i>
@@ -522,6 +525,50 @@ function getRoleBadge($role) {
             </div>
         </main>
     </div>
+
+    <!-- Delete User Modal -->
+    <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Delete User</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="" method="POST" id="deleteUserForm">
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete user <strong id="deleteUserEmail"></strong>?</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Deletion Type</label>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="delete_type" id="archiveOption" value="archive" checked>
+                                <label class="form-check-label" for="archiveOption">
+                                    Archive User (Recommended)
+                                    <small class="d-block text-muted">Deactivate account and preserve data for reporting.</small>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="delete_type" id="deleteOption" value="delete">
+                                <label class="form-check-label" for="deleteOption">
+                                    Permanent Delete
+                                    <small class="d-block text-danger">Irreversible action. Removes all user data.</small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="deleteReason" class="form-label">Reason for Deletion <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="deleteReason" name="reason" rows="3" required placeholder="Please provide a reason..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger">Confirm Deletion</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     
     <!-- Mobile Menu Toggle -->
     <button class="mobile-menu-toggle">
@@ -544,12 +591,30 @@ function getRoleBadge($role) {
             });
         }, 5000);
         
-        // Confirm delete actions
-        document.querySelectorAll('a[data-confirm]').forEach(link => {
-            link.addEventListener('click', function(e) {
-                if (!confirm(this.dataset.confirm)) {
-                    e.preventDefault();
-                }
+        // Delete User Modal Handler
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+            const deleteForm = document.getElementById('deleteUserForm');
+            const userEmailSpan = document.getElementById('deleteUserEmail');
+            
+            document.querySelectorAll('.delete-user-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-id');
+                    const userEmail = this.getAttribute('data-email');
+                    
+                    // Set user email in modal
+                    userEmailSpan.textContent = userEmail;
+                    
+                    // Update form action
+                    // Construct the URL manually to ensure it matches the route pattern
+                    // The .htaccess will handle the rewrite to delete.php?id=...
+                    // Unlikely needed for .htaccess but good practice to clean double slashes if any
+                    // Use a placeholder that we can safely replace
+                    const routeUrl = "<?php echo route('users.delete', ['id' => '__ID__']); ?>";
+                    deleteForm.action = routeUrl.replace('__ID__', userId);
+                    
+                    deleteModal.show();
+                });
             });
         });
     </script>

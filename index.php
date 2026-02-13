@@ -1,6 +1,11 @@
 <?php
 // index.php - Updated with dual login options
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+
 // Define route function for landing page
 function route($name, $params = []) {
     $routes = [

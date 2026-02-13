@@ -1,7 +1,9 @@
 <?php
-// Turn off error reporting to prevent headers already sent issues
-error_reporting(0);
-ini_set('display_errors', 0);
+// TEMPORARY: Enable error reporting for debugging blank sidebar/dashboard issue
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/error.log');
 
 require_once 'includes/auth.php';
 require_once 'includes/routes.php';

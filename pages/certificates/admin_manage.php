@@ -21,33 +21,41 @@ if (!in_array($user_role, ['super_admin', 'admin', 'manager'])) {
     exit();
 }
 
-$pdo = getDBConnection();
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-// Get filter parameters
-$status_filter = $_GET['status'] ?? 'all';
-$user_filter = $_GET['user'] ?? '';
-$search_filter = $_GET['search'] ?? '';
+try {
+    $pdo = getDBConnection();
 
-// Get users for filter dropdown
-$users_stmt = $pdo->query("
-    SELECT u.id, u.email, sp.full_name, u.user_type
-    FROM users u
-    LEFT JOIN staff_profiles sp ON u.id = sp.user_id
-    WHERE u.user_type IN ('admin', 'manager', 'support_tech', 'client')
-    ORDER BY u.email
-");
-$all_users = $users_stmt->fetchAll();
+    // Get filter parameters
+    $status_filter = $_GET['status'] ?? 'all';
+    $user_filter = $_GET['user'] ?? '';
+    $search_filter = $_GET['search'] ?? '';
 
-// Get certificate counts for stats
-$count_stmt = $pdo->query("
-    SELECT 
-        COUNT(*) as total,
-        COUNT(CASE WHEN approval_status = 'pending' THEN 1 END) as pending,
-        COUNT(CASE WHEN approval_status = 'approved' THEN 1 END) as approved,
-        COUNT(CASE WHEN approval_status = 'rejected' THEN 1 END) as rejected
-    FROM certificates
-");
-$counts = $count_stmt->fetch();
+    // Get users for filter dropdown
+    $users_stmt = $pdo->query("
+        SELECT u.id, u.email, sp.full_name, u.user_type
+        FROM users u
+        LEFT JOIN staff_profiles sp ON u.id = sp.user_id
+        WHERE u.user_type IN ('admin', 'manager', 'support_tech', 'client')
+        ORDER BY u.email
+    ");
+    $all_users = $users_stmt->fetchAll();
+
+    // Get certificate counts for stats
+    $count_stmt = $pdo->query("
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN approval_status = 'pending' THEN 1 END) as pending,
+            COUNT(CASE WHEN approval_status = 'approved' THEN 1 END) as approved,
+            COUNT(CASE WHEN approval_status = 'rejected' THEN 1 END) as rejected
+        FROM certificates
+    ");
+    $counts = $count_stmt->fetch();
+} catch (Exception $e) {
+    die("Debug Error: " . $e->getMessage() . "<br>Trace: " . $e->getTraceAsString());
+}
 ?>
 
 <!DOCTYPE html>
