@@ -1,5 +1,6 @@
 <?php
 require_once '../../includes/auth.php';
+require_once '../../includes/routes.php';
 requireLogin();
 
 // Check permission - only admin and managers can import
@@ -706,8 +707,8 @@ function is_uuid($string) {
             <!-- Breadcrumb -->
             <nav aria-label="breadcrumb" class="mb-4">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="../../dashboard.php"><i class="fas fa-home"></i> Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="index.php"><i class="fas fa-server"></i> Assets</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('dashboard'); ?>"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo route('assets.index'); ?>"><i class="fas fa-server"></i> Assets</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Import Assets</li>
                 </ol>
             </nav>
@@ -1132,8 +1133,8 @@ function is_uuid($string) {
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             }
             
-            // Download template
-            function downloadTemplate() {
+            // Download template - defined globally so onclick can access it
+            window.downloadTemplate = function() {
                 const csvContent = "Asset Type,Manufacturer,Model,Serial Number,Asset Tag,IP Address,MAC Address,Purchase Date,Warranty Expiry,AMC Expiry,License Expiry,Status,Client,Location,Assigned To,Notes\n" +
                                  "Firewall,Fortinet,FortiGate 60F,FG60FTK12345678,MSP-FW-001,192.168.1.1,00:1A:2B:3C:4D:5E,2023-01-15,2025-01-15,2024-01-15,2024-12-31,Active,ABC Corporation,Head Office,John Doe (Engineer),Primary firewall for network\n" +
                                  "Switch,Cisco,Catalyst 2960,CAT2960X123456,MSP-SW-001,192.168.1.2,00:1B:2C:3D:4E:5F,2023-02-20,2025-02-20,,,Active,ABC Corporation,Branch Office,Jane Smith (Technician),48-port switch\n" +
@@ -1150,7 +1151,7 @@ function is_uuid($string) {
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
-            }
+            };
             
             // Download error report
             $('#download-errors').on('click', function() {
