@@ -76,49 +76,7 @@ $search = $_GET['search'] ?? '';
 $role_filter = $_GET['role'] ?? '';
 $status_filter = $_GET['status'] ?? '';
 
-// Build query with filters - adjust based on user role
-$query = "SELECT u.id, u.email, u.user_type, u.is_active, u.email_verified, u.two_factor_enabled, u.last_login, u.created_at as user_created_at, u.updated_at as user_updated_at, u.role_id, ur.role_name 
-          FROM users u 
-          LEFT JOIN user_roles ur ON u.role_id = ur.id 
-          WHERE 1=1";
-$params = [];
-
-// Filter by user role permissions
-if ($user_role === 'admin') {
-    // Admin cannot see super_admin users
-    $query .= " AND u.user_type != 'super_admin'";
-} elseif ($user_role === 'manager') {
-    // Manager can only see support_tech and client users
-    $query .= " AND u.user_type IN ('support_tech', 'client')";
-}
-
-if (!empty($search)) {
-    $query .= " AND (LOWER(u.email) LIKE LOWER(?) OR LOWER(u.user_type) LIKE LOWER(?))";
-    $searchTerm = "%$search%";
-    $params[] = $searchTerm;
-    $params[] = $searchTerm;
-}
-
-if (!empty($role_filter)) {
-    $query .= " AND u.user_type = ?";
-    $params[] = $role_filter;
-}
-
-if (!empty($status_filter)) {
-    if ($status_filter === 'active') {
-        $query .= " AND u.is_active = true";
-    } elseif ($status_filter === 'inactive') {
-        $query .= " AND u.is_active = false";
-    }
-}
-
-$query .= " ORDER BY u.created_at DESC LIMIT 100";
-
-$stmt = $pdo->prepare($query);
-$stmt->execute($params);
-$users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Get distinct user types for filter dropdown (filtered by permissions)
+// Get distinct user types for tabs and filters (filtered by permissions)
 $userTypesQuery = "SELECT DISTINCT user_type FROM users WHERE user_type IS NOT NULL";
 if ($user_role === 'admin') {
     $userTypesQuery .= " AND user_type != 'super_admin'";
@@ -129,6 +87,78 @@ $userTypesQuery .= " ORDER BY user_type";
 
 $userTypesStmt = $pdo->query($userTypesQuery);
 $user_types = $userTypesStmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Build query with filters - adjust based on user role
+$usersByRole = [];
+$countsByRole = [];
+
+foreach ($user_types as $type) {
+    $query = "SELECT u.id, u.email, u.user_type, u.is_active, u.email_verified, u.two_factor_enabled, u.last_login, u.created_at as user_created_at, u.updated_at as user_updated_at, u.role_id, ur.role_name 
+              FROM users u 
+              LEFT JOIN user_roles ur ON u.role_id = ur.id 
+              WHERE u.user_type = ?";
+    $params = [$type];
+
+    // Filter by user role permissions
+    if ($user_role === 'admin') {
+        // Admin cannot see super_admin users
+        $query .= " AND u.user_type != 'super_admin'";
+    } elseif ($user_role === 'manager') {
+        // Manager can only see support_tech and client users
+        $query .= " AND u.user_type IN ('support_tech', 'client')";
+    }
+
+    if (!empty($search)) {
+        $query .= " AND (LOWER(u.email) LIKE LOWER(?) OR LOWER(u.user_type) LIKE LOWER(?))";
+        $searchTerm = "%$search%";
+        $params[] = $searchTerm;
+        $params[] = $searchTerm;
+    }
+
+    if (!empty($status_filter)) {
+        if ($status_filter === 'active') {
+            $query .= " AND u.is_active = true";
+        } elseif ($status_filter === 'inactive') {
+            $query .= " AND u.is_active = false";
+        }
+    }
+
+    $query .= " ORDER BY u.created_at DESC LIMIT 100";
+
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    $usersByRole[$type] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Count for each role tab
+    $countQuery = "SELECT COUNT(*) as count FROM users u WHERE u.user_type = ?";
+    $countParams = [$type];
+    
+    if ($user_role === 'admin') {
+        $countQuery .= " AND u.user_type != 'super_admin'";
+    } elseif ($user_role === 'manager') {
+        $countQuery .= " AND u.user_type IN ('support_tech', 'client')";
+    }
+    
+    if (!empty($search)) {
+        $countQuery .= " AND (LOWER(u.email) LIKE LOWER(?) OR LOWER(u.user_type) LIKE LOWER(?))";
+        $searchTerm = "%$search%";
+        $countParams[] = $searchTerm;
+        $countParams[] = $searchTerm;
+    }
+    
+    if (!empty($status_filter)) {
+        if ($status_filter === 'active') {
+            $countQuery .= " AND u.is_active = true";
+        } elseif ($status_filter === 'inactive') {
+            $countQuery .= " AND u.is_active = false";
+        }
+    }
+    
+    $countStmt = $pdo->prepare($countQuery);
+    $countStmt->execute($countParams);
+    $countResult = $countStmt->fetch(PDO::FETCH_ASSOC);
+    $countsByRole[$type] = $countResult['count'];
+}
 
 // Format last login date
 function formatLastLogin($timestamp) {
@@ -286,17 +316,7 @@ function getRoleBadge($role) {
                                        value="<?= htmlspecialchars($search) ?>">
                             </div>
                         </div>
-                        <div class="col-lg-2 col-md-6">
-                            <label class="form-label">Role</label>
-                            <select name="role" class="form-control">
-                                <option value="">All Roles</option>
-                                <?php foreach ($user_types as $type): ?>
-                                <option value="<?= htmlspecialchars($type) ?>" <?= $role_filter === $type ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $type))) ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+
                         <div class="col-lg-2 col-md-6">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-control">
@@ -313,7 +333,7 @@ function getRoleBadge($role) {
                         <div class="col-12 mt-3">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="text-muted">
-                                    Showing <?= count($users) ?> user(s)
+                                    Showing users across all roles
                                 </div>
                                 <a href="index.php" class="btn btn-sm btn-outline-secondary">
                                     <i class="fas fa-undo"></i> Clear
@@ -350,117 +370,197 @@ function getRoleBadge($role) {
             </div>
             <?php endif; ?>
             
-            <!-- Users Table -->
+            <!-- Users Tabs Interface -->
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-list"></i> User List</h5>
                 </div>
                 <div class="card-body">
-                    <?php if (empty($users)): ?>
-                    <div class="text-center py-5">
-                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                        <h4>No users found</h4>
-                        <p class="text-muted"><?= !empty($search) ? 'Try a different search term' : 'Add your first user to get started' ?></p>
-                        <?php if ($can_create): ?>
-                        <a href="<?php echo route('users.create'); ?>" class="btn btn-primary mt-2">
-                            <i class="fas fa-plus"></i> Add First User
-                        </a>
+                    <!-- Role Tabs -->
+                    <ul class="nav nav-tabs" id="roleTabs" role="tablist">
+                        <?php foreach ($user_types as $index => $type): 
+                            $isActive = ($index === 0 && empty($role_filter)) || $role_filter === $type; 
+                        ?>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link <?= $isActive ? 'active' : '' ?>" 
+                                    id="<?= $type ?>-tab" 
+                                    data-bs-toggle="tab" 
+                                    data-bs-target="#<?= $type ?>-pane" 
+                                    type="button" 
+                                    role="tab" 
+                                    aria-controls="<?= $type ?>-pane" 
+                                    aria-selected="<?= $isActive ? 'true' : 'false' ?>">
+                                <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $type))) ?> 
+                                <span class="badge bg-secondary ms-1"><?= $countsByRole[$type] ?></span>
+                            </button>
+                        </li>
+                        <?php endforeach; ?>
+                        <?php if (empty($user_types)): // Show all tab when no specific roles exist ?>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" 
+                                    id="all-tab" 
+                                    data-bs-toggle="tab" 
+                                    data-bs-target="#all-pane" 
+                                    type="button" 
+                                    role="tab" 
+                                    aria-controls="all-pane" 
+                                    aria-selected="true">
+                                All Users
+                            </button>
+                        </li>
+                        <?php endif; ?>
+                    </ul>
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="roleTabContent">
+                        <?php foreach ($user_types as $index => $type): 
+                            $isActive = ($index === 0 && empty($role_filter)) || $role_filter === $type; 
+                        ?>
+                        <div class="tab-pane fade <?= $isActive ? 'show active' : '' ?>" 
+                             id="<?= $type ?>-pane" 
+                             role="tabpanel" 
+                             aria-labelledby="<?= $type ?>-tab">
+                            <?php if (empty($usersByRole[$type])): ?>
+                            <div class="text-center py-5">
+                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                <h4>No <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $type))) ?> users found</h4>
+                                <p class="text-muted">There are currently no users with the role of <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $type))) ?></p>
+                                <?php if ($can_create): ?>
+                                <a href="<?php echo route('users.create'); ?>?role=<?= urlencode($type) ?>" class="btn btn-primary mt-2">
+                                    <i class="fas fa-plus"></i> Add <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $type))) ?> User
+                                </a>
+                                <?php endif; ?>
+                            </div>
+                            <?php else: ?>
+                            <div class="table-responsive mt-3">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 50px;"></th>
+                                            <th>User Details</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Verification</th>
+                                            <th>Last Login</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($usersByRole[$type] as $user): 
+                                            $can_edit_user = canEditUsers($user_role, $user['user_type']);
+                                            $can_delete_user = canDeleteUsers($user_role, $user['user_type']);
+                                        ?>
+                                        <tr>
+                                            <td>
+                                                <?php echo getProfilePictureHTML($user['id'], $user['email'], 'md'); ?>
+                                            </td>
+                                            <td>
+                                                <div class="user-email"><?= htmlspecialchars($user['email']) ?></div>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-calendar"></i> Joined: <?= date('M d, Y', strtotime($user['user_created_at'])) ?>
+                                                </small>
+                                                <?php if ($user['two_factor_enabled']): ?>
+                                                <small class="two-factor-badge">2FA</small>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?= getRoleBadge($user['user_type']) ?>
+                                            </td>
+                                            <td>
+                                                <?php if ($user['is_active']): ?>
+                                                <span class="status-active">Active</span>
+                                                <?php else: ?>
+                                                <span class="status-inactive">Inactive</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if ($user['email_verified']): ?>
+                                                <span class="verified-badge">
+                                                    <i class="fas fa-check-circle"></i> Verified
+                                                </span>
+                                                <?php else: ?>
+                                                <span class="unverified-badge">
+                                                    <i class="fas fa-exclamation-circle"></i> Unverified
+                                                </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    <?= formatLastLogin($user['last_login']) ?>
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="<?php echo route('users.view', ['id' => $user['id']]); ?>" class="btn btn-info" title="View">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <?php if ($can_edit_user): ?>
+                                                    <a href="<?php echo route('users.edit', ['id' => $user['id']]); ?>" class="btn btn-warning" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <?php else: ?>
+                                                    <button class="btn btn-warning disabled" title="No permission to edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <?php endif; ?>
+                                                    <?php if ($can_delete_user): ?>
+                                                    <button type="button" class="btn btn-danger delete-user-btn" 
+                                                            data-id="<?= $user['id'] ?>" 
+                                                            data-email="<?= htmlspecialchars($user['email']) ?>"
+                                                            title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                    <?php else: ?>
+                                                    <button class="btn btn-danger disabled" title="No permission to delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
+                        
+                        <?php if (empty($user_types)): // Show content for all users when no specific roles exist ?>
+                        <div class="tab-pane fade show active" 
+                             id="all-pane" 
+                             role="tabpanel" 
+                             aria-labelledby="all-tab">
+                            <div class="text-center py-5">
+                                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                                <h4>No users found</h4>
+                                <p class="text-muted">There are currently no users in the system</p>
+                                <?php if ($can_create): ?>
+                                <a href="<?php echo route('users.create'); ?>" class="btn btn-primary mt-2">
+                                    <i class="fas fa-plus"></i> Add First User
+                                </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
                         <?php endif; ?>
                     </div>
-                    <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px;"></th>
-                                    <th>User Details</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Verification</th>
-                                    <th>Last Login</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($users as $user): 
-                                    $can_edit_user = canEditUsers($user_role, $user['user_type']);
-                                    $can_delete_user = canDeleteUsers($user_role, $user['user_type']);
-                                ?>
-                                <tr>
-                                    <td>
-                                        <?php echo getProfilePictureHTML($user['id'], $user['email'], 'md'); ?>
-                                    </td>
-                                    <td>
-                                        <div class="user-email"><?= htmlspecialchars($user['email']) ?></div>
-                                        <small class="text-muted">
-                                            <i class="fas fa-calendar"></i> Joined: <?= date('M d, Y', strtotime($user['user_created_at'])) ?>
-                                        </small>
-                                        <?php if ($user['two_factor_enabled']): ?>
-                                        <small class="two-factor-badge">2FA</small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?= getRoleBadge($user['user_type']) ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($user['is_active']): ?>
-                                        <span class="status-active">Active</span>
-                                        <?php else: ?>
-                                        <span class="status-inactive">Inactive</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($user['email_verified']): ?>
-                                        <span class="verified-badge">
-                                            <i class="fas fa-check-circle"></i> Verified
-                                        </span>
-                                        <?php else: ?>
-                                        <span class="unverified-badge">
-                                            <i class="fas fa-exclamation-circle"></i> Unverified
-                                        </span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            <?= formatLastLogin($user['last_login']) ?>
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <a href="<?php echo route('users.view', ['id' => $user['id']]); ?>" class="btn btn-info" title="View">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <?php if ($can_edit_user): ?>
-                                            <a href="<?php echo route('users.edit', ['id' => $user['id']]); ?>" class="btn btn-warning" title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <?php else: ?>
-                                            <button class="btn btn-warning disabled" title="No permission to edit">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <?php endif; ?>
-                                            <?php if ($can_delete_user): ?>
-                                            <button type="button" class="btn btn-danger delete-user-btn" 
-                                                    data-id="<?= $user['id'] ?>" 
-                                                    data-email="<?= htmlspecialchars($user['email']) ?>"
-                                                    title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                            <?php else: ?>
-                                            <button class="btn btn-danger disabled" title="No permission to delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php endif; ?>
                 </div>
             </div>
+            
+            <?php
+            // Calculate total stats across all roles
+            $total_users = 0;
+            $total_active_users = 0;
+            $total_verified_users = 0;
+            $total_2fa_users = 0;
+            
+            foreach ($usersByRole as $role_users) {
+                $total_users += count($role_users);
+                $total_active_users += count(array_filter($role_users, fn($u) => $u['is_active']));
+                $total_verified_users += count(array_filter($role_users, fn($u) => $u['email_verified']));
+                $total_2fa_users += count(array_filter($role_users, fn($u) => $u['two_factor_enabled']));
+            }
+            ?>
             
             <!-- Quick Stats -->
             <div class="row mt-4">
@@ -470,7 +570,7 @@ function getRoleBadge($role) {
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="mb-0">Total Users</h6>
-                                    <h2 class="mb-0"><?= count($users) ?></h2>
+                                    <h2 class="mb-0"><?= $total_users ?></h2>
                                 </div>
                                 <i class="fas fa-users fa-2x opacity-50"></i>
                             </div>
@@ -484,7 +584,7 @@ function getRoleBadge($role) {
                                 <div>
                                     <h6 class="mb-0">Active Users</h6>
                                     <h2 class="mb-0">
-                                        <?= count(array_filter($users, fn($u) => $u['is_active'])) ?>
+                                        <?= $total_active_users ?>
                                     </h2>
                                 </div>
                                 <i class="fas fa-user-check fa-2x opacity-50"></i>
@@ -499,7 +599,7 @@ function getRoleBadge($role) {
                                 <div>
                                     <h6 class="mb-0">Verified Users</h6>
                                     <h2 class="mb-0">
-                                        <?= count(array_filter($users, fn($u) => $u['email_verified'])) ?>
+                                        <?= $total_verified_users ?>
                                     </h2>
                                 </div>
                                 <i class="fas fa-check-circle fa-2x opacity-50"></i>
@@ -514,7 +614,7 @@ function getRoleBadge($role) {
                                 <div>
                                     <h6 class="mb-0">2FA Enabled</h6>
                                     <h2 class="mb-0">
-                                        <?= count(array_filter($users, fn($u) => $u['two_factor_enabled'])) ?>
+                                        <?= $total_2fa_users ?>
                                     </h2>
                                 </div>
                                 <i class="fas fa-shield-alt fa-2x opacity-50"></i>
